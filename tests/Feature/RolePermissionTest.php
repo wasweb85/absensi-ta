@@ -193,4 +193,46 @@ class RolePermissionTest extends TestCase
         ]);
         $resBendahara->assertStatus(403);
     }
+
+    public function test_admin_can_manage_users_and_assign_roles(): void
+    {
+        // 1. Admin lists staff users -> 200
+        $resList = $this->actingAs($this->admin, 'sanctum')->getJson('/api/users');
+        $resList->assertStatus(200)
+            ->assertJsonStructure(['success', 'data']);
+
+        // 2. Admin creates a new Bendahara assigned to Jilid 1 -> 201
+        $resCreate = $this->actingAs($this->admin, 'sanctum')->postJson('/api/users', [
+            'name' => 'Ustadzah Baru',
+            'username' => 'ustadzah_baru',
+            'email' => 'baru@sekolah.id',
+            'password' => 'secret123',
+            'role' => 'bendahara',
+            'id_kelas' => $this->kelas->id,
+        ]);
+        $resCreate->assertStatus(201)
+            ->assertJsonPath('data.role', 'bendahara')
+            ->assertJsonPath('data.id_kelas', $this->kelas->id);
+
+        $newUserId = $resCreate->json('data.id');
+
+        // 3. Admin updates role to Sekretaris
+        $resUpdate = $this->actingAs($this->admin, 'sanctum')->putJson("/api/users/{$newUserId}", [
+            'name' => 'Ustadzah Baru Update',
+            'username' => 'ustadzah_baru',
+            'role' => 'sekretaris',
+            'id_kelas' => $this->kelas->id,
+        ]);
+        $resUpdate->assertStatus(200)
+            ->assertJsonPath('data.role', 'sekretaris');
+
+        // 4. Non-admin (Guru) cannot create or update users (403)
+        $resNonAdmin = $this->actingAs($this->guru, 'sanctum')->postJson('/api/users', [
+            'name' => 'Hacker',
+            'username' => 'hacker',
+            'password' => '123456',
+            'role' => 'admin',
+        ]);
+        $resNonAdmin->assertStatus(403);
+    }
 }

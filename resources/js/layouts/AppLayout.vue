@@ -222,6 +222,16 @@
           </p>
           <div class="space-y-1">
             <router-link
+              to="/guru"
+              @click="mobileMenuOpen = false"
+              class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition"
+              :class="isActive('/guru') ? 'bg-emerald-600 text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'"
+            >
+              <span class="text-base">👥</span>
+              <span>Data Guru & Pengurus</span>
+            </router-link>
+
+            <router-link
               to="/kelas"
               @click="mobileMenuOpen = false"
               class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition"

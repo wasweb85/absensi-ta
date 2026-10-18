@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiswaController;
 use App\Http\Controllers\Api\SppController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
 use Illuminate\Support\Facades\Route;
 
@@ -92,9 +93,12 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Pengaturan Sistem (Khusus Admin)
-    Route::prefix('pengaturan')->middleware('role:admin')->group(function () {
-        Route::get('/', [SettingController::class, 'getSettings']);
-        Route::post('/', [SettingController::class, 'updateSettings']);
+    // Pengaturan Sistem & Manajemen Pengguna (Khusus Admin)
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('users', UserController::class);
+        Route::prefix('pengaturan')->group(function () {
+            Route::get('/', [SettingController::class, 'getSettings']);
+            Route::post('/', [SettingController::class, 'updateSettings']);
+        });
     });
 });

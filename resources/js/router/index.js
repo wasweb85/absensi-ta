@@ -19,6 +19,7 @@ import PengingatWaView from '../views/spp/PengingatWaView.vue';
 import RiwayatSppView from '../views/spp/RiwayatSppView.vue';
 
 // Views Master
+import GuruView from '../views/master/GuruView.vue';
 import KelasView from '../views/master/KelasView.vue';
 import PengaturanView from '../views/master/PengaturanView.vue';
 
@@ -113,6 +114,12 @@ const routes = [
                 meta: { title: 'Riwayat Transaksi SPP', roles: ['admin', 'bendahara', 'kepala'] },
             },
             // Master & Pengaturan
+            {
+                path: 'guru',
+                name: 'guru',
+                component: GuruView,
+                meta: { title: 'Manajemen Guru & Pengurus', roles: ['admin'] },
+            },
             {
                 path: 'kelas',
                 name: 'kelas',
