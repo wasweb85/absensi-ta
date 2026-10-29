@@ -127,13 +127,23 @@
             </TableRow>
           </TableHeader>
           <TableBody class="font-mono">
-            <TableRow v-if="matrixData.length === 0">
+            <TableRow v-if="isLoading">
+              <TableCell :colspan="daysInMonth + 9" class="h-36 text-center text-muted-foreground font-sans text-xs">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <LoaderCircle class="size-6 animate-spin text-primary" />
+                  <span>Memuat data rekapitulasi presensi...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <TableRow v-else-if="matrixData.length === 0">
               <TableCell :colspan="daysInMonth + 9" class="h-32 text-center text-muted-foreground font-sans text-xs">
                 Tidak ada data rekap untuk periode ini.
               </TableCell>
             </TableRow>
 
             <TableRow
+              v-else
               v-for="(row, idx) in matrixData"
               :key="row.id_siswa"
               class="transition-colors hover:bg-muted/40"
@@ -208,6 +218,7 @@ import { ref, computed, onMounted } from 'vue';
 import {
   Printer,
   Download,
+  LoaderCircle,
 } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -230,6 +241,7 @@ const { user, role } = useAuth();
 
 const canFilterAllKelas = computed(() => ['admin', 'kepala', 'sekretaris'].includes(role.value));
 
+const isLoading = ref(true);
 const selectedBulan = ref(new Date().getMonth() + 1);
 const selectedTahun = ref(new Date().getFullYear());
 const selectedKelas = ref(user.value?.id_kelas || '');
@@ -245,14 +257,20 @@ const bulanList = {
 
 const loadKelas = async () => {
   try {
+    const cached = sessionStorage.getItem('cached_kelas_list');
+    if (cached) {
+      kelasList.value = JSON.parse(cached);
+    }
     const res = await api.get('/kelas');
     if (res.data.success) {
       kelasList.value = res.data.data;
+      sessionStorage.setItem('cached_kelas_list', JSON.stringify(res.data.data));
     }
   } catch (e) {}
 };
 
 const loadMatrix = async () => {
+  isLoading.value = true;
   try {
     const params = {
       bulan: selectedBulan.value,
@@ -276,6 +294,8 @@ const loadMatrix = async () => {
     }
   } catch (e) {
     toast.error('Gagal memuat rekap matrix absensi.');
+  } finally {
+    isLoading.value = false;
   }
 };
 

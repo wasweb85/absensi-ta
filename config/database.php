@@ -61,7 +61,9 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', (env('DB_SSL', false) || str_contains((string) env('DB_HOST', ''), 'tidbcloud.com')) && file_exists(base_path('database/cacert.pem')) ? base_path('database/cacert.pem') : null),
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT', false),
-            ]) : [],
+                PDO::ATTR_EMULATE_PREPARES => true,
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', str_contains((string) env('DB_HOST', ''), 'tidbcloud.com')),
+            ], fn ($v) => $v !== null) : [],
         ],
 
         'mariadb' => [
@@ -82,7 +84,9 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', (env('DB_SSL', false) || str_contains((string) env('DB_HOST', ''), 'tidbcloud.com')) && file_exists(base_path('database/cacert.pem')) ? base_path('database/cacert.pem') : null),
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT', false),
-            ]) : [],
+                PDO::ATTR_EMULATE_PREPARES => true,
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', str_contains((string) env('DB_HOST', ''), 'tidbcloud.com')),
+            ], fn ($v) => $v !== null) : [],
         ],
 
         'pgsql' => [

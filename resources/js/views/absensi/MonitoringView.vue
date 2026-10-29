@@ -104,13 +104,23 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-if="filteredStudents.length === 0">
+            <TableRow v-if="loading">
+              <TableCell colspan="6" class="h-36 text-center text-muted-foreground text-xs">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <LoaderCircle class="size-6 animate-spin text-primary" />
+                  <span>Memuat data presensi santri...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <TableRow v-else-if="filteredStudents.length === 0">
               <TableCell colspan="6" class="h-32 text-center text-muted-foreground text-xs">
                 Tidak ada data santri yang cocok dengan kriteria filter.
               </TableCell>
             </TableRow>
 
             <TableRow
+              v-else
               v-for="(s, idx) in filteredStudents"
               :key="s.id_siswa"
               class="transition-colors hover:bg-muted/40 border-b border-border/50"
@@ -306,7 +316,7 @@ import { useToast } from '@/composables/useToast';
 const toast = useToast();
 const { user, canEditAbsensi, canScanQr } = useAuth();
 
-const loading = ref(false);
+const loading = ref(true);
 const filterDate = ref(new Date().toISOString().split('T')[0]);
 const selectedKelas = ref(user.value?.id_kelas ? user.value.id_kelas : '');
 const searchQuery = ref('');
@@ -487,9 +497,14 @@ const saveModalCatatan = async () => {
 
 const loadKelas = async () => {
   try {
+    const cached = sessionStorage.getItem('cached_kelas_list');
+    if (cached) {
+      kelasList.value = JSON.parse(cached);
+    }
     const res = await api.get('/kelas');
     if (res.data.success) {
       kelasList.value = res.data.data;
+      sessionStorage.setItem('cached_kelas_list', JSON.stringify(res.data.data));
     }
   } catch (e) {}
 };

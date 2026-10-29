@@ -90,7 +90,7 @@
                 type="text"
                 placeholder="Ketik nama atau NISN..."
                 class="h-9 pl-9 text-xs"
-                @input="loadSiswa"
+                @input="onSearchInput"
               />
             </div>
           </div>
@@ -115,13 +115,23 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-if="siswaList.length === 0">
+            <TableRow v-if="isLoading">
+              <TableCell colspan="8" class="h-36 text-center text-muted-foreground text-xs">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <LoaderCircle class="size-6 animate-spin text-primary" />
+                  <span>Memuat data santri...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <TableRow v-else-if="siswaList.length === 0">
               <TableCell colspan="8" class="h-32 text-center text-muted-foreground text-xs">
                 Tidak ada data santri yang ditemukan.
               </TableCell>
             </TableRow>
 
             <TableRow
+              v-else
               v-for="(s, idx) in siswaList"
               :key="s.id"
               class="transition-colors hover:bg-muted/40"
@@ -446,6 +456,7 @@ import {
   Pencil,
   Trash2,
   Printer,
+  LoaderCircle,
 } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -475,11 +486,13 @@ import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
 
+const isLoading = ref(true);
 const siswaList = ref([]);
 const kelasList = ref([]);
 const filterKelas = ref('');
 const filterStatus = ref('');
 const search = ref('');
+let searchDebounceTimer = null;
 
 const showFormModal = ref(false);
 const isEditing = ref(false);
@@ -502,14 +515,20 @@ const form = ref({
 
 const loadKelas = async () => {
   try {
+    const cached = sessionStorage.getItem('cached_kelas_list');
+    if (cached) {
+      kelasList.value = JSON.parse(cached);
+    }
     const res = await api.get('/kelas');
     if (res.data.success) {
       kelasList.value = res.data.data;
+      sessionStorage.setItem('cached_kelas_list', JSON.stringify(res.data.data));
     }
   } catch (e) {}
 };
 
 const loadSiswa = async () => {
+  isLoading.value = true;
   try {
     const params = {};
     if (filterKelas.value) params.id_kelas = filterKelas.value;
@@ -522,7 +541,16 @@ const loadSiswa = async () => {
     }
   } catch (e) {
     toast.error('Gagal memuat data santri.');
+  } finally {
+    isLoading.value = false;
   }
+};
+
+const onSearchInput = () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    loadSiswa();
+  }, 300);
 };
 
 const openAddModal = () => {

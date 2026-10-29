@@ -90,7 +90,7 @@
                 type="text"
                 placeholder="Ketik nama atau username..."
                 class="h-9 pl-9 text-xs"
-                @input="loadUsers"
+                @input="onSearchInput"
               />
             </div>
           </div>
@@ -376,8 +376,9 @@ const { user: currentUser, canManageGuru } = useAuth();
 
 const usersList = ref([]);
 const kelasList = ref([]);
-const isLoading = ref(false);
+const isLoading = ref(true);
 const isSaving = ref(false);
+let searchDebounceTimer = null;
 
 const totalPengajarCount = computed(() => {
   return usersList.value.filter(u => u.role === 'guru' || u.id_kelas).length;
@@ -435,8 +436,13 @@ function getRoleBadgeVariant(r) {
 
 async function loadKelas() {
   try {
+    const cached = sessionStorage.getItem('cached_kelas_list');
+    if (cached) {
+      kelasList.value = JSON.parse(cached);
+    }
     const res = await api.get('/kelas');
     kelasList.value = res.data.data || [];
+    sessionStorage.setItem('cached_kelas_list', JSON.stringify(kelasList.value));
   } catch (err) {
     console.error(err);
   }
@@ -457,6 +463,13 @@ async function loadUsers() {
   } finally {
     isLoading.value = false;
   }
+}
+
+function onSearchInput() {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    loadUsers();
+  }, 300);
 }
 
 function openAddModal() {

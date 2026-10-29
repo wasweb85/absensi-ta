@@ -246,7 +246,7 @@ import { useToast } from '@/composables/useToast';
 const toast = useToast();
 
 const kelasList = ref([]);
-const isLoading = ref(false);
+const isLoading = ref(true);
 const isSaving = ref(false);
 
 const showModal = ref(false);
@@ -268,6 +268,7 @@ async function loadKelas() {
   try {
     const res = await api.get('/kelas');
     kelasList.value = res.data.data || [];
+    sessionStorage.setItem('cached_kelas_list', JSON.stringify(kelasList.value));
   } catch (err) {
     toast.error('Gagal memuat data kelas.');
   } finally {
