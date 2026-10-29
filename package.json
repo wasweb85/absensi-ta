@@ -3,8 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build && node -e \"const fs = require('fs'); fs.cpSync('public', 'dist', { recursive: true });\"",
-        "vercel-build": "composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction && vite build && node -e \"const fs = require('fs'); fs.cpSync('public', 'dist', { recursive: true });\"",
+        "build": "vite build",
+        "vercel-build": "vite build",
         "dev": "vite",
         "test:e2e": "playwright test"
     },
