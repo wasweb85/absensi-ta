@@ -26,7 +26,6 @@ class ApiBackendTest extends TestCase
 
         $this->kelas = Kelas::create([
             'nama_kelas' => 'JILID 1',
-            'nominal_spp' => 50000,
             'urutan' => 1,
             'warna_label' => '#f44336',
         ]);
@@ -37,6 +36,7 @@ class ApiBackendTest extends TestCase
             'jenis_kelamin' => 'L',
             'id_kelas' => $this->kelas->id,
             'status' => 'aktif',
+            'no_hp_ortu' => '081234567890',
         ]);
 
         $this->admin = User::create([
@@ -118,74 +118,17 @@ class ApiBackendTest extends TestCase
             ]);
     }
 
-    public function test_spp_generate_tagihan_and_bayar(): void
+    public function test_wa_preview_presensi_and_custom(): void
     {
-        // 1. Generate tagihan
-        $genResponse = $this->actingAs($this->admin, 'sanctum')->postJson('/api/spp/generate-tagihan', [
-            'bulan' => 10,
-            'tahun' => 2026,
-        ]);
-        $genResponse->assertStatus(200);
+        // 1. Preview notifikasi presensi
+        $presensiRes = $this->actingAs($this->admin, 'sanctum')->getJson('/api/wa/preview?type=presensi&id_siswa='.$this->siswa->id);
+        $presensiRes->assertStatus(200)
+            ->assertJsonStructure(['success', 'message', 'wa_me_link']);
 
-        // 2. Cek tunggakan santri
-        $tunggakanResponse = $this->actingAs($this->admin, 'sanctum')->getJson("/api/spp/santri/{$this->siswa->id}/tunggakan");
-        $tunggakanResponse->assertStatus(200);
-
-        $daftarTunggakan = $tunggakanResponse->json('data.daftar_tunggakan');
-        $this->assertNotEmpty($daftarTunggakan);
-
-        $idTagihan = $daftarTunggakan[0]['id_tagihan'];
-        $nominal = $daftarTunggakan[0]['sisa'];
-
-        // 3. Proses bayar
-        $bayarResponse = $this->actingAs($this->admin, 'sanctum')->postJson('/api/spp/bayar', [
-            'id_tagihan' => $idTagihan,
-            'jumlah_bayar' => $nominal,
-            'metode_pembayaran' => 'Tunai',
-        ]);
-
-        $bayarResponse->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'kuitansi' => [
-                    'status_tagihan' => 'lunas',
-                ],
-            ]);
-    }
-
-    public function test_spp_input_cepat_batch(): void
-    {
-        $response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/spp/input-cepat', [
-            'bulan' => 11,
-            'tahun' => 2026,
-            'items' => [
-                [
-                    'id_siswa' => $this->siswa->id,
-                    'nominal' => 50000,
-                    'metode' => 'Tunai',
-                ],
-            ],
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ]);
-
-        $this->assertCount(1, $response->json('kuitansi_list'));
-    }
-
-    public function test_wa_preview_japri_and_grup(): void
-    {
-        // 1. Japri
-        $japriRes = $this->actingAs($this->admin, 'sanctum')->getJson('/api/wa/preview?type=japri&id_siswa='.$this->siswa->id);
-        $japriRes->assertStatus(200)
-            ->assertJsonStructure(['success', 'message']);
-
-        // 2. Grup
-        $grupRes = $this->actingAs($this->admin, 'sanctum')->getJson('/api/wa/preview?type=grup&id_kelas='.$this->kelas->id);
-        $grupRes->assertStatus(200)
-            ->assertJsonStructure(['success', 'message']);
+        // 2. Preview kustom
+        $customRes = $this->actingAs($this->admin, 'sanctum')->getJson('/api/wa/preview?message=Pengumuman&phone=081234567890');
+        $customRes->assertStatus(200)
+            ->assertJsonStructure(['success', 'message', 'wa_me_link']);
     }
 
     public function test_settings_get_and_update(): void
@@ -209,7 +152,6 @@ class ApiBackendTest extends TestCase
         // Create
         $createRes = $this->actingAs($this->admin, 'sanctum')->postJson('/api/kelas', [
             'nama_kelas' => 'JILID 2',
-            'nominal_spp' => 55000,
             'wali_kelas' => 'Ustadzah Aisyah',
             'urutan' => 2,
         ]);
@@ -219,7 +161,6 @@ class ApiBackendTest extends TestCase
         // Update
         $updateRes = $this->actingAs($this->admin, 'sanctum')->putJson('/api/kelas/'.$newId, [
             'nama_kelas' => 'JILID 2A',
-            'nominal_spp' => 60000,
             'urutan' => 2,
         ]);
         $updateRes->assertStatus(200)

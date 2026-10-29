@@ -26,20 +26,58 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role' => 'admin',
+            'id_kelas' => null,
+            'nisn' => null,
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role' => 'admin',
+        ]);
+    }
+
+    public function bendahara(): static
+    {
+        return $this->state(fn () => [
+            'role' => 'bendahara',
+        ]);
+    }
+
+    public function guru(?int $idKelas = null): static
+    {
+        return $this->state(fn () => [
+            'role' => 'guru',
+            'id_kelas' => $idKelas,
+        ]);
+    }
+
+    public function kepala(): static
+    {
+        return $this->state(fn () => [
+            'role' => 'kepala',
+        ]);
+    }
+
+    public function siswa(?string $nisn = null): static
+    {
+        return $this->state(fn () => [
+            'role' => 'siswa',
+            'nisn' => $nisn,
         ]);
     }
 }

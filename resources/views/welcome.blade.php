@@ -6,12 +6,23 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+        <script>
+            (function() {
+                var saved = localStorage.getItem('theme');
+                if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            })();
+        </script>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="bg-zinc-100 dark:bg-zinc-950 min-h-screen selection:bg-emerald-500 selection:text-white font-sans antialiased text-zinc-900 dark:text-zinc-100">
+    <body class="bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground font-sans antialiased">
         <div id="app" class="min-h-screen"></div>
     </body>
 </html>

@@ -65,6 +65,11 @@ class UserController extends Controller
 
         // Jika ditugaskan sebagai wali jilid, update wali_kelas di tabel kelas
         if ($user->id_kelas) {
+            User::where('id_kelas', $user->id_kelas)
+                ->where('id', '!=', $user->id)
+                ->whereIn('role', ['guru', 'sekretaris', 'bendahara'])
+                ->update(['id_kelas' => null]);
+
             Kelas::where('id', $user->id_kelas)->update(['wali_kelas' => $user->name]);
         }
 
@@ -114,11 +119,30 @@ class UserController extends Controller
             $validated['id_kelas'] = null;
         }
 
+        $oldKelasId = $user->id_kelas;
         $user->update($validated);
+        $newKelasId = $user->id_kelas;
 
-        // Sinkronisasi wali kelas jika id_kelas terisi
-        if ($user->id_kelas) {
-            Kelas::where('id', $user->id_kelas)->update(['wali_kelas' => $user->name]);
+        // Sinkronisasi kelas lama jika berpindah atau dilepas
+        if ($oldKelasId && (int) $oldKelasId !== (int) $newKelasId) {
+            $otherTeacher = User::where('id_kelas', $oldKelasId)
+                ->where('id', '!=', $user->id)
+                ->whereIn('role', ['guru', 'sekretaris', 'bendahara'])
+                ->first();
+
+            Kelas::where('id', $oldKelasId)->update([
+                'wali_kelas' => $otherTeacher ? $otherTeacher->name : null,
+            ]);
+        }
+
+        // Sinkronisasi kelas baru jika ada
+        if ($newKelasId) {
+            User::where('id_kelas', $newKelasId)
+                ->where('id', '!=', $user->id)
+                ->whereIn('role', ['guru', 'sekretaris', 'bendahara'])
+                ->update(['id_kelas' => null]);
+
+            Kelas::where('id', $newKelasId)->update(['wali_kelas' => $user->name]);
         }
 
         return response()->json([
@@ -141,7 +165,18 @@ class UserController extends Controller
         }
 
         $user = User::findOrFail($id);
+        $kelasId = $user->id_kelas;
         $user->delete();
+
+        if ($kelasId) {
+            $otherTeacher = User::where('id_kelas', $kelasId)
+                ->whereIn('role', ['guru', 'sekretaris', 'bendahara'])
+                ->first();
+
+            Kelas::where('id', $kelasId)->update([
+                'wali_kelas' => $otherTeacher ? $otherTeacher->name : null,
+            ]);
+        }
 
         return response()->json([
             'success' => true,

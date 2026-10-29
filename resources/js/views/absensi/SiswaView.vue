@@ -1,197 +1,244 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+  <div class="space-y-6">
+    <!-- Header Halaman -->
+    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-          <span>🎓</span>
-          <span>Data Santri & Cetak QR Code</span>
-        </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Kelola master data santri terpusat untuk absensi dan keuangan SPP
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold tracking-tight text-foreground">
+            Data Santri
+          </h2>
+          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+            {{ siswaList.length }} Santri
+          </Badge>
+        </div>
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Manajemen data induk santri, wali santri, dan pencetakan kartu presensi QR Code.
         </p>
       </div>
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-2">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 text-xs"
           @click="showImportModal = true"
-          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
         >
-          <span>📥</span>
-          <span>Import CSV/Excel</span>
-        </button>
-        <button
+          <Upload class="size-3.5" />
+          <span>Import CSV</span>
+        </Button>
+        <Button
+          size="sm"
+          class="h-8 gap-1.5 text-xs"
           @click="openAddModal"
-          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
         >
-          <span>➕</span>
+          <Plus class="size-3.5" />
           <span>Tambah Santri</span>
-        </button>
+        </Button>
       </div>
     </div>
 
-    <!-- Filters Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs">
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Filter Jilid / Kelas</label>
-        <select
-          v-model="filterKelas"
-          @change="loadSiswa"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs"
-        >
-          <option value="">Semua Kelas</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-        </select>
-      </div>
+    <!-- Filters Card -->
+    <Card>
+      <CardContent class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Class Filter -->
+          <div class="space-y-1.5">
+            <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
+              Filter Jilid / Kelas
+            </Label>
+            <select
+              id="filterKelas"
+              v-model="filterKelas"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadSiswa"
+            >
+              <option value="">Semua Kelas</option>
+              <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
+            </select>
+          </div>
 
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Status Santri</label>
-        <select
-          v-model="filterStatus"
-          @change="loadSiswa"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs"
-        >
-          <option value="">Semua Status</option>
-          <option value="aktif">Aktif</option>
-          <option value="nonaktif">Nonaktif</option>
-          <option value="lulus">Lulus</option>
-          <option value="pindah">Pindah</option>
-        </select>
-      </div>
+          <!-- Status Filter -->
+          <div class="space-y-1.5">
+            <Label for="filterStatus" class="text-xs font-medium text-muted-foreground">
+              Status Keaktifan
+            </Label>
+            <select
+              id="filterStatus"
+              v-model="filterStatus"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadSiswa"
+            >
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="nonaktif">Nonaktif</option>
+              <option value="lulus">Lulus</option>
+              <option value="pindah">Pindah</option>
+            </select>
+          </div>
 
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Cari Nama / NISN</label>
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Cari santri..."
-          @input="loadSiswa"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs"
-        />
-      </div>
-    </div>
+          <!-- Search Filter -->
+          <div class="space-y-1.5">
+            <Label for="searchSantri" class="text-xs font-medium text-muted-foreground">
+              Cari Nama / NISN
+            </Label>
+            <div class="relative">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="searchSantri"
+                v-model="search"
+                type="text"
+                placeholder="Ketik nama atau NISN..."
+                class="h-9 pl-9 text-xs"
+                @input="loadSiswa"
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+    <!-- Data Table Card -->
+    <Card class="overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-500 font-bold border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase">
-            <tr>
-              <th class="py-3 px-4">No</th>
-              <th class="py-3 px-4">NISN</th>
-              <th class="py-3 px-4">Nama Lengkap</th>
-              <th class="py-3 px-4">L/P</th>
-              <th class="py-3 px-4">Jilid / Kelas</th>
-              <th class="py-3 px-4">Wali & WhatsApp</th>
-              <th class="py-3 px-4">Status</th>
-              <th class="py-3 px-4 text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-200/60 dark:divide-zinc-800">
-            <tr v-if="siswaList.length === 0">
-              <td colspan="8" class="py-8 text-center text-zinc-400">
+        <Table>
+          <TableHeader>
+            <TableRow class="bg-muted/30">
+              <TableHead class="w-12 text-center text-[10px] uppercase">No</TableHead>
+              <TableHead class="text-[10px] uppercase">NISN</TableHead>
+              <TableHead class="text-[10px] uppercase">Nama Lengkap</TableHead>
+              <TableHead class="text-[10px] uppercase text-center">L/P</TableHead>
+              <TableHead class="text-[10px] uppercase">Jilid / Kelas</TableHead>
+              <TableHead class="text-[10px] uppercase">Wali &amp; WhatsApp</TableHead>
+              <TableHead class="text-[10px] uppercase text-center">Status</TableHead>
+              <TableHead class="text-[10px] uppercase text-center">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-if="siswaList.length === 0">
+              <TableCell colspan="8" class="h-32 text-center text-muted-foreground text-xs">
                 Tidak ada data santri yang ditemukan.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
 
-            <tr
+            <TableRow
               v-for="(s, idx) in siswaList"
               :key="s.id"
-              class="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition"
+              class="transition-colors hover:bg-muted/40"
             >
-              <td class="py-3 px-4 text-zinc-400">{{ idx + 1 }}</td>
-              <td class="py-3 px-4 font-mono font-bold text-zinc-900 dark:text-zinc-100">{{ s.nisn }}</td>
-              <td class="py-3 px-4 font-semibold text-zinc-900 dark:text-zinc-100">{{ s.nama_lengkap }}</td>
-              <td class="py-3 px-4 font-bold" :class="s.jenis_kelamin === 'L' ? 'text-blue-600' : 'text-pink-600'">
-                {{ s.jenis_kelamin }}
-              </td>
-              <td class="py-3 px-4">
-                <span
-                  class="px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white"
-                  :style="{ backgroundColor: s.kelas?.warna_label || '#3b82f6' }"
+              <TableCell class="text-center font-mono text-xs text-muted-foreground">{{ idx + 1 }}</TableCell>
+              <TableCell class="font-mono text-xs font-medium text-foreground">{{ s.nisn }}</TableCell>
+              
+              <TableCell>
+                <div class="flex items-center gap-2.5">
+                  <Avatar class="size-7">
+                    <AvatarFallback class="text-[10px] bg-primary/10 text-primary font-semibold">
+                      {{ s.nama_lengkap.charAt(0).toUpperCase() }}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span class="font-medium text-foreground">{{ s.nama_lengkap }}</span>
+                </div>
+              </TableCell>
+
+              <TableCell class="text-center font-medium text-xs">
+                <span :class="s.jenis_kelamin === 'L' ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400'">
+                  {{ s.jenis_kelamin }}
+                </span>
+              </TableCell>
+
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  class="font-medium text-[11px]"
+                  :style="s.kelas?.warna_label ? { borderColor: s.kelas.warna_label, color: s.kelas.warna_label } : {}"
                 >
                   {{ s.kelas?.nama_kelas || '-' }}
-                </span>
-              </td>
-              <td class="py-3 px-4 text-[11px]">
-                <p class="font-medium text-zinc-800 dark:text-zinc-200">{{ s.nama_ortu || '-' }}</p>
-                <p class="text-zinc-400 font-mono">{{ s.no_hp_ortu || '-' }}</p>
-              </td>
-              <td class="py-3 px-4">
-                <span
-                  class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                  :class="{
-                    'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300': s.status === 'aktif',
-                    'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400': s.status !== 'aktif',
-                  }"
+                </Badge>
+              </TableCell>
+
+              <TableCell class="text-xs">
+                <p class="font-medium text-foreground">{{ s.nama_ortu || '-' }}</p>
+                <p class="text-muted-foreground font-mono text-[11px]">{{ s.no_hp_ortu || '-' }}</p>
+              </TableCell>
+
+              <TableCell class="text-center">
+                <Badge
+                  :variant="s.status === 'aktif' ? 'default' : 'secondary'"
+                  class="text-[10px] uppercase font-semibold tracking-wider"
                 >
                   {{ s.status }}
-                </span>
-              </td>
-              <td class="py-3 px-4 text-center">
-                <div class="inline-flex items-center gap-1.5">
-                  <button
-                    @click="showQrCard(s)"
+                </Badge>
+              </TableCell>
+
+              <TableCell class="text-center">
+                <div class="inline-flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-8 text-primary hover:bg-primary/10"
                     title="Cetak Kartu QR"
-                    class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 text-emerald-600 text-xs transition cursor-pointer"
+                    @click="showQrCard(s)"
                   >
-                    🪪 QR
-                  </button>
-                  <button
-                    @click="openEditModal(s)"
+                    <QrCode class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-8 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
                     title="Edit Santri"
-                    class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-600 text-xs transition cursor-pointer"
+                    @click="openEditModal(s)"
                   >
-                    ✏
-                  </button>
-                  <button
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-8 text-destructive hover:bg-destructive/10"
+                    title="Hapus Santri"
                     @click="deleteStudent(s)"
-                    title="Hapus"
-                    class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-600 text-xs transition cursor-pointer"
                   >
-                    🗑
-                  </button>
+                    <Trash2 class="size-3.5" />
+                  </Button>
                 </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
-    </div>
+    </Card>
 
-    <!-- Modal Form Santri (Tambah / Edit) -->
-    <div
-      v-if="showFormModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-    >
-      <div class="w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-bold text-zinc-900 dark:text-white">
+    <!-- Dialog Form Santri (Tambah / Edit) -->
+    <Dialog :open="showFormModal" @update:open="(val) => { showFormModal = val; }">
+      <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold">
             {{ isEditing ? 'Edit Data Santri' : 'Tambah Santri Baru' }}
-          </h3>
-          <button @click="showFormModal = false" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
-        </div>
+          </DialogTitle>
+          <DialogDescription class="text-xs">
+            Lengkapi identitas santri, jilid kelas, dan kontak wali santri untuk notifikasi WA.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form @submit.prevent="saveStudent" class="space-y-3.5 text-xs">
+        <form class="space-y-4 pt-2" @submit.prevent="saveStudent">
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">NISN *</label>
-              <input
+            <div class="space-y-1.5">
+              <Label for="formNisn" class="text-xs font-medium">NISN *</Label>
+              <Input
+                id="formNisn"
                 v-model="form.nisn"
                 type="text"
                 required
                 placeholder="Cth: 1001"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 font-mono text-xs"
               />
             </div>
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Jenis Kelamin *</label>
+            <div class="space-y-1.5">
+              <Label for="formJk" class="text-xs font-medium">Jenis Kelamin *</Label>
               <select
+                id="formJk"
                 v-model="form.jenis_kelamin"
                 required
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="L">Laki-laki (L)</option>
                 <option value="P">Perempuan (P)</option>
@@ -199,35 +246,38 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Nama Lengkap Santri *</label>
-            <input
+          <div class="space-y-1.5">
+            <Label for="formNama" class="text-xs font-medium">Nama Lengkap Santri *</Label>
+            <Input
+              id="formNama"
               v-model="form.nama_lengkap"
               type="text"
               required
               placeholder="Nama lengkap santri..."
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+              class="h-9 text-xs"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Jilid / Kelas *</label>
+            <div class="space-y-1.5">
+              <Label for="formKelas" class="text-xs font-medium">Jilid / Kelas *</Label>
               <select
+                id="formKelas"
                 v-model="form.id_kelas"
                 required
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Pilih Jilid/Kelas</option>
                 <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
               </select>
             </div>
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Status Keaktifan *</label>
+            <div class="space-y-1.5">
+              <Label for="formStatus" class="text-xs font-medium">Status Keaktifan *</Label>
               <select
+                id="formStatus"
                 v-model="form.status"
                 required
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="aktif">Aktif</option>
                 <option value="nonaktif">Nonaktif</option>
@@ -238,137 +288,149 @@
           </div>
 
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Nama Orang Tua / Wali</label>
-              <input
+            <div class="space-y-1.5">
+              <Label for="formOrtu" class="text-xs font-medium">Nama Orang Tua / Wali</Label>
+              <Input
+                id="formOrtu"
                 v-model="form.nama_ortu"
                 type="text"
                 placeholder="Nama ayah/ibu..."
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 text-xs"
               />
             </div>
-            <div>
-              <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">No. WhatsApp Wali</label>
-              <input
+            <div class="space-y-1.5">
+              <Label for="formHpOrtu" class="text-xs font-medium">No. WhatsApp Wali</Label>
+              <Input
+                id="formHpOrtu"
                 v-model="form.no_hp_ortu"
                 type="text"
                 placeholder="Cth: 081234567890"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
+                class="h-9 font-mono text-xs"
               />
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Alamat Rumah</label>
-            <textarea
+          <div class="space-y-1.5">
+            <Label for="formAlamat" class="text-xs font-medium">Alamat Rumah</Label>
+            <Textarea
+              id="formAlamat"
               v-model="form.alamat"
               rows="2"
-              placeholder="Alamat tempat tinggal..."
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-            ></textarea>
+              placeholder="Alamat tempat tinggal santri..."
+              class="text-xs"
+            />
           </div>
 
-          <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
-            <button
+          <DialogFooter class="flex gap-2 sm:justify-end pt-2">
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              class="text-xs"
               @click="showFormModal = false"
-              class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/20 cursor-pointer"
+              size="sm"
+              class="text-xs"
             >
               Simpan Data
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
 
-    <!-- Modal Cetak Kartu QR Santri -->
-    <div
-      v-if="selectedCardStudent"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-    >
-      <div class="w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl animate-slideUp text-center">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-bold text-zinc-900 dark:text-white">Kartu QR Presensi Santri</h3>
-          <button @click="selectedCardStudent = null" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
-        </div>
+    <!-- Dialog Cetak Kartu QR Santri -->
+    <Dialog :open="!!selectedCardStudent" @update:open="(val) => { if (!val) selectedCardStudent = null; }">
+      <DialogContent class="sm:max-w-sm text-center">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold">Kartu Presensi QR</DialogTitle>
+          <DialogDescription class="text-xs">
+            Kartu pengenal santri siap dicetak untuk presensi harian.
+          </DialogDescription>
+        </DialogHeader>
 
-        <!-- The Printable Card -->
-        <div id="printCardArea" class="p-6 rounded-2xl border-2 border-dashed border-emerald-500/50 bg-gradient-to-b from-emerald-50/50 to-white dark:from-zinc-900 dark:to-zinc-900 shadow-md text-center">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">KARTU PRESENSI SANTRI</p>
-          <h4 class="text-base font-extrabold text-zinc-900 dark:text-white mt-1">{{ selectedCardStudent.nama_lengkap }}</h4>
+        <!-- Printable Card Area -->
+        <div id="printCardArea" class="p-6 rounded-2xl border-2 border-dashed border-primary/50 bg-muted/20 my-2 text-center">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-primary">KARTU PRESENSI SANTRI</p>
+          <h4 class="text-base font-bold text-foreground mt-1">{{ selectedCardStudent?.nama_lengkap }}</h4>
           
-          <span
-            class="inline-block px-3 py-0.5 rounded-full text-[10px] font-bold text-white my-2"
-            :style="{ backgroundColor: selectedCardStudent.kelas?.warna_label || '#059669' }"
+          <Badge
+            variant="outline"
+            class="my-2 text-[10px] font-semibold"
+            :style="selectedCardStudent?.kelas?.warna_label ? { borderColor: selectedCardStudent.kelas.warna_label, color: selectedCardStudent.kelas.warna_label } : {}"
           >
-            {{ selectedCardStudent.kelas?.nama_kelas || '-' }}
-          </span>
+            {{ selectedCardStudent?.kelas?.nama_kelas || '-' }}
+          </Badge>
 
-          <!-- QR Canvas Container -->
-          <div class="flex items-center justify-center p-3 my-2 bg-white rounded-xl shadow-inner max-w-[180px] mx-auto border">
+          <!-- QR Canvas -->
+          <div class="flex items-center justify-center p-3 my-2 bg-white rounded-xl shadow-xs max-w-[170px] mx-auto border">
             <canvas ref="qrCanvasRef"></canvas>
           </div>
 
-          <p class="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300">NISN: {{ selectedCardStudent.nisn }}</p>
+          <p class="text-xs font-mono font-bold text-foreground">NISN: {{ selectedCardStudent?.nisn }}</p>
         </div>
 
-        <div class="flex items-center justify-center gap-2 mt-5">
-          <button
+        <DialogFooter class="flex gap-2 sm:justify-center pt-2">
+          <Button
+            size="sm"
+            class="w-full gap-1.5 text-xs"
             @click="printCard"
-            class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🖨</span>
+            <Printer class="size-3.5" />
             <span>Cetak Kartu QR</span>
-          </button>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Dialog Import Massal CSV -->
+    <Dialog :open="showImportModal" @update:open="(val) => { showImportModal = val; }">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold">Import Massal Santri</DialogTitle>
+          <DialogDescription class="text-xs">
+            Tempelkan (paste) data santri berformat CSV (dipisahkan koma atau tab):
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-3 pt-2">
+          <div class="p-2.5 rounded-lg bg-muted text-[11px] font-mono text-muted-foreground">
+            nisn, nama_lengkap, kelas, jenis_kelamin, no_hp_ortu, nama_ortu
+          </div>
+
+          <Textarea
+            v-model="importText"
+            rows="6"
+            placeholder="1001, Ahmad Fauzi, JILID 1, L, 081234567890, Bapak Fauzi&#10;1002, Muhammad Bilal, JILID 1, L, 081234567891, Bapak Bilal"
+            class="font-mono text-xs"
+          />
+
+          <DialogFooter class="flex gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="text-xs"
+              @click="showImportModal = false"
+            >
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              class="text-xs gap-1.5"
+              @click="handleImportSubmit"
+            >
+              <Upload class="size-3.5" />
+              <span>Mulai Import</span>
+            </Button>
+          </DialogFooter>
         </div>
-      </div>
-    </div>
-
-    <!-- Modal Import Massal CSV -->
-    <div
-      v-if="showImportModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-    >
-      <div class="w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl animate-slideUp">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-bold text-zinc-900 dark:text-white">Import Massal Santri</h3>
-          <button @click="showImportModal = false" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
-        </div>
-
-        <p class="text-xs text-zinc-500 mb-3">
-          Paste data santri berformat CSV (pisahkan dengan koma atau tab):<br />
-          Format kolom: <code>nisn, nama_lengkap, kelas, jenis_kelamin, no_hp_ortu, nama_ortu</code>
-        </p>
-
-        <textarea
-          v-model="importText"
-          rows="6"
-          placeholder="1001, Ahmad Fauzi, JILID 1, L, 081234567890, Bapak Fauzi&#10;1002, Muhammad Bilal, JILID 1, L, 081234567891, Bapak Bilal"
-          class="w-full px-3 py-2 font-mono rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        ></textarea>
-
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800 mt-4">
-          <button
-            @click="showImportModal = false"
-            class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold cursor-pointer"
-          >
-            Batal
-          </button>
-          <button
-            @click="handleImportSubmit"
-            class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            Mulai Import
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
 
   </div>
 </template>
@@ -376,8 +438,40 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
 import QRCode from 'qrcode';
-import api from '../../services/api';
-import { useToast } from '../../composables/useToast';
+import {
+  Upload,
+  Plus,
+  Search,
+  QrCode,
+  Pencil,
+  Trash2,
+  Printer,
+} from '@lucide/vue';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import api from '@/services/api';
+import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
 

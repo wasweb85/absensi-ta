@@ -13,7 +13,9 @@ class Agenda extends Model
 
     protected $fillable = [
         'tanggal',
+        'tanggal_selesai',
         'judul',
+        'kategori',
         'keterangan',
     ];
 
@@ -21,6 +23,7 @@ class Agenda extends Model
     {
         return [
             'tanggal' => 'date:Y-m-d',
+            'tanggal_selesai' => 'date:Y-m-d',
         ];
     }
 }

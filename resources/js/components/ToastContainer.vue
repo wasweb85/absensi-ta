@@ -13,10 +13,10 @@
         }"
       >
         <div class="flex items-center gap-3">
-          <span v-if="toast.type === 'success'" class="text-base">✓</span>
-          <span v-else-if="toast.type === 'error'" class="text-base">✕</span>
-          <span v-else-if="toast.type === 'warning'" class="text-base">⚠</span>
-          <span v-else class="text-base">ℹ</span>
+          <BaseIcon v-if="toast.type === 'success'" name="check-circle" class="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <BaseIcon v-else-if="toast.type === 'error'" name="x-circle" class="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />
+          <BaseIcon v-else-if="toast.type === 'warning'" name="alert" class="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <BaseIcon v-else name="info" class="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
           <span class="font-medium leading-snug">{{ toast.message }}</span>
         </div>
         <button

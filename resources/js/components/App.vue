@@ -40,7 +40,7 @@
 
       <!-- Preview -->
       <div v-if="name.trim()" class="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-sm animate-fadeIn">
-        Halo, <span class="font-bold">{{ name }}</span>! Selamat datang di aplikasi Vue 3 Anda 🎉
+        Halo, <span class="font-bold">{{ name }}</span>! Selamat datang di aplikasi terpadu Anda.
       </div>
 
       <!-- Counter Demo -->

@@ -16,11 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Seed Kelas / Jilid (Master Data untuk Absensi & SPP)
+        // 1. Seed Kelas / Jilid (Master Data untuk Absensi)
         $kelasList = [
             [
                 'nama_kelas' => 'JILID 1',
-                'nominal_spp' => 50000,
                 'wali_kelas' => 'Ustadzah Fatimah',
                 'no_hp_wali' => '081234567801',
                 'warna_label' => '#f44336',
@@ -28,7 +27,6 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'nama_kelas' => 'JILID 2',
-                'nominal_spp' => 50000,
                 'wali_kelas' => 'Ustadzah Aisyah',
                 'no_hp_wali' => '081234567802',
                 'warna_label' => '#e91e63',
@@ -36,7 +34,6 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'nama_kelas' => 'JILID 3',
-                'nominal_spp' => 60000,
                 'wali_kelas' => 'Ustadz Abdullah',
                 'no_hp_wali' => '081234567803',
                 'warna_label' => '#f2a93b',
@@ -44,7 +41,6 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'nama_kelas' => 'JILID 4',
-                'nominal_spp' => 60000,
                 'wali_kelas' => 'Ustadz Hasan',
                 'no_hp_wali' => '081234567804',
                 'warna_label' => '#2196f3',
@@ -52,7 +48,6 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'nama_kelas' => 'JILID 5',
-                'nominal_spp' => 75000,
                 'wali_kelas' => 'Ustadz Ali',
                 'no_hp_wali' => '081234567805',
                 'warna_label' => '#4caf50',
@@ -60,7 +55,6 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'nama_kelas' => 'JILID 6',
-                'nominal_spp' => 75000,
                 'wali_kelas' => 'Ustadz Ibrahim',
                 'no_hp_wali' => '081234567806',
                 'warna_label' => '#9c27b0',
@@ -215,7 +209,7 @@ class DatabaseSeeder extends Seeder
 
         // 4. Seed Pengaturan Default
         $settings = [
-            'nama_instansi' => 'Sistem Terpadu Absensi & SPP Santri',
+            'nama_instansi' => 'Sistem Terpadu Presensi & Notifikasi WhatsApp Santri',
             'jam_masuk' => '07:00',
             'jam_terlambat' => '07:15',
             'jam_pulang' => '12:00',

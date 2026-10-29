@@ -1,328 +1,662 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    
-    <!-- Welcome Hero Banner -->
-    <div class="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white shadow-xl shadow-emerald-800/15">
-      <div class="relative z-10 max-w-2xl">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold mb-3">
-          <span>🕌</span>
-          <span>Sistem Informasi Terpadu TPQ & Pesantren</span>
+  <div class="space-y-6">
+    <!-- Header Dashboard -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold tracking-tight text-foreground">Dashboard</h2>
+          <Badge variant="outline" class="font-normal text-muted-foreground text-xs">
+            {{ currentDateFormatted }}
+          </Badge>
         </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
-          Assalamu'alaikum, {{ user?.name || 'Ustadz / Ustadzah' }}!
-        </h2>
-        <p class="text-emerald-100 text-xs sm:text-sm mt-2 leading-relaxed">
-          Semua sistem absensi santri dan administrasi pembayaran SPP terpadu dalam satu basis data. Pantau kehadiran realtime dan kelancaran pembayaran santri secara transparan.
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Monitoring aktivitas presensi santri, data ustadz/ustadzah per jilid, dan layanan notifikasi secara realtime.
         </p>
-
-        <!-- Quick Action Buttons -->
-        <div class="flex flex-wrap items-center gap-2.5 mt-6">
-          <router-link
-            to="/absensi/scanner"
-            class="px-4 py-2.5 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-xs shadow transition flex items-center gap-1.5"
-          >
-            <span>📷</span>
-            <span>Buka Scanner Presensi</span>
-          </router-link>
-
-          <router-link
-            v-if="canManageSpp"
-            to="/spp/transaksi"
-            class="px-4 py-2.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-900 text-white font-bold text-xs border border-white/20 transition flex items-center gap-1.5"
-          >
-            <span>💳</span>
-            <span>Kasir Pembayaran SPP</span>
-          </router-link>
-
-          <router-link
-            to="/absensi/monitoring"
-            class="px-4 py-2.5 rounded-xl bg-emerald-900/40 hover:bg-emerald-900/80 text-emerald-100 font-semibold text-xs border border-white/10 transition flex items-center gap-1.5"
-          >
-            <span>⏱</span>
-            <span>Live Monitoring</span>
-          </router-link>
-        </div>
       </div>
-      
-      <!-- Decorative Backdrop circles -->
-      <div class="absolute -right-10 -bottom-10 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
     </div>
 
-    <!-- Top KPI Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      
-      <!-- Card 1: Kehadiran Hari Ini -->
-      <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
-          ✓
-        </div>
-        <div>
-          <p class="text-[11px] uppercase tracking-wider font-bold text-zinc-400">Presensi Hari Ini</p>
-          <h3 class="text-xl font-extrabold text-zinc-900 dark:text-white mt-0.5">
-            {{ absensiStats.hadir }} / {{ absensiStats.total }} <span class="text-xs font-normal text-zinc-500">Santri</span>
-          </h3>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
-            Terlambat: <span class="font-bold text-amber-600">{{ absensiStats.terlambat }}</span> santri
-          </p>
-        </div>
+    <!-- Skeleton Loading State -->
+    <div v-if="isLoading && !hasDataLoaded" class="space-y-6">
+      <div class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        <Skeleton v-for="i in 4" :key="i" class="h-24 sm:h-28 w-full rounded-xl" />
       </div>
-
-      <!-- Card 2: Izin & Sakit Hari Ini -->
-      <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
-          📋
-        </div>
-        <div>
-          <p class="text-[11px] uppercase tracking-wider font-bold text-zinc-400">Izin & Sakit Hari Ini</p>
-          <h3 class="text-xl font-extrabold text-zinc-900 dark:text-white mt-0.5">
-            {{ absensiStats.izin + absensiStats.sakit }} <span class="text-xs font-normal text-zinc-500">Santri</span>
-          </h3>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
-            Izin: {{ absensiStats.izin }} &bull; Sakit: {{ absensiStats.sakit }} &bull; Alpa: {{ absensiStats.alpa }}
-          </p>
-        </div>
+      <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
+        <Skeleton class="h-72 lg:col-span-5 rounded-xl" />
+        <Skeleton class="h-72 lg:col-span-7 rounded-xl" />
       </div>
-
-      <!-- Card 3: Pemasukan SPP Bulan Ini -->
-      <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center text-xl font-bold">
-          💰
-        </div>
-        <div>
-          <p class="text-[11px] uppercase tracking-wider font-bold text-zinc-400">Pemasukan SPP Bulan Ini</p>
-          <h3 class="text-lg font-extrabold text-zinc-900 dark:text-white mt-0.5">
-            Rp {{ formatRupiah(sppStats.pemasukan_bulan_ini) }}
-          </h3>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
-            Kelunasan: <span class="font-bold text-emerald-600">{{ sppStats.persentase_lunas }}%</span> ({{ sppStats.santri_lunas }} Lunas)
-          </p>
-        </div>
-      </div>
-
-      <!-- Card 4: Tunggakan SPP Aktif -->
-      <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl font-bold">
-          ⚠️
-        </div>
-        <div>
-          <p class="text-[11px] uppercase tracking-wider font-bold text-zinc-400">Total Tunggakan Aktif</p>
-          <h3 class="text-lg font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">
-            Rp {{ formatRupiah(sppStats.total_tunggakan_aktif) }}
-          </h3>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
-            Belum Lunas: <span class="font-bold text-rose-600">{{ sppStats.santri_belum_lunas }}</span> Santri
-          </p>
-        </div>
-      </div>
-
+      <Skeleton class="h-32 w-full rounded-xl" />
     </div>
 
-    <!-- Middle Section: Financial Chart & Attendance Summary -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      
-      <!-- LEFT: Chart Pendapatan SPP 12 Bulan (8 cols) -->
-      <div class="lg:col-span-8 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-              <span>📊</span>
-              <span>Tren Penerimaan SPP Santri Tahun {{ currentYear }}</span>
-            </h3>
-            <p class="text-xs text-zinc-500 mt-0.5">Grafik total nominal kas pembayaran SPP per bulan</p>
-          </div>
-          <span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-            Realtime
-          </span>
-        </div>
+    <!-- Main Content -->
+    <div v-else class="space-y-4 sm:space-y-6">
+      <!-- Top Metric Cards (Grid 2 Kolom di Mobile) -->
+      <div
+        class="grid grid-cols-2 gap-2.5 sm:gap-4"
+        :class="topGridColsClass"
+      >
+        <!-- Card 1: Presensi Total (Hadir + Terlambat) -->
+        <router-link to="/absensi/monitoring" class="block group outline-none">
+          <Card class="relative overflow-hidden transition-all group-hover:border-emerald-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:scale-105">
+                <CheckCircle2 class="size-4 sm:size-5" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                  {{ isGuru ? ('Presensi ' + (kelasBinaan || 'Jilid')) : 'Kehadiran Hari Ini' }}
+                </p>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                    {{ isGuru ? (guruClassStats.hadir + guruClassStats.terlambat) : (absensiStats.hadir + absensiStats.terlambat) }}
+                  </span>
+                  <span class="text-[10px] sm:text-xs text-muted-foreground">
+                    / {{ isGuru ? guruClassStats.total : absensiStats.total }} santri
+                  </span>
+                </div>
+                <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                  Hadir: <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ isGuru ? guruClassStats.hadir : absensiStats.hadir }}</span>
+                  &bull; Telat: <span class="font-medium text-amber-600 dark:text-amber-400">{{ isGuru ? guruClassStats.terlambat : absensiStats.terlambat }}</span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </router-link>
 
-        <!-- Bar Visualizer -->
-        <div class="pt-4">
-          <div class="grid grid-cols-12 gap-1.5 sm:gap-2 items-end h-52 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-            <div
-              v-for="g in sppStats.grafik_bulanan"
-              :key="g.bulan"
-              class="flex flex-col items-center h-full justify-end group"
-            >
-              <!-- Tooltip popup on hover -->
-              <div class="hidden group-hover:block absolute -translate-y-12 bg-zinc-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-20 font-mono">
-                {{ g.nama_bulan }}: Rp {{ formatRupiah(g.total) }}
+        <!-- Card 2: Izin, Sakit & Belum Hadir -->
+        <router-link to="/absensi/monitoring" class="block group outline-none">
+          <Card class="relative overflow-hidden transition-all group-hover:border-blue-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 transition-transform group-hover:scale-105">
+                <Clock class="size-4 sm:size-5" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                  Izin, Sakit &amp; Alpa
+                </p>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                    {{ isGuru ? (guruClassStats.izin + guruClassStats.sakit + guruClassStats.alpa) : (absensiStats.izin + absensiStats.sakit + absensiStats.alpa) }}
+                  </span>
+                  <span class="text-[10px] sm:text-xs text-muted-foreground truncate">
+                    ({{ isGuru ? guruClassStats.belum_absen : absensiStats.belum_absen }} blm scan)
+                  </span>
+                </div>
+                <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                  I: {{ isGuru ? guruClassStats.izin : absensiStats.izin }} &bull; S: {{ isGuru ? guruClassStats.sakit : absensiStats.sakit }} &bull; A: <span class="text-rose-500 font-medium">{{ isGuru ? guruClassStats.alpa : absensiStats.alpa }}</span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </router-link>
+
+        <!-- Card 3: Data Guru / Ustadz & Ustadzah (Tampil untuk Kepala TPQ & Admin) -->
+        <router-link
+          v-if="canViewGuru"
+          to="/guru"
+          class="block group outline-none"
+        >
+          <Card class="relative overflow-hidden transition-all group-hover:border-violet-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 transition-transform group-hover:scale-105">
+                  <UserCog class="size-4 sm:size-5" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                    Data Guru &amp; Jilid
+                  </p>
+                  <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                      {{ guruStats.totalPengajar }}
+                    </span>
+                    <span class="text-[10px] sm:text-xs text-muted-foreground truncate">pengajar</span>
+                  </div>
+                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                    Staf: <span class="font-medium text-foreground">{{ guruStats.totalStaff }}</span> &bull; <span class="font-medium text-violet-600 dark:text-violet-400">{{ kelasBreakdown.length }} Jilid</span>
+                  </p>
+                </div>
+              </div>
+              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </CardContent>
+          </Card>
+        </router-link>
+
+        <!-- Card 4: WhatsApp Delivery Log -->
+        <router-link
+          v-if="canViewWaLogs"
+          to="/wa/delivery-log"
+          class="block group outline-none"
+        >
+          <Card class="relative overflow-hidden transition-all group-hover:border-teal-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 transition-transform group-hover:scale-105">
+                  <Send class="size-4 sm:size-5" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                    Delivery Log WA
+                  </p>
+                  <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                      {{ waStats.delivered + waStats.read }}
+                    </span>
+                    <span class="text-[10px] sm:text-xs text-muted-foreground truncate">/ {{ waStats.total }} sampai</span>
+                  </div>
+                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                    Baca: <span class="font-medium text-teal-600 dark:text-teal-400">{{ waStats.read }}</span> &bull; Gagal: <span class="font-medium text-rose-500">{{ waStats.failed }}</span>
+                  </p>
+                </div>
+              </div>
+              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </CardContent>
+          </Card>
+        </router-link>
+      </div>
+
+      <!-- Middle Section: Visualisasi Presensi & Fokus Kerja -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 1. JIKA ROLE GURU -->
+        <template v-if="isGuru">
+          <!-- Col 1: Progress Presensi Jilid Binaan -->
+          <Card class="lg:col-span-5 flex flex-col justify-between">
+            <CardHeader class="pb-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                    <Target class="size-4 text-primary" />
+                    <span>Rasio Presensi {{ kelasBinaan || 'Jilid' }}</span>
+                  </CardTitle>
+                  <CardDescription class="text-xs mt-0.5">
+                    Persentase kehadiran santri kelas binaan hari ini
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary" class="font-semibold text-xs">
+                  {{ guruClassStats.total }} Santri
+                </Badge>
+              </div>
+            </CardHeader>
+
+            <CardContent class="space-y-4 pt-2">
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-emerald-600 dark:text-emerald-400">Hadir Tepat Waktu</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(guruClassStats.hadir, guruClassStats.total) }}% ({{ guruClassStats.hadir }})
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(guruClassStats.hadir, guruClassStats.total)}%` }"
+                  ></div>
+                </div>
               </div>
 
-              <!-- Bar -->
-              <div
-                class="w-full max-w-[28px] rounded-t-lg transition-all duration-500 group-hover:brightness-110"
-                :class="g.total > 0 ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-sm' : 'bg-zinc-100 dark:bg-zinc-800'"
-                :style="{ height: getBarHeight(g.total) }"
-              ></div>
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-amber-600 dark:text-amber-400">Terlambat</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(guruClassStats.terlambat, guruClassStats.total) }}% ({{ guruClassStats.terlambat }})
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(guruClassStats.terlambat, guruClassStats.total)}%` }"
+                  ></div>
+                </div>
+              </div>
 
-              <!-- Label -->
-              <span class="text-[9px] sm:text-[10px] text-zinc-400 font-semibold mt-2 truncate w-full text-center">
-                {{ g.nama_bulan.slice(0, 3) }}
-              </span>
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-blue-600 dark:text-blue-400">Izin / Sakit</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total) }}% ({{ guruClassStats.izin + guruClassStats.sakit }})
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total)}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-rose-600 dark:text-rose-400">Belum Presensi / Alpa</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total) }}% ({{ guruClassStats.belum_absen + guruClassStats.alpa }})
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-rose-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total)}%` }"
+                  ></div>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter class="pt-4 border-t flex gap-2">
+              <Button as-child variant="outline" size="sm" class="flex-1 text-xs">
+                <router-link to="/absensi/monitoring" class="flex items-center justify-center gap-1.5">
+                  <span>Live Monitoring</span>
+                  <ChevronRight class="size-3.5" />
+                </router-link>
+              </Button>
+              <Button as-child v-if="canScanQr" size="sm" class="px-4 text-xs">
+                <router-link to="/absensi/scanner" class="flex items-center justify-center gap-1.5">
+                  <ScanLine class="size-3.5" />
+                  <span>Scan QR</span>
+                </router-link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <!-- Col 2: Daftar Santri Binaan Realtime -->
+          <Card class="lg:col-span-7 flex flex-col justify-between">
+            <div>
+              <CardHeader class="pb-3 border-b">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                      <GraduationCap class="size-4 text-primary" />
+                      <span>Presensi Santri {{ kelasBinaan || 'Jilid' }}</span>
+                    </CardTitle>
+                    <CardDescription class="text-xs mt-0.5">
+                      Daftar status absensi realtime santri jilid hari ini
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" class="text-xs font-medium">
+                    {{ guruClassStats.hadir + guruClassStats.terlambat }} / {{ guruClassStats.total }} Hadir
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent class="p-0">
+                <div v-if="guruStudents.length > 0" class="divide-y max-h-80 overflow-y-auto px-4 py-1">
+                  <div
+                    v-for="s in guruStudents"
+                    :key="s.id_siswa"
+                    class="py-2.5 flex items-center justify-between gap-3 text-xs transition-colors hover:bg-muted/50 rounded-lg px-2"
+                  >
+                    <div class="min-w-0">
+                      <p class="font-medium text-foreground truncate">{{ s.nama_lengkap }}</p>
+                      <p class="text-[11px] text-muted-foreground">
+                        NISN: {{ s.nisn }} &bull; {{ s.jenis_kelamin === 'L' ? 'L' : 'P' }}
+                      </p>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span v-if="s.waktu_masuk" class="text-[10px] text-muted-foreground font-mono">
+                        {{ s.waktu_masuk }}
+                      </span>
+                      <Badge
+                        :variant="getStatusBadgeVariant(s.status)"
+                        class="text-[10px] font-medium"
+                      >
+                        {{ s.status }}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="py-12 text-center text-muted-foreground">
+                  <Users class="size-8 mx-auto mb-2 text-muted-foreground/50" />
+                  <p class="text-xs font-semibold text-foreground">Belum ada santri di jilid {{ kelasBinaan || 'ini' }}.</p>
+                  <p class="text-[11px] text-muted-foreground mt-0.5">Plot santri dilakukan oleh Pengurus / Sekretaris.</p>
+                </div>
+              </CardContent>
             </div>
-          </div>
 
-          <div class="flex items-center justify-between pt-3 text-xs text-zinc-500">
-            <span>Rata-rata Bulanan: <b class="text-zinc-800 dark:text-zinc-200">Rp {{ formatRupiah(averageRevenue) }}</b></span>
-            <span>Total Akumulasi: <b class="text-emerald-600">Rp {{ formatRupiah(yearlyRevenue) }}</b></span>
-          </div>
-        </div>
+            <CardFooter class="pt-3 border-t flex justify-between items-center text-xs text-muted-foreground">
+              <span>Ubah status absensi manual dapat dilakukan di Monitoring.</span>
+              <router-link
+                to="/absensi/monitoring"
+                class="font-medium text-primary hover:underline flex items-center gap-1"
+              >
+                <span>Monitoring Lengkap</span>
+                <ChevronRight class="size-3.5" />
+              </router-link>
+            </CardFooter>
+          </Card>
+        </template>
+
+        <!-- 2. JIKA ROLE NON-GURU (Kepala TPQ, Admin, Sekretaris, Bendahara) -->
+        <template v-else>
+          <!-- Col 1: Progress Rasio Seluruh Santri -->
+          <Card class="lg:col-span-5 flex flex-col justify-between">
+            <CardHeader class="pb-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                    <Target class="size-4 text-primary" />
+                    <span>Rasio Presensi Seluruh Santri</span>
+                  </CardTitle>
+                  <CardDescription class="text-xs mt-0.5">
+                    Distribusi kehadiran dari total {{ absensiStats.total }} santri aktif hari ini
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary" class="font-semibold text-xs">
+                  {{ absensiStats.total }} Santri
+                </Badge>
+              </div>
+            </CardHeader>
+
+            <CardContent class="space-y-4 pt-1">
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-emerald-600 dark:text-emerald-400">Hadir Tepat Waktu</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(absensiStats.hadir) }}% ({{ absensiStats.hadir }} santri)
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(absensiStats.hadir)}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-amber-600 dark:text-amber-400">Terlambat</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(absensiStats.terlambat) }}% ({{ absensiStats.terlambat }} santri)
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(absensiStats.terlambat)}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-blue-600 dark:text-blue-400">Izin / Sakit</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(absensiStats.izin + absensiStats.sakit) }}% ({{ absensiStats.izin + absensiStats.sakit }} santri)
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(absensiStats.izin + absensiStats.sakit)}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span class="text-rose-600 dark:text-rose-400">Belum Presensi / Alpa</span>
+                  <span class="text-foreground">
+                    {{ attendancePercentage(absensiStats.alpa + absensiStats.belum_absen) }}% ({{ absensiStats.alpa + absensiStats.belum_absen }} santri)
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full bg-rose-500 rounded-full transition-all duration-500"
+                    :style="{ width: `${attendancePercentage(absensiStats.alpa + absensiStats.belum_absen)}%` }"
+                  ></div>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter class="pt-4 border-t flex gap-2">
+              <Button as-child variant="outline" size="sm" class="flex-1 text-xs">
+                <router-link to="/absensi/monitoring" class="flex items-center justify-center gap-1.5">
+                  <span>Buka Monitoring Realtime</span>
+                  <ChevronRight class="size-3.5" />
+                </router-link>
+              </Button>
+              <Button as-child v-if="canScanQr" size="sm" class="px-4 text-xs">
+                <router-link to="/absensi/scanner" class="flex items-center justify-center gap-1.5">
+                  <ScanLine class="size-3.5" />
+                  <span>Scan QR</span>
+                </router-link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <!-- Col 2: Monitoring Aktivitas Presensi Per Jilid & Ustadz/Ustadzah -->
+          <Card class="lg:col-span-7 flex flex-col justify-between">
+            <div>
+              <CardHeader class="pb-3 border-b">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                      <Layers class="size-4 text-primary" />
+                      <span>Monitoring Presensi Per Jilid &amp; Wali Kelas</span>
+                    </CardTitle>
+                    <CardDescription class="text-xs mt-0.5">
+                      Rekapitulasi aktivitas kehadiran santri hari ini di setiap jilid beserta ustadz/ustadzah pengampu
+                    </CardDescription>
+                  </div>
+                  <Button v-if="canViewGuru" as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs shrink-0">
+                    <router-link to="/guru" class="flex items-center gap-1">
+                      <UserCog class="size-3.5" />
+                      <span>Data Guru</span>
+                    </router-link>
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent class="p-3 sm:p-4">
+                <div v-if="kelasBreakdown.length > 0" class="grid grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-0.5">
+                  <div
+                    v-for="item in kelasBreakdown"
+                    :key="item.id"
+                    class="p-2.5 sm:p-3 rounded-xl border bg-card/60 hover:bg-muted/40 transition-colors flex flex-col justify-between gap-2 text-xs"
+                  >
+                    <div class="min-w-0">
+                      <div class="flex items-center justify-between gap-1">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                          <span
+                            class="size-2 rounded-full shrink-0"
+                            :style="{ backgroundColor: item.warna_label || '#10b981' }"
+                          ></span>
+                          <span class="font-semibold text-foreground text-xs truncate">{{ item.nama_kelas }}</span>
+                        </div>
+                        <Badge variant="outline" class="text-[9px] px-1.5 py-0 font-normal shrink-0">
+                          {{ item.total }}
+                        </Badge>
+                      </div>
+                      <p class="text-[10px] text-muted-foreground mt-0.5 truncate" :title="item.wali_kelas || 'Belum ditentukan'">
+                        {{ item.wali_kelas || 'Wali belum diatur' }}
+                      </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-1 text-[10px] pt-1 border-t">
+                      <span class="text-emerald-600 dark:text-emerald-400 font-medium">
+                        Hadir: {{ item.hadir + item.terlambat }}
+                      </span>
+                      <span class="text-muted-foreground text-right">
+                        I/S: {{ item.izinSakit }} &bull; A: {{ item.belumAlpa }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="py-10 text-center text-muted-foreground text-xs">
+                  Belum ada data jilid/kelas yang terdaftar.
+                </div>
+              </CardContent>
+            </div>
+
+            <CardFooter class="pt-3 border-t flex justify-between items-center text-xs text-muted-foreground">
+              <span>Total {{ kelasBreakdown.length }} Jilid &bull; {{ guruStats.totalPengajar }} Ustadz/Ustadzah Pengajar</span>
+              <router-link
+                to="/absensi/rekap"
+                class="font-medium text-primary hover:underline flex items-center gap-1"
+              >
+                <span>Buka Rekap Bulanan</span>
+                <ChevronRight class="size-3.5" />
+              </router-link>
+            </CardFooter>
+          </Card>
+        </template>
       </div>
 
-      <!-- RIGHT: Today's Attendance Progress (4 cols) -->
-      <div class="lg:col-span-4 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-        <div>
-          <h3 class="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-            <span>🎯</span>
-            <span>Rasio Kehadiran Hari Ini</span>
-          </h3>
-          <p class="text-xs text-zinc-500 mt-0.5">Persentase status presensi seluruh jilid</p>
-        </div>
+      <!-- Quick Navigation Grid -->
+      <Card>
+        <CardHeader class="pb-3">
+          <CardTitle class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Akses Cepat Modul Sistem
+          </CardTitle>
+        </CardHeader>
+        <CardContent class="p-3 sm:p-6 pt-0 sm:pt-0">
+          <div class="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+            <!-- Scanner QR -->
+            <router-link
+              v-if="canScanQr"
+              to="/absensi/scanner"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <ScanLine class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Scanner</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Presensi QR santri</span>
+            </router-link>
 
-        <!-- Large Progress Ring/Bar -->
-        <div class="space-y-4 pt-2">
-          <div>
-            <div class="flex justify-between text-xs font-bold mb-1">
-              <span class="text-emerald-600">Hadir Tepat Waktu</span>
-              <span>{{ attendancePercentage(absensiStats.hadir - absensiStats.terlambat) }}%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-              <div
-                class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                :style="{ width: `${attendancePercentage(absensiStats.hadir - absensiStats.terlambat)}%` }"
-              ></div>
-            </div>
+            <!-- Live Monitoring -->
+            <router-link
+              to="/absensi/monitoring"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <Activity class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Monitoring</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Status harian</span>
+            </router-link>
+
+            <!-- Rekap Matrix -->
+            <router-link
+              v-if="canViewRekapMatrix"
+              to="/absensi/rekap"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <TableProperties class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Rekap</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Tabel 1-31 hari</span>
+            </router-link>
+
+            <!-- Kalender & Agenda -->
+            <router-link
+              v-if="canViewAgenda"
+              to="/absensi/agenda-libur"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <CalendarDays class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Agenda &amp; Libur</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Kalender kegiatan</span>
+            </router-link>
+
+            <!-- Data Santri -->
+            <router-link
+              v-if="canViewSantri"
+              to="/absensi/siswa"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <GraduationCap class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Data Santri</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Daftar santri aktif</span>
+            </router-link>
+
+            <!-- Data Guru -->
+            <router-link
+              v-if="canViewGuru"
+              to="/guru"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <UserCog class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Data Guru</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Ustadz &amp; pengurus</span>
+            </router-link>
+
+            <!-- Delivery Log WA -->
+            <router-link
+              v-if="canViewWaLogs && !canViewGuru"
+              to="/wa/delivery-log"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <Send class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Delivery Log</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Status notifikasi</span>
+            </router-link>
           </div>
-
-          <div>
-            <div class="flex justify-between text-xs font-bold mb-1">
-              <span class="text-amber-500">Terlambat</span>
-              <span>{{ attendancePercentage(absensiStats.terlambat) }}%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-              <div
-                class="h-full bg-amber-500 rounded-full transition-all duration-500"
-                :style="{ width: `${attendancePercentage(absensiStats.terlambat)}%` }"
-              ></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs font-bold mb-1">
-              <span class="text-blue-500">Izin / Sakit</span>
-              <span>{{ attendancePercentage(absensiStats.izin + absensiStats.sakit) }}%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-              <div
-                class="h-full bg-blue-500 rounded-full transition-all duration-500"
-                :style="{ width: `${attendancePercentage(absensiStats.izin + absensiStats.sakit)}%` }"
-              ></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs font-bold mb-1">
-              <span class="text-rose-500">Alpa / Belum Presensi</span>
-              <span>{{ attendancePercentage(absensiStats.alpa) }}%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-              <div
-                class="h-full bg-rose-500 rounded-full transition-all duration-500"
-                :style="{ width: `${attendancePercentage(absensiStats.alpa)}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-          <router-link
-            to="/absensi/monitoring"
-            class="w-full py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 text-xs font-bold text-zinc-700 dark:text-zinc-200 transition flex items-center justify-center gap-1.5"
-          >
-            <span>Buka Monitoring Realtime &rarr;</span>
-          </router-link>
-        </div>
-      </div>
-
+        </CardContent>
+      </Card>
     </div>
-
-    <!-- Quick Navigation Grid -->
-    <div class="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
-      <h3 class="text-sm font-extrabold uppercase tracking-wider text-zinc-400 mb-4">
-        Akses Cepat Modul Sistem
-      </h3>
-
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <router-link
-          to="/absensi/scanner"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">📷</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Scanner QR</span>
-          <span class="text-[10px] text-zinc-400">Presensi santri</span>
-        </router-link>
-
-        <router-link
-          to="/absensi/monitoring"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">⏱</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Monitoring</span>
-          <span class="text-[10px] text-zinc-400">Status harian</span>
-        </router-link>
-
-        <router-link
-          to="/absensi/rekap"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">📑</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Rekap Matrix</span>
-          <span class="text-[10px] text-zinc-400">Tabel 1-31 hari</span>
-        </router-link>
-
-        <router-link
-          v-if="canManageSpp"
-          to="/spp/transaksi"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">💳</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Kasir SPP</span>
-          <span class="text-[10px] text-zinc-400">Input kuitansi</span>
-        </router-link>
-
-        <router-link
-          v-if="canViewSppReports"
-          to="/spp/tagihan"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">📜</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Tagihan</span>
-          <span class="text-[10px] text-zinc-400">Cek tunggakan</span>
-        </router-link>
-
-        <router-link
-          v-if="canManageSpp"
-          to="/spp/pengingat-wa"
-          class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-zinc-200/60 dark:border-zinc-800 text-center transition group"
-        >
-          <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">📢</span>
-          <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">Broadcast WA</span>
-          <span class="text-[10px] text-zinc-400">Pengingat Fonnte</span>
-        </router-link>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useAuth } from '../../composables/useAuth';
-import api from '../../services/api';
+import {
+  CheckCircle2,
+  Clock,
+  Send,
+  ChevronRight,
+  Target,
+  GraduationCap,
+  Users,
+  UserCog,
+  Layers,
+  ScanLine,
+  Activity,
+  TableProperties,
+  CalendarDays,
+} from '@lucide/vue';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/composables/useAuth';
+import api from '@/services/api';
 
-const { user, isSiswa, canManageSpp, canViewSppReports } = useAuth();
+const {
+  user,
+  isGuru,
+  canScanQr,
+  canViewRekapMatrix,
+  canViewSantri,
+  canViewGuru,
+  canViewWaLogs,
+  canViewAgenda,
+  kelasBinaan,
+} = useAuth();
 
-const currentYear = new Date().getFullYear();
+const isLoading = ref(false);
+const hasDataLoaded = ref(false);
+
+const currentDateFormatted = computed(() => {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Intl.DateTimeFormat('id-ID', options).format(new Date());
+});
+
+const topGridColsClass = computed(() => {
+  if (canViewGuru.value && canViewWaLogs.value) return 'lg:grid-cols-4';
+  if (canViewWaLogs.value || canViewGuru.value) return 'lg:grid-cols-3';
+  return 'lg:grid-cols-2';
+});
 
 const absensiStats = ref({
   total: 0,
@@ -331,72 +665,163 @@ const absensiStats = ref({
   izin: 0,
   sakit: 0,
   alpa: 0,
+  belum_absen: 0,
 });
 
-const sppStats = ref({
-  pemasukan_bulan_ini: 0,
-  total_tagihan_nominal: 0,
-  total_tunggakan_aktif: 0,
-  santri_lunas: 0,
-  santri_belum_lunas: 0,
-  persentase_lunas: 0,
-  grafik_bulanan: [],
+const guruClassStats = ref({
+  total: 0,
+  hadir: 0,
+  terlambat: 0,
+  izin: 0,
+  sakit: 0,
+  alpa: 0,
+  belum_absen: 0,
+});
+const guruStudents = ref([]);
+const allStudentsMonitoring = ref([]);
+const kelasList = ref([]);
+
+const guruStats = ref({
+  totalStaff: 0,
+  totalPengajar: 0,
 });
 
-function formatRupiah(val) {
-  if (!val) return '0';
-  return Number(val).toLocaleString('id-ID');
+const waStats = ref({
+  total: 0,
+  sent: 0,
+  delivered: 0,
+  read: 0,
+  failed: 0,
+});
+
+const kelasBreakdown = computed(() => {
+  return kelasList.value.map((k) => {
+    const santriKelas = allStudentsMonitoring.value.filter(s => Number(s.id_kelas) === Number(k.id));
+    const hadir = santriKelas.filter(s => s.status === 'Hadir').length;
+    const terlambat = santriKelas.filter(s => s.status === 'Terlambat').length;
+    const izinSakit = santriKelas.filter(s => s.status === 'Izin' || s.status === 'Sakit').length;
+    const belumAlpa = santriKelas.filter(s => s.status === 'Alpa' || s.status === 'Belum Absen').length;
+
+    return {
+      id: k.id,
+      nama_kelas: k.nama_kelas,
+      wali_kelas: k.wali_kelas || k.guru?.name || null,
+      warna_label: k.warna_label,
+      total: santriKelas.length,
+      hadir,
+      terlambat,
+      izinSakit,
+      belumAlpa,
+    };
+  });
+});
+
+function getStatusBadgeVariant(status) {
+  switch (status) {
+    case 'Hadir':
+      return 'default';
+    case 'Terlambat':
+      return 'secondary';
+    case 'Izin':
+    case 'Sakit':
+      return 'outline';
+    case 'Alpa':
+      return 'destructive';
+    default:
+      return 'outline';
+  }
 }
 
-function attendancePercentage(count) {
-  if (!absensiStats.value.total) return 0;
-  return Math.round(((count || 0) / absensiStats.value.total) * 100);
-}
-
-const maxRevenue = computed(() => {
-  const values = sppStats.value.grafik_bulanan.map(g => Number(g.total) || 0);
-  return Math.max(...values, 100000);
-});
-
-const yearlyRevenue = computed(() => {
-  return sppStats.value.grafik_bulanan.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-});
-
-const averageRevenue = computed(() => {
-  if (sppStats.value.grafik_bulanan.length === 0) return 0;
-  return Math.round(yearlyRevenue.value / sppStats.value.grafik_bulanan.length);
-});
-
-function getBarHeight(total) {
-  if (!total || total <= 0) return '6px';
-  const pct = Math.max(8, Math.round((Number(total) / maxRevenue.value) * 100));
-  return `${pct}%`;
+function attendancePercentage(count, customTotal = null) {
+  const baseTotal = customTotal !== null ? customTotal : (isGuru.value ? guruClassStats.value.total : absensiStats.value.total);
+  if (!baseTotal) return 0;
+  return Math.round(((count || 0) / baseTotal) * 100);
 }
 
 async function loadDashboard() {
+  isLoading.value = true;
   try {
-    const [monRes, sppRes] = await Promise.all([
-      api.get('/absensi/monitoring'),
-      api.get('/spp/dashboard'),
-    ]);
+    const requests = [];
 
-    if (monRes.data.success) {
-      const s = monRes.data.data?.stats || {};
-      absensiStats.value = {
-        total: s.total || 0,
-        hadir: s.hadir || 0,
-        terlambat: s.terlambat || 0,
-        izin: s.izin || 0,
-        sakit: s.sakit || 0,
-        alpa: s.alpa || 0,
-      };
+    if (isGuru.value && user.value?.id_kelas) {
+      requests.push(
+        api.get('/absensi/monitoring', { params: { id_kelas: user.value.id_kelas } }).then((monRes) => {
+          if (monRes.data.success) {
+            const s = monRes.data.data?.stats || {};
+            guruClassStats.value = {
+              total: s.total || 0,
+              hadir: s.hadir || 0,
+              terlambat: s.terlambat || 0,
+              izin: s.izin || 0,
+              sakit: s.sakit || 0,
+              alpa: s.alpa || 0,
+              belum_absen: s.belum_absen || 0,
+            };
+            guruStudents.value = monRes.data.data?.students || [];
+          }
+        })
+      );
+    } else {
+      requests.push(
+        api.get('/absensi/monitoring').then((monRes) => {
+          if (monRes.data.success) {
+            const s = monRes.data.data?.stats || {};
+            absensiStats.value = {
+              total: s.total || 0,
+              hadir: s.hadir || 0,
+              terlambat: s.terlambat || 0,
+              izin: s.izin || 0,
+              sakit: s.sakit || 0,
+              alpa: s.alpa || 0,
+              belum_absen: s.belum_absen || 0,
+            };
+            allStudentsMonitoring.value = monRes.data.data?.students || [];
+          }
+        }),
+        api.get('/kelas').then((kelasRes) => {
+          if (kelasRes.data.success) {
+            kelasList.value = kelasRes.data.data || [];
+          }
+        })
+      );
     }
 
-    if (sppRes.data.success) {
-      sppStats.value = sppRes.data.data || sppStats.value;
+    if (canViewGuru.value) {
+      requests.push(
+        api.get('/users').then((usersRes) => {
+          if (usersRes.data.success) {
+            const list = usersRes.data.data || [];
+            guruStats.value = {
+              totalStaff: list.length,
+              totalPengajar: list.filter(u => u.role === 'guru' || !!u.id_kelas).length,
+            };
+          }
+        })
+      );
     }
+
+    if (canViewWaLogs.value) {
+      requests.push(
+        api.get('/wa/logs?per_page=1').then((waRes) => {
+          if (waRes.data.success && waRes.data.summary) {
+            waStats.value = {
+              total: waRes.data.summary.total || 0,
+              sent: waRes.data.summary.sent || 0,
+              delivered: waRes.data.summary.delivered || 0,
+              read: waRes.data.summary.read || 0,
+              failed: waRes.data.summary.failed || 0,
+            };
+          }
+        })
+      );
+    }
+
+    await Promise.allSettled(requests);
+    hasDataLoaded.value = true;
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
+  } finally {
+    isLoading.value = false;
   }
 }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ScanAbsensiRequest;
 use App\Models\Absensi;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
@@ -20,21 +21,26 @@ class AbsensiController extends Controller
     /**
      * Endpoint pemindaian absensi (QR Kamera / Barcode Scanner / RFID)
      */
-    public function scan(Request $request): JsonResponse
+    public function scan(ScanAbsensiRequest $request): JsonResponse
     {
-        $request->validate([
-            'nisn' => 'required|string',
-            'scanner_role' => 'nullable|string',
-            'scanner_kelas' => 'nullable|string',
-            'metode_scan' => 'nullable|string|in:qr_kamera,scanner_usb,manual',
-        ]);
+        $validated = $request->validated();
+        $nisn = $validated['nisn'];
+        $metode = $validated['metode_scan'] ?? 'qr_kamera';
+        $restrictKelas = $request->boolean('restrict_kelas', false);
 
-        $nisn = $request->input('nisn');
-        $role = $request->input('scanner_role', 'admin');
-        $kelas = $request->input('scanner_kelas');
-        $metode = $request->input('metode_scan', 'qr_kamera');
+        // Jika user login di web, gunakan role dan kelas terdaftar di server
+        $user = $request->user();
+        if ($user) {
+            $role = $user->role;
+            $kelas = ($restrictKelas && $user->role === 'guru' && $user->kelas)
+                ? $user->kelas->nama_kelas
+                : ($request->input('scanner_kelas') ?: null);
+        } else {
+            $role = $request->input('scanner_role', 'admin');
+            $kelas = $restrictKelas ? $request->input('scanner_kelas') : null;
+        }
 
-        $result = $this->scannerService->scan($nisn, $role, $kelas, $metode);
+        $result = $this->scannerService->scan($nisn, $role, $kelas, $metode, $restrictKelas);
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
@@ -63,6 +69,12 @@ class AbsensiController extends Controller
         $bulan = (int) $request->input('bulan', Carbon::now('Asia/Jakarta')->month);
         $tahun = (int) $request->input('tahun', Carbon::now('Asia/Jakarta')->year);
         $idKelas = $request->input('id_kelas') ? (int) $request->input('id_kelas') : null;
+
+        // Selain admin, kepala, dan sekretaris, wajib dibatasi hanya ke kelas/jilid yang diampunya
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['admin', 'kepala', 'sekretaris'], true)) {
+            $idKelas = $user->id_kelas ?: -1;
+        }
 
         $matrix = $this->scannerService->getMatrixReport($bulan, $tahun, $idKelas);
 

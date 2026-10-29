@@ -1,179 +1,238 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    
-    <!-- Header & Controls -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm print:hidden">
+  <div class="space-y-6">
+    <!-- Header Halaman -->
+    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b print:hidden">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-          <span>📑</span>
-          <span>Rekapitulasi Matrix Absensi</span>
-        </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Matriks laporan kehadiran tanggal 1 s/d 31 dalam satu bulan penuh
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold tracking-tight text-foreground">
+            Rekap
+          </h2>
+          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+            {{ bulanList[selectedBulan] }} {{ selectedTahun }}
+          </Badge>
+        </div>
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Matriks presensi santri harian dari tanggal 1 sampai 31 dengan ringkasan persentase kehadiran bulanan.
         </p>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2">
-        <button
+      <!-- Action Buttons (Cetak & Export CSV) -->
+      <div class="flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 text-xs"
           @click="printMatrix"
-          class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold shadow transition flex items-center gap-1.5 cursor-pointer"
         >
-          <span>🖨</span>
-          <span>Cetak Laporan</span>
-        </button>
-        <button
+          <Printer class="size-3.5" />
+          <span>Cetak</span>
+        </Button>
+        <Button
+          size="sm"
+          class="h-8 gap-1.5 text-xs"
           @click="exportCsv"
-          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
         >
-          <span>📥</span>
+          <Download class="size-3.5" />
           <span>Export CSV</span>
-        </button>
+        </Button>
       </div>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs print:hidden">
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Bulan</label>
-        <select
-          v-model="selectedBulan"
-          @change="loadMatrix"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option v-for="(nama, num) in bulanList" :key="num" :value="num">
-            {{ nama }}
-          </option>
-        </select>
-      </div>
+    <!-- Filter Card -->
+    <Card class="print:hidden">
+      <CardContent class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-end gap-3 flex-1">
+          <!-- Bulan Selector -->
+          <div class="w-full md:w-44 space-y-1.5">
+            <Label for="selectBulan" class="text-xs font-medium text-muted-foreground">Bulan</Label>
+            <select
+              id="selectBulan"
+              v-model="selectedBulan"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadMatrix"
+            >
+              <option v-for="(nama, num) in bulanList" :key="num" :value="num">
+                {{ nama }}
+              </option>
+            </select>
+          </div>
 
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Tahun</label>
-        <select
-          v-model="selectedTahun"
-          @change="loadMatrix"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-        </select>
-      </div>
+          <!-- Tahun Selector -->
+          <div class="w-full md:w-32 space-y-1.5">
+            <Label for="selectTahun" class="text-xs font-medium text-muted-foreground">Tahun</Label>
+            <select
+              id="selectTahun"
+              v-model="selectedTahun"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadMatrix"
+            >
+              <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
 
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Kelas / Jilid</label>
-        <select
-          v-model="selectedKelas"
-          @change="loadMatrix"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option value="">Semua Kelas</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-        </select>
-      </div>
-    </div>
+          <!-- Filter Kelas (Hanya untuk Admin & Sekretaris) -->
+          <div v-if="canFilterAllKelas" class="w-full md:w-60 space-y-1.5">
+            <Label for="selectKelas" class="text-xs font-medium text-muted-foreground">Filter Jilid / Kelas</Label>
+            <select
+              id="selectKelas"
+              v-model="selectedKelas"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadMatrix"
+            >
+              <option value="">Semua Jilid / Kelas</option>
+              <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
+              </option>
+            </select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Printable Header Banner (Only visible during print) -->
     <div class="hidden print:block text-center border-b pb-4 mb-4">
       <h1 class="text-lg font-bold">REKAPITULASI PRESENSI SANTRI</h1>
-      <p class="text-xs">Periode: {{ bulanList[selectedBulan] }} {{ selectedTahun }}</p>
+      <p class="text-xs">
+        Periode: {{ bulanList[selectedBulan] }} {{ selectedTahun }}
+        <span v-if="!canFilterAllKelas && user?.nama_kelas"> - Jilid {{ user.nama_kelas }}</span>
+      </p>
     </div>
 
     <!-- Matrix Table Container -->
-    <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+    <Card class="overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-center text-[11px] border-collapse">
-          <thead class="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 font-bold border-b border-zinc-200 dark:border-zinc-800">
-            <tr>
-              <th class="py-2.5 px-3 text-left sticky left-0 bg-zinc-50 dark:bg-zinc-800 z-10">No</th>
-              <th class="py-2.5 px-3 text-left sticky left-8 bg-zinc-50 dark:bg-zinc-800 z-10 min-w-[150px]">Santri</th>
-              <th class="py-2.5 px-2">Jilid</th>
+        <Table class="text-center text-[11px]">
+          <TableHeader>
+            <TableRow class="bg-muted/40 font-semibold">
+              <TableHead class="w-10 text-center sticky left-0 bg-muted/90 backdrop-blur-xs z-10 text-[10px]">No</TableHead>
+              <TableHead class="text-left sticky left-10 bg-muted/90 backdrop-blur-xs z-10 min-w-[160px] text-[10px]">Santri</TableHead>
+              <TableHead class="text-center text-[10px]">Jilid</TableHead>
+              
               <!-- Days of Month -->
-              <th
+              <TableHead
                 v-for="day in daysInMonth"
                 :key="day"
-                class="py-2 px-1 min-w-[22px] border-l border-zinc-200/40 dark:border-zinc-800 text-[10px]"
+                class="px-1 text-center min-w-[22px] border-l border-border/60 text-[10px]"
               >
                 {{ day }}
-              </th>
+              </TableHead>
+              
               <!-- Summary Totals -->
-              <th class="py-2 px-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-l">H</th>
-              <th class="py-2 px-2 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">T</th>
-              <th class="py-2 px-2 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">S</th>
-              <th class="py-2 px-2 bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">I</th>
-              <th class="py-2 px-2 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">A</th>
-              <th class="py-2 px-2 bg-zinc-100 dark:bg-zinc-800 font-extrabold">%</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-200/60 dark:divide-zinc-800 font-mono">
-            <tr v-if="matrixData.length === 0">
-              <td :colspan="daysInMonth + 9" class="py-8 text-center text-zinc-400 font-sans">
+              <TableHead class="px-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-l font-bold text-[10px]">H</TableHead>
+              <TableHead class="px-1.5 text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-[10px]">T</TableHead>
+              <TableHead class="px-1.5 text-center bg-blue-500/10 text-blue-700 dark:text-blue-400 font-bold text-[10px]">S</TableHead>
+              <TableHead class="px-1.5 text-center bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-bold text-[10px]">I</TableHead>
+              <TableHead class="px-1.5 text-center bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold text-[10px]">A</TableHead>
+              <TableHead class="px-2 text-center bg-muted/60 font-bold text-[10px]">%</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody class="font-mono">
+            <TableRow v-if="matrixData.length === 0">
+              <TableCell :colspan="daysInMonth + 9" class="h-32 text-center text-muted-foreground font-sans text-xs">
                 Tidak ada data rekap untuk periode ini.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
 
-            <tr
+            <TableRow
               v-for="(row, idx) in matrixData"
               :key="row.id_siswa"
-              class="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition"
+              class="transition-colors hover:bg-muted/40"
             >
-              <td class="py-2 px-3 text-left sticky left-0 bg-white dark:bg-zinc-900 z-10 text-zinc-400 font-sans">{{ idx + 1 }}</td>
-              <td class="py-2 px-3 text-left sticky left-8 bg-white dark:bg-zinc-900 z-10 font-bold font-sans text-zinc-900 dark:text-zinc-100 truncate max-w-[160px]">
+              <TableCell class="text-center sticky left-0 bg-card z-10 text-muted-foreground font-sans text-xs">{{ idx + 1 }}</TableCell>
+              <TableCell class="text-left sticky left-10 bg-card z-10 font-semibold font-sans text-foreground truncate max-w-[170px]">
                 {{ row.nama_lengkap }}
-              </td>
-              <td class="py-2 px-2 font-sans text-zinc-500 text-[10px]">{{ row.nama_kelas || '-' }}</td>
+              </TableCell>
+              <TableCell class="font-sans text-muted-foreground text-[10px]">{{ row.nama_kelas || '-' }}</TableCell>
 
-              <!-- 1..31 Days -->
-              <td
+              <!-- Daily 1..31 Status -->
+              <TableCell
                 v-for="d in daysInMonth"
                 :key="d"
-                class="py-1 px-1 border-l border-zinc-100 dark:border-zinc-800/60 text-[10px]"
+                class="px-1 border-l border-border/40 text-[10px]"
                 :class="{
-                  'bg-emerald-100/70 text-emerald-800 font-bold dark:bg-emerald-950/50 dark:text-emerald-300': row.daily[d] === 'H',
-                  'bg-amber-100/70 text-amber-800 font-bold dark:bg-amber-950/50 dark:text-amber-300': row.daily[d] === 'T',
-                  'bg-blue-100/70 text-blue-800 font-bold dark:bg-blue-950/50 dark:text-blue-300': row.daily[d] === 'S',
-                  'bg-purple-100/70 text-purple-800 font-bold dark:bg-purple-950/50 dark:text-purple-300': row.daily[d] === 'I',
-                  'bg-rose-100/70 text-rose-800 font-bold dark:bg-rose-950/50 dark:text-rose-300': row.daily[d] === 'A',
-                  'text-zinc-300 dark:text-zinc-700': row.daily[d] === '-' || !row.daily[d]
+                  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold': row.daily[d] === 'H',
+                  'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold': row.daily[d] === 'T',
+                  'bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold': row.daily[d] === 'S',
+                  'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold': row.daily[d] === 'I',
+                  'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-bold': row.daily[d] === 'A',
+                  'text-muted-foreground/30': row.daily[d] === '-' || !row.daily[d]
                 }"
               >
                 {{ row.daily[d] || '-' }}
-              </td>
+              </TableCell>
 
               <!-- Summary Columns -->
-              <td class="py-2 px-1 font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 border-l">{{ row.summary.hadir }}</td>
-              <td class="py-2 px-1 font-bold text-amber-700 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20">{{ row.summary.terlambat }}</td>
-              <td class="py-2 px-1 font-bold text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20">{{ row.summary.sakit }}</td>
-              <td class="py-2 px-1 font-bold text-purple-700 dark:text-purple-400 bg-purple-50/40 dark:bg-purple-950/20">{{ row.summary.izin }}</td>
-              <td class="py-2 px-1 font-bold text-rose-700 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20">{{ row.summary.alpa }}</td>
-              <td class="py-2 px-1 font-extrabold text-zinc-900 dark:text-zinc-100 bg-zinc-100/60 dark:bg-zinc-800/40">{{ row.summary.persentase }}%</td>
-            </tr>
-          </tbody>
-        </table>
+              <TableCell class="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/5 border-l">{{ row.summary.hadir }}</TableCell>
+              <TableCell class="font-bold text-amber-700 dark:text-amber-400 bg-amber-500/5">{{ row.summary.terlambat }}</TableCell>
+              <TableCell class="font-bold text-blue-700 dark:text-blue-400 bg-blue-500/5">{{ row.summary.sakit }}</TableCell>
+              <TableCell class="font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-500/5">{{ row.summary.izin }}</TableCell>
+              <TableCell class="font-bold text-rose-700 dark:text-rose-400 bg-rose-500/5">{{ row.summary.alpa }}</TableCell>
+              <TableCell class="font-bold text-foreground bg-muted/30">{{ row.summary.persentase }}%</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
-    </div>
+    </Card>
 
-    <!-- Legend -->
-    <div class="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs">
-      <span class="text-zinc-400 font-bold text-[10px] uppercase">Keterangan:</span>
-      <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px]">H</span><span>Hadir</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-[10px]">T</span><span>Terlambat</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px]">S</span><span>Sakit</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-purple-100 text-purple-800 font-bold flex items-center justify-center text-[10px]">I</span><span>Izin</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-rose-100 text-rose-800 font-bold flex items-center justify-center text-[10px]">A</span><span>Alpa</span></div>
-    </div>
-
+    <!-- Legend Indicator -->
+    <Card class="print:hidden">
+      <CardContent class="p-4 flex flex-wrap items-center gap-4 text-xs">
+        <span class="text-muted-foreground font-semibold text-[10px] uppercase tracking-wider">Keterangan:</span>
+        <div class="flex items-center gap-1.5">
+          <Badge class="size-5 p-0 flex items-center justify-center font-bold text-[10px]">H</Badge>
+          <span>Hadir</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <Badge variant="secondary" class="size-5 p-0 flex items-center justify-center font-bold text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/15 border-amber-500/20">T</Badge>
+          <span>Terlambat</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <Badge variant="outline" class="size-5 p-0 flex items-center justify-center font-bold text-[10px] text-blue-700 dark:text-blue-400 bg-blue-500/15 border-blue-500/20">S</Badge>
+          <span>Sakit</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <Badge variant="outline" class="size-5 p-0 flex items-center justify-center font-bold text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-500/15 border-indigo-500/20">I</Badge>
+          <span>Izin</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <Badge variant="destructive" class="size-5 p-0 flex items-center justify-center font-bold text-[10px]">A</Badge>
+          <span>Alpa</span>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import api from '../../services/api';
-import { useToast } from '../../composables/useToast';
+import { ref, computed, onMounted } from 'vue';
+import {
+  Printer,
+  Download,
+} from '@lucide/vue';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import api from '@/services/api';
+import { useAuth } from '@/composables/useAuth';
+import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
+const { user, role } = useAuth();
+
+const canFilterAllKelas = computed(() => ['admin', 'kepala', 'sekretaris'].includes(role.value));
 
 const selectedBulan = ref(new Date().getMonth() + 1);
 const selectedTahun = ref(new Date().getFullYear());
-const selectedKelas = ref('');
+const selectedKelas = ref(user.value?.id_kelas || '');
 const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
@@ -190,9 +249,7 @@ const loadKelas = async () => {
     if (res.data.success) {
       kelasList.value = res.data.data;
     }
-  } catch (e) {
-    //
-  }
+  } catch (e) {}
 };
 
 const loadMatrix = async () => {
@@ -201,9 +258,17 @@ const loadMatrix = async () => {
       bulan: selectedBulan.value,
       tahun: selectedTahun.value,
     };
-    if (selectedKelas.value) {
-      params.id_kelas = selectedKelas.value;
+
+    if (canFilterAllKelas.value) {
+      if (selectedKelas.value) {
+        params.id_kelas = selectedKelas.value;
+      }
+    } else {
+      if (user.value?.id_kelas) {
+        params.id_kelas = user.value.id_kelas;
+      }
     }
+
     const res = await api.get('/absensi/matrix', { params });
     if (res.data.success) {
       matrixData.value = res.data.data.data;
@@ -242,15 +307,23 @@ const exportCsv = () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `Rekap_Matrix_Absensi_${selectedBulan.value}_${selectedTahun.value}.csv`);
+  const filenamePrefix = !canFilterAllKelas.value && user.value?.nama_kelas
+    ? `Rekap_Matrix_${user.value.nama_kelas.replace(/\s+/g, '_')}`
+    : 'Rekap_Matrix_Absensi';
+  link.setAttribute('download', `${filenamePrefix}_${selectedBulan.value}_${selectedTahun.value}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   toast.success('File CSV berhasil diunduh!');
 };
 
-onMounted(() => {
-  loadKelas();
-  loadMatrix();
+onMounted(async () => {
+  if (!canFilterAllKelas.value) {
+    selectedKelas.value = user.value?.id_kelas || '';
+  }
+  await Promise.all([
+    canFilterAllKelas.value ? loadKelas() : Promise.resolve(),
+    loadMatrix(),
+  ]);
 });
 </script>

@@ -1,277 +1,339 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    
-    <!-- Top Filter & Actions Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+  <div class="space-y-6">
+    <!-- Header Halaman -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-          <span>⏱</span>
-          <span>Monitoring Kehadiran Realtime</span>
-        </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Pantau status kehadiran santri hari ini secara langsung per kelas/jilid
-        </p>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2.5">
-        <button
-          @click="loadMonitoring"
-          :disabled="loading"
-          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-        >
-          <span :class="{'animate-spin': loading}">🔄</span>
-          <span>Segarkan</span>
-        </button>
-        <router-link
-          to="/absensi/scanner"
-          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
-        >
-          <span>📷</span>
-          <span>Buka Scanner</span>
-        </router-link>
-      </div>
-    </div>
-
-    <!-- Filters Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs">
-      <!-- Date Picker -->
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Tanggal Absensi</label>
-        <input
-          v-model="filterDate"
-          type="date"
-          @change="loadMonitoring"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        />
-      </div>
-
-      <!-- Class Dropdown -->
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Filter Jilid / Kelas</label>
-        <select
-          v-model="selectedKelas"
-          @change="loadMonitoring"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option value="">Semua Jilid / Kelas</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
-          </option>
-        </select>
-      </div>
-
-      <!-- Search Box -->
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Cari Santri</label>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Ketik nama atau NISN..."
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        />
-      </div>
-    </div>
-
-    <!-- Stat Metrics Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-      <div class="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-zinc-400 block">Total Santri</span>
-        <span class="text-xl font-extrabold text-zinc-800 dark:text-zinc-200">{{ stats.total }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 block">Hadir</span>
-        <span class="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">{{ stats.hadir }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 block">Terlambat</span>
-        <span class="text-xl font-extrabold text-amber-700 dark:text-amber-300">{{ stats.terlambat }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 block">Sakit</span>
-        <span class="text-xl font-extrabold text-blue-700 dark:text-blue-300">{{ stats.sakit }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400 block">Izin</span>
-        <span class="text-xl font-extrabold text-purple-700 dark:text-purple-300">{{ stats.izin }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
-        <span class="text-[10px] font-bold uppercase text-rose-600 dark:text-rose-400 block">Alpa</span>
-        <span class="text-xl font-extrabold text-rose-700 dark:text-rose-300">{{ stats.alpa }}</span>
-      </div>
-      <div class="p-3.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-center">
-        <span class="text-[10px] font-bold uppercase text-zinc-500 block">Belum Absen</span>
-        <span class="text-xl font-extrabold text-zinc-700 dark:text-zinc-300">{{ stats.belum_absen }}</span>
-      </div>
-    </div>
-
-    <!-- Santri Live Table -->
-    <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider text-[10px]">
-            <tr>
-              <th class="py-3 px-4">No</th>
-              <th class="py-3 px-4">Santri</th>
-              <th class="py-3 px-4">Jilid / Kelas</th>
-              <th class="py-3 px-4">Status Kehadiran</th>
-              <th class="py-3 px-4">Waktu Masuk</th>
-              <th class="py-3 px-4">Waktu Pulang</th>
-              <th class="py-3 px-4">Keterangan</th>
-              <th class="py-3 px-4 text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-200/60 dark:divide-zinc-800">
-            <tr v-if="filteredStudents.length === 0">
-              <td colspan="8" class="py-8 text-center text-zinc-400">
-                Tidak ada data santri yang cocok dengan filter.
-              </td>
-            </tr>
-
-            <tr
-              v-for="(s, idx) in filteredStudents"
-              :key="s.id_siswa"
-              class="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition"
-            >
-              <td class="py-3 px-4 text-zinc-400">{{ idx + 1 }}</td>
-              <td class="py-3 px-4">
-                <p class="font-bold text-zinc-900 dark:text-zinc-100">{{ s.nama_lengkap }}</p>
-                <p class="text-[10px] text-zinc-400 font-mono">NISN: {{ s.nisn }} ({{ s.jenis_kelamin }})</p>
-              </td>
-              <td class="py-3 px-4">
-                <span
-                  class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white shadow-xs"
-                  :style="{ backgroundColor: s.warna_label || '#3b82f6' }"
-                >
-                  {{ s.nama_kelas || '-' }}
-                </span>
-              </td>
-              <td class="py-3 px-4">
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                  :class="{
-                    'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300': s.status === 'Hadir',
-                    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300': s.status === 'Terlambat',
-                    'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300': s.status === 'Sakit',
-                    'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300': s.status === 'Izin',
-                    'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300': s.status === 'Alpa',
-                    'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400': s.status === 'Belum Absen',
-                  }"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="{
-                    'bg-emerald-500': s.status === 'Hadir',
-                    'bg-amber-500': s.status === 'Terlambat',
-                    'bg-blue-500': s.status === 'Sakit',
-                    'bg-purple-500': s.status === 'Izin',
-                    'bg-rose-500': s.status === 'Alpa',
-                    'bg-zinc-400': s.status === 'Belum Absen',
-                  }"></span>
-                  {{ s.status }}
-                </span>
-              </td>
-              <td class="py-3 px-4 font-mono text-zinc-700 dark:text-zinc-300">
-                {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
-              </td>
-              <td class="py-3 px-4 font-mono text-zinc-700 dark:text-zinc-300">
-                {{ s.waktu_pulang ? s.waktu_pulang + ' WIB' : '-' }}
-              </td>
-              <td class="py-3 px-4 text-zinc-500 text-[11px]">
-                {{ s.keterangan || '-' }}
-              </td>
-              <td class="py-3 px-4 text-center">
-                <button
-                  @click="openStatusModal(s)"
-                  class="px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold transition cursor-pointer"
-                >
-                  Ubah Status
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Modal Ubah Status Manual -->
-    <div
-      v-if="editingStudent"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-    >
-      <div class="w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl animate-slideUp">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-bold text-zinc-900 dark:text-white">Ubah Status Absensi</h3>
-          <button @click="editingStudent = null" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold tracking-tight text-foreground">
+            Monitoring
+          </h2>
+          <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1.5">
+            <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Live Monitoring</span>
+          </Badge>
         </div>
-
-        <p class="text-xs text-zinc-500 mb-4">
-          Santri: <strong class="text-zinc-800 dark:text-zinc-200">{{ editingStudent.nama_lengkap }}</strong> ({{ editingStudent.nisn }})
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Pantau status presensi santri per kelas, ubah kehadiran manual, dan tambahkan catatan izin/sakit.
         </p>
+      </div>
+    </div>
 
-        <form @submit.prevent="saveStatusChange" class="space-y-4 text-xs">
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Status Baru</label>
-            <select
-              v-model="newStatus"
-              class="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              <option value="Hadir">Hadir</option>
-              <option value="Terlambat">Terlambat</option>
-              <option value="Sakit">Sakit</option>
-              <option value="Izin">Izin</option>
-              <option value="Alpa">Alpa</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Keterangan (Opsional)</label>
-            <input
-              v-model="newKeterangan"
-              type="text"
-              placeholder="Cth: Surat dokter / izin acara keluarga..."
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+    <!-- Filter Card -->
+    <Card>
+      <CardContent class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <!-- Date Filter -->
+          <div class="lg:col-span-3 space-y-1.5">
+            <Label for="filterDate" class="text-xs font-medium text-muted-foreground">
+              Tanggal Absensi
+            </Label>
+            <Input
+              id="filterDate"
+              v-model="filterDate"
+              type="date"
+              class="h-9 text-xs"
+              @change="loadMonitoring"
             />
           </div>
 
-          <div class="flex items-center justify-end gap-2 pt-2">
-            <button
-              type="button"
-              @click="editingStudent = null"
-              class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer"
+          <!-- Class Dropdown -->
+          <div class="lg:col-span-3 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
+                Filter Jilid / Kelas
+              </Label>
+              <span v-if="user?.nama_kelas && selectedKelas == user?.id_kelas" class="text-[10px] text-primary font-medium truncate">
+                ({{ user.nama_kelas }})
+              </span>
+            </div>
+            <select
+              id="filterKelas"
+              v-model="selectedKelas"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadMonitoring"
             >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/20 cursor-pointer"
-            >
-              Simpan Status
-            </button>
+              <option value="">Semua Jilid / Kelas</option>
+              <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
+              </option>
+            </select>
           </div>
-        </form>
-      </div>
+
+          <!-- Search Box -->
+          <div :class="canScanQr ? 'lg:col-span-4' : 'lg:col-span-6'" class="space-y-1.5">
+            <Label for="searchSantri" class="text-xs font-medium text-muted-foreground">
+              Cari Santri
+            </Label>
+            <div class="relative">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="searchSantri"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Ketik nama atau NISN..."
+                class="h-9 pl-9 text-xs"
+              />
+            </div>
+          </div>
+
+          <!-- Buka Scanner Button -->
+          <div v-if="canScanQr" class="lg:col-span-2">
+            <Button as-child class="h-9 w-full gap-1.5 text-xs">
+              <router-link to="/absensi/scanner">
+                <ScanLine class="size-3.5" />
+                <span>Buka Scanner</span>
+              </router-link>
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <!-- Stat Metrics Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <Card class="p-3 text-center">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Total Santri</span>
+        <span class="text-xl font-bold tracking-tight text-foreground">{{ stats.total }}</span>
+      </Card>
+      
+      <Card class="p-3 text-center border-emerald-500/20 bg-emerald-500/5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Hadir</span>
+        <span class="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{{ stats.hadir }}</span>
+      </Card>
+
+      <Card class="p-3 text-center border-amber-500/20 bg-amber-500/5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Terlambat</span>
+        <span class="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{{ stats.terlambat }}</span>
+      </Card>
+
+      <Card class="p-3 text-center border-blue-500/20 bg-blue-500/5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Sakit</span>
+        <span class="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{{ stats.sakit }}</span>
+      </Card>
+
+      <Card class="p-3 text-center border-indigo-500/20 bg-indigo-500/5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Izin</span>
+        <span class="text-xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">{{ stats.izin }}</span>
+      </Card>
+
+      <Card class="p-3 text-center border-rose-500/20 bg-rose-500/5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">Alpa</span>
+        <span class="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{{ stats.alpa }}</span>
+      </Card>
+
+      <Card class="p-3 text-center bg-muted/40">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Belum Absen</span>
+        <span class="text-xl font-bold tracking-tight text-foreground">{{ stats.belum_absen }}</span>
+      </Card>
     </div>
+
+    <!-- Live Data Table -->
+    <Card class="overflow-hidden">
+      <div class="overflow-x-auto">
+        <Table class="w-full">
+          <TableHeader>
+            <TableRow class="bg-muted/30">
+              <TableHead class="w-8 sm:w-12 text-center text-[10px] uppercase whitespace-nowrap px-1.5 sm:px-4">No</TableHead>
+              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[125px]">Santri</TableHead>
+              <TableHead class="text-[10px] uppercase whitespace-nowrap px-1.5 sm:px-4">Jilid / Kelas</TableHead>
+              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[120px]">Status Kehadiran</TableHead>
+              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[95px]">Jam Masuk</TableHead>
+              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[200px]">Keterangan / Catatan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-if="filteredStudents.length === 0">
+              <TableCell colspan="6" class="h-32 text-center text-muted-foreground text-xs">
+                Tidak ada data santri yang cocok dengan kriteria filter.
+              </TableCell>
+            </TableRow>
+
+            <TableRow
+              v-for="(s, idx) in filteredStudents"
+              :key="s.id_siswa"
+              class="transition-colors hover:bg-muted/40"
+            >
+              <TableCell class="text-center font-mono text-xs text-muted-foreground px-1.5 sm:px-4 w-8 sm:w-12">
+                {{ idx + 1 }}
+              </TableCell>
+              
+              <TableCell class="py-2.5 px-2 sm:px-4 max-w-[130px] sm:max-w-none">
+                <div class="min-w-0 pr-1">
+                  <p class="font-medium text-foreground text-xs sm:text-sm truncate" :title="s.nama_lengkap">
+                    {{ s.nama_lengkap }}
+                  </p>
+                  <p class="text-[10px] sm:text-[11px] text-muted-foreground font-mono truncate">
+                    NISN: {{ s.nisn }}
+                  </p>
+                </div>
+              </TableCell>
+
+              <TableCell class="whitespace-nowrap px-1.5 sm:px-4">
+                <Badge
+                  variant="outline"
+                  class="font-medium text-[11px]"
+                  :style="s.warna_label ? { borderColor: s.warna_label, color: s.warna_label } : {}"
+                >
+                  {{ s.nama_kelas || '-' }}
+                </Badge>
+              </TableCell>
+
+              <!-- Status Kehadiran (Dengan Shadcn DropdownMenu jika punya izin edit) -->
+              <TableCell class="whitespace-nowrap py-2.5 px-2 sm:px-4">
+                <DropdownMenu v-if="canEditAbsensi">
+                  <DropdownMenuTrigger as-child>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="h-7 gap-1 px-2 text-xs font-medium"
+                      :disabled="updatingStudentId === s.id_siswa"
+                    >
+                      <span class="size-1.5 shrink-0 rounded-full" :class="getStatusDotClass(s.status)"></span>
+                      <span>{{ s.status }}</span>
+                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground" />
+                      <ChevronDown v-else class="size-3 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" class="w-44">
+                    <DropdownMenuLabel class="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Ubah Status
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem
+                      v-for="opt in statusOptions"
+                      :key="opt.value"
+                      class="flex items-center justify-between text-xs"
+                      @select="selectStatus(s, opt.value)"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="size-2 rounded-full" :class="opt.dotClass"></span>
+                        <span>{{ opt.label }}</span>
+                      </div>
+                      <Check v-if="s.status === opt.value" class="size-3.5 text-primary" />
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <!-- Static Badge jika bukan role editor -->
+                <Badge
+                  v-else
+                  :variant="getStatusBadgeVariant(s.status)"
+                  class="gap-1.5 text-xs font-medium"
+                >
+                  <span class="size-1.5 rounded-full" :class="getStatusDotClass(s.status)"></span>
+                  <span>{{ s.status }}</span>
+                </Badge>
+              </TableCell>
+
+              <TableCell class="font-mono text-xs text-foreground whitespace-nowrap px-2 sm:px-4">
+                {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
+              </TableCell>
+
+              <!-- Kolom Keterangan / Catatan langsung diisi di kolom ini -->
+              <TableCell class="py-2 px-2 sm:px-4 min-w-[200px]">
+                <div v-if="canEditAbsensi" class="relative flex items-center max-w-[240px]">
+                  <Input
+                    v-model="s.keterangan"
+                    type="text"
+                    placeholder="Tulis catatan..."
+                    class="h-7 text-xs pr-7 bg-background/50 hover:bg-background focus:bg-background"
+                    :disabled="updatingKeteranganId === s.id_siswa"
+                    @change="saveDirectKeterangan(s)"
+                    @keyup.enter="$event.target.blur()"
+                  />
+                  <LoaderCircle
+                    v-if="updatingKeteranganId === s.id_siswa"
+                    class="size-3 animate-spin text-muted-foreground absolute right-2 pointer-events-none"
+                  />
+                </div>
+                <span v-else class="text-xs text-muted-foreground">
+                  {{ s.keterangan || '-' }}
+                </span>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
 
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import api from '../../services/api';
-import { useToast } from '../../composables/useToast';
+import {
+  Search,
+  ScanLine,
+  ChevronDown,
+  Check,
+  LoaderCircle,
+} from '@lucide/vue';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import api from '@/services/api';
+import { useAuth } from '@/composables/useAuth';
+import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
+const { user, canEditAbsensi, canScanQr } = useAuth();
 
 const loading = ref(false);
 const filterDate = ref(new Date().toISOString().split('T')[0]);
-const selectedKelas = ref('');
+const selectedKelas = ref(user.value?.id_kelas ? user.value.id_kelas : '');
 const searchQuery = ref('');
 const kelasList = ref([]);
 const students = ref([]);
 const stats = ref({ total: 0, hadir: 0, terlambat: 0, sakit: 0, izin: 0, alpa: 0, belum_absen: 0 });
 
-const editingStudent = ref(null);
-const newStatus = ref('Hadir');
-const newKeterangan = ref('');
+const updatingStudentId = ref(null);
+const updatingKeteranganId = ref(null);
+
+const statusOptions = [
+  { value: 'Hadir', label: 'Hadir', dotClass: 'bg-emerald-500' },
+  { value: 'Terlambat', label: 'Terlambat', dotClass: 'bg-amber-500' },
+  { value: 'Sakit', label: 'Sakit', dotClass: 'bg-blue-500' },
+  { value: 'Izin', label: 'Izin', dotClass: 'bg-indigo-500' },
+  { value: 'Alpa', label: 'Alpa', dotClass: 'bg-rose-500' },
+];
+
+const getStatusBadgeVariant = (status) => {
+  switch (status) {
+    case 'Hadir': return 'default';
+    case 'Terlambat': return 'secondary';
+    case 'Sakit':
+    case 'Izin': return 'outline';
+    case 'Alpa': return 'destructive';
+    default: return 'outline';
+  }
+};
+
+const getStatusDotClass = (status) => {
+  switch (status) {
+    case 'Hadir': return 'bg-emerald-500';
+    case 'Terlambat': return 'bg-amber-500';
+    case 'Sakit': return 'bg-blue-500';
+    case 'Izin': return 'bg-indigo-500';
+    case 'Alpa': return 'bg-rose-500';
+    default: return 'bg-muted-foreground/60';
+  }
+};
 
 const filteredStudents = computed(() => {
   return students.value.filter(s => {
@@ -281,15 +343,84 @@ const filteredStudents = computed(() => {
   });
 });
 
+const recalculateStats = () => {
+  const list = students.value;
+  stats.value = {
+    total: list.length,
+    hadir: list.filter(s => s.status === 'Hadir').length,
+    terlambat: list.filter(s => s.status === 'Terlambat').length,
+    sakit: list.filter(s => s.status === 'Sakit').length,
+    izin: list.filter(s => s.status === 'Izin').length,
+    alpa: list.filter(s => s.status === 'Alpa').length,
+    belum_absen: list.filter(s => s.status === 'Belum Absen').length,
+  };
+};
+
+const selectStatus = async (student, statusVal) => {
+  if (student.status === statusVal) return;
+
+  updatingStudentId.value = student.id_siswa;
+
+  try {
+    const res = await api.post('/absensi/status', {
+      id_siswa: student.id_siswa,
+      tanggal: filterDate.value,
+      status: statusVal,
+      keterangan: student.keterangan || null,
+    });
+
+    if (res.data.success) {
+      toast.success(`Status ${student.nama_lengkap} diubah ke ${statusVal}`);
+      student.status = statusVal;
+      if (res.data.data?.waktu_masuk) {
+        student.waktu_masuk = res.data.data.waktu_masuk;
+      } else if (['Sakit', 'Izin', 'Alpa'].includes(statusVal)) {
+        student.waktu_masuk = null;
+      }
+      recalculateStats();
+    }
+  } catch (e) {
+    toast.error('Gagal memperbarui status absensi.');
+  } finally {
+    updatingStudentId.value = null;
+  }
+};
+
+const saveDirectKeterangan = async (student) => {
+  updatingKeteranganId.value = student.id_siswa;
+
+  try {
+    const res = await api.post('/absensi/status', {
+      id_siswa: student.id_siswa,
+      tanggal: filterDate.value,
+      status: student.status === 'Belum Absen' ? 'Hadir' : student.status,
+      keterangan: student.keterangan || null,
+    });
+
+    if (res.data.success) {
+      toast.success(`Catatan untuk ${student.nama_lengkap} disimpan`);
+      if (student.status === 'Belum Absen') {
+        student.status = 'Hadir';
+        if (res.data.data?.waktu_masuk) {
+          student.waktu_masuk = res.data.data.waktu_masuk;
+        }
+        recalculateStats();
+      }
+    }
+  } catch (e) {
+    toast.error('Gagal menyimpan keterangan.');
+  } finally {
+    updatingKeteranganId.value = null;
+  }
+};
+
 const loadKelas = async () => {
   try {
     const res = await api.get('/kelas');
     if (res.data.success) {
       kelasList.value = res.data.data;
     }
-  } catch (e) {
-    //
-  }
+  } catch (e) {}
 };
 
 const loadMonitoring = async () => {
@@ -311,35 +442,10 @@ const loadMonitoring = async () => {
   }
 };
 
-const openStatusModal = (student) => {
-  editingStudent.value = student;
-  newStatus.value = student.status === 'Belum Absen' ? 'Hadir' : student.status;
-  newKeterangan.value = student.keterangan || '';
-};
-
-const saveStatusChange = async () => {
-  if (!editingStudent.value) return;
-
-  try {
-    const res = await api.post('/absensi/status', {
-      id_siswa: editingStudent.value.id_siswa,
-      tanggal: filterDate.value,
-      status: newStatus.value,
-      keterangan: newKeterangan.value,
-    });
-
-    if (res.data.success) {
-      toast.success('Status santri berhasil diperbarui!');
-      editingStudent.value = null;
-      loadMonitoring();
-    }
-  } catch (e) {
-    toast.error('Gagal memperbarui status absensi.');
+onMounted(async () => {
+  if (user.value?.id_kelas && !selectedKelas.value) {
+    selectedKelas.value = user.value.id_kelas;
   }
-};
-
-onMounted(() => {
-  loadKelas();
-  loadMonitoring();
+  await Promise.all([loadKelas(), loadMonitoring()]);
 });
 </script>

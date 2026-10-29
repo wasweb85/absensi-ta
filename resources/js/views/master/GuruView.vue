@@ -1,240 +1,308 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+  <div class="space-y-6">
+    <!-- Header Halaman -->
+    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-          <span>👥</span>
-          <span>Manajemen Guru & Pengurus TPQ</span>
-        </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Kelola akun pengajar, penetapan jabatan struktural (Kepala TPQ, Sekretaris, Bendahara), dan penugasan wali jilid
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold tracking-tight text-foreground">
+            Data Guru
+          </h2>
+          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+            {{ usersList.length }} Akun
+          </Badge>
+        </div>
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Kelola peran pengguna, hak akses modul, dan penetapan wali jilid/kelas santri.
         </p>
       </div>
 
-      <button
+      <!-- Action Button (Khusus Admin) -->
+      <Button
+        v-if="canManageGuru"
+        size="sm"
+        class="h-8 gap-1.5 text-xs"
         @click="openAddModal"
-        class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
       >
-        <span>➕</span>
+        <Plus class="size-3.5" />
         <span>Tambah Guru / Pengurus</span>
-      </button>
+      </Button>
     </div>
 
-    <!-- Filters Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs">
-      <div class="sm:col-span-8">
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Cari Nama / Username</label>
-        <input
-          v-model="searchQuery"
-          @input="loadUsers"
-          type="text"
-          placeholder="Ketik nama ustadz/ustadzah atau username..."
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        />
-      </div>
+    <!-- Summary Cards Ustadz/Ustadzah & Pengurus TPQ -->
+    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
+        <div class="min-w-0">
+          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+            Ustadz / Pengajar
+          </span>
+          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
+            {{ totalPengajarCount }}
+          </span>
+          <span class="hidden sm:block text-[10px] text-muted-foreground">Guru &amp; wali jilid aktif</span>
+        </div>
+        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <Users class="size-5" />
+        </div>
+      </Card>
 
-      <div class="sm:col-span-4">
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Filter Jabatan / Role</label>
-        <select
-          v-model="filterRole"
-          @change="loadUsers"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option value="">Semua Jabatan</option>
-          <option value="kepala">👑 Kepala TPQ</option>
-          <option value="sekretaris">📝 Sekretaris</option>
-          <option value="bendahara">💰 Bendahara</option>
-          <option value="guru">📖 Pengajar / Guru</option>
-          <option value="admin">⚙️ Administrator</option>
-        </select>
-      </div>
+      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
+        <div class="min-w-0">
+          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+            Wali Jilid
+          </span>
+          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
+            {{ totalWaliKelasCount }} <span class="text-[10px] sm:text-xs font-normal text-muted-foreground">/ {{ kelasList.length }}</span>
+          </span>
+          <span class="hidden sm:block text-[10px] text-muted-foreground">Kelas dengan ustadz/ustadzah</span>
+        </div>
+        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <Users class="size-5" />
+        </div>
+      </Card>
+
+      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
+        <div class="min-w-0">
+          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+            Total Staf
+          </span>
+          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
+            {{ usersList.length }}
+          </span>
+          <span class="hidden sm:block text-[10px] text-muted-foreground">Seluruh akun struktural &amp; guru</span>
+        </div>
+        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+          <Users class="size-5" />
+        </div>
+      </Card>
     </div>
+
+    <!-- Filters Card -->
+    <Card>
+      <CardContent class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-8 space-y-1.5">
+            <Label for="searchUser" class="text-xs font-medium text-muted-foreground">Cari Nama / Username</Label>
+            <div class="relative">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="searchUser"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Ketik nama atau username..."
+                class="h-9 pl-9 text-xs"
+                @input="loadUsers"
+              />
+            </div>
+          </div>
+
+          <div class="sm:col-span-4 space-y-1.5">
+            <Label for="filterRole" class="text-xs font-medium text-muted-foreground">Filter Jabatan / Role</Label>
+            <select
+              id="filterRole"
+              v-model="filterRole"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @change="loadUsers"
+            >
+              <option value="">Semua Jabatan</option>
+              <option value="kepala">Kepala TPQ</option>
+              <option value="sekretaris">Sekretaris</option>
+              <option value="bendahara">Bendahara</option>
+              <option value="guru">Pengajar / Guru</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="p-12 text-center text-zinc-400">
-      <p class="text-3xl mb-2 animate-spin">⏳</p>
-      <p class="text-sm font-medium">Memuat data guru dan pengurus...</p>
+    <div v-if="isLoading" class="p-12 text-center text-muted-foreground">
+      <LoaderCircle class="size-8 mx-auto animate-spin mb-2 text-primary" />
+      <p class="text-xs font-medium">Memuat data guru dan pengurus...</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="usersList.length === 0" class="p-12 text-center text-zinc-400 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-      <p class="text-4xl mb-2">👥</p>
-      <p class="text-sm font-semibold">Tidak ditemukan data guru atau pengurus sesuai filter.</p>
+    <div v-else-if="usersList.length === 0" class="p-16 text-center text-muted-foreground border rounded-xl bg-card">
+      <Users class="size-10 mx-auto mb-2 text-muted-foreground/40" />
+      <p class="text-xs font-semibold text-foreground">Tidak ditemukan data guru atau pengurus.</p>
+      <p class="text-[11px] text-muted-foreground mt-0.5">Coba ubah kata kunci pencarian atau filter peran.</p>
     </div>
 
     <!-- User Grid Cards -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div
+      <Card
         v-for="u in usersList"
         :key="u.id"
-        class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+        class="flex flex-col justify-between transition-all hover:shadow-xs"
       >
-        <div>
-          <!-- Top Row: Role Badge & Kelas Badge -->
-          <div class="flex items-center justify-between gap-2 mb-3">
-            <span
-              class="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider"
-              :class="getRoleBadgeClass(u.role)"
+        <CardHeader class="pb-3">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <Badge
+              :variant="getRoleBadgeVariant(u.role)"
+              class="text-[10px] uppercase font-semibold tracking-wider"
             >
               {{ getRoleLabel(u.role) }}
-            </span>
+            </Badge>
 
-            <span
+            <Badge
               v-if="u.kelas"
-              class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60"
+              variant="outline"
+              class="text-[10px] font-medium"
             >
               Wali {{ u.kelas.nama_kelas }}
-            </span>
-            <span
-              v-else
-              class="text-[10px] text-zinc-400 font-medium"
-            >
+            </Badge>
+            <span v-else class="text-[10px] text-muted-foreground">
               Tidak Mengajar
             </span>
           </div>
 
-          <!-- Profile info -->
           <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold flex items-center justify-center text-base border border-emerald-200 dark:border-emerald-800/80">
-              {{ u.name.charAt(0) }}
-            </div>
-            <div class="overflow-hidden">
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-white truncate">
+            <Avatar class="size-10">
+              <AvatarFallback class="bg-primary/10 text-sm font-semibold text-primary">
+                {{ u.name.charAt(0).toUpperCase() }}
+              </AvatarFallback>
+            </Avatar>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-semibold text-foreground truncate">
                 {{ u.name }}
               </h3>
-              <p class="text-[11px] font-mono text-zinc-400 truncate">
+              <p class="text-[11px] font-mono text-muted-foreground truncate">
                 @{{ u.username }}
               </p>
             </div>
           </div>
+        </CardHeader>
 
-          <!-- Email info -->
-          <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 text-xs space-y-1 text-zinc-500">
-            <div class="flex items-center justify-between">
-              <span class="text-zinc-400 text-[11px]">Email:</span>
-              <span class="font-medium text-zinc-700 dark:text-zinc-300 text-[11px] truncate max-w-[180px]">
-                {{ u.email || '—' }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-zinc-400 text-[11px]">Status Akun:</span>
-              <span class="inline-flex items-center text-[10px] font-bold text-emerald-600">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span> Aktif
-              </span>
-            </div>
+        <CardContent class="py-2 text-xs space-y-1.5 border-t">
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-muted-foreground text-[11px]">Email:</span>
+            <span class="font-medium text-foreground text-[11px] truncate max-w-[170px]">
+              {{ u.email || '—' }}
+            </span>
           </div>
-        </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground text-[11px]">Status Akun:</span>
+            <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 dark:text-emerald-400 gap-1">
+              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Aktif
+            </span>
+          </div>
+        </CardContent>
 
-        <!-- Action Buttons -->
-        <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-end gap-2">
-          <button
+        <CardFooter v-if="canManageGuru" class="pt-3 border-t flex items-center justify-end gap-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             @click="openEditModal(u)"
-            class="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition flex items-center gap-1 cursor-pointer"
           >
-            ✏️ Edit Peran
-          </button>
-          <button
-            @click="deleteUser(u)"
+            <Pencil class="size-3.5" />
+            <span>Edit Peran</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
             :disabled="currentUser?.id === u.id"
             :title="currentUser?.id === u.id ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun'"
-            class="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 text-xs font-semibold transition flex items-center gap-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            @click="deleteUser(u)"
           >
-            🗑️ Hapus
-          </button>
-        </div>
-      </div>
+            <Trash2 class="size-3.5" />
+            <span>Hapus</span>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
 
-    <!-- Modal Form (Tambah / Edit Guru & Pengurus) -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
-    >
-      <div class="w-full max-w-lg p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4">
-        <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
-          <h3 class="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-            <span>{{ isEditing ? '✏️' : '➕' }}</span>
-            <span>{{ isEditing ? 'Edit Akun & Peran Pengurus' : 'Tambah Guru / Pengurus Baru' }}</span>
-          </h3>
-          <button @click="closeModal" class="text-zinc-400 hover:text-zinc-600 cursor-pointer text-lg font-bold">
-            &times;
-          </button>
-        </div>
+    <!-- Dialog Form (Tambah / Edit Guru & Pengurus) -->
+    <Dialog :open="showModal" @update:open="(val) => { if (!val) closeModal(); }">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold">
+            {{ isEditing ? 'Edit Akun & Peran Pengurus' : 'Tambah Guru / Pengurus Baru' }}
+          </DialogTitle>
+          <DialogDescription class="text-xs">
+            Lengkapi data akun login, penetapan peran (role), dan jilid kelas binaan.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form @submit.prevent="saveUser" class="space-y-3.5 text-xs">
-          <div>
-            <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">Nama Lengkap & Gelar *</label>
-            <input
+        <form class="space-y-4 pt-2" @submit.prevent="saveUser">
+          <div class="space-y-1.5">
+            <Label for="userName" class="text-xs font-medium">Nama Lengkap &amp; Gelar *</Label>
+            <Input
+              id="userName"
               v-model="form.name"
               type="text"
               required
               placeholder="Contoh: Ustadzah Fatimah, S.Pd.I"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              class="h-9 text-xs"
             />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">Username Login *</label>
-              <input
+            <div class="space-y-1.5">
+              <Label for="userUsername" class="text-xs font-medium">Username Login *</Label>
+              <Input
+                id="userUsername"
                 v-model="form.username"
                 type="text"
                 required
                 placeholder="fatimah"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="h-9 font-mono text-xs"
               />
             </div>
 
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">Email (Opsional)</label>
-              <input
+            <div class="space-y-1.5">
+              <Label for="userEmail" class="text-xs font-medium">Email (Opsional)</Label>
+              <Input
+                id="userEmail"
                 v-model="form.email"
                 type="email"
                 placeholder="fatimah@sekolah.id"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="h-9 text-xs"
               />
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+          <div class="space-y-1.5">
+            <Label for="userPassword" class="text-xs font-medium">
               Password {{ isEditing ? '(Kosongkan jika tidak diubah)' : '*' }}
-            </label>
-            <input
+            </Label>
+            <Input
+              id="userPassword"
               v-model="form.password"
               type="password"
               :required="!isEditing"
               placeholder="Minimal 6 karakter"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              class="h-9 text-xs"
             />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">Jabatan / Peran (Role) *</label>
+            <div class="space-y-1.5">
+              <Label for="userRole" class="text-xs font-medium">Jabatan / Peran (Role) *</Label>
               <select
+                id="userRole"
                 v-model="form.role"
-                @change="handleRoleChange"
                 required
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                @change="handleRoleChange"
               >
-                <option value="guru">📖 Pengajar / Guru</option>
-                <option value="bendahara">💰 Bendahara (Kasir & SPP)</option>
-                <option value="sekretaris">📝 Sekretaris (Administrasi)</option>
-                <option value="kepala">👑 Kepala TPQ (Supervisi)</option>
-                <option value="admin">⚙️ Administrator (IT)</option>
+                <option value="guru">Pengajar / Guru</option>
+                <option value="bendahara">Bendahara</option>
+                <option value="sekretaris">Sekretaris</option>
+                <option value="kepala">Kepala TPQ</option>
+                <option value="admin">Administrator</option>
               </select>
             </div>
 
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Wali Jilid / Kelas Binaan
-              </label>
+            <div class="space-y-1.5">
+              <Label for="userKelas" class="text-xs font-medium">Wali Jilid / Kelas Binaan</Label>
               <select
+                id="userKelas"
                 v-model="form.id_kelas"
                 :disabled="isRoleNonTeaching"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:opacity-40"
+                class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
               >
                 <option :value="null">-- Tidak Mengajar --</option>
                 <option v-for="k in kelasList" :key="k.id" :value="k.id">
@@ -244,46 +312,80 @@
             </div>
           </div>
 
-          <div v-if="isRoleNonTeaching" class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/60 text-[11px] text-purple-700 dark:text-purple-300">
-            ℹ️ Jabatan <b>{{ getRoleLabel(form.role) }}</b> tidak memegang kelas mengajar langsung.
+          <div v-if="isRoleNonTeaching" class="p-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-[11px] text-indigo-700 dark:text-indigo-400">
+            Jabatan <strong>{{ getRoleLabel(form.role) }}</strong> tidak memegang kelas mengajar langsung.
           </div>
 
-          <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <button
+          <DialogFooter class="flex gap-2 sm:justify-end pt-2">
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              class="text-xs"
               @click="closeModal"
-              class="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="sm"
+              class="text-xs"
               :disabled="isSaving"
-              class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
             >
-              <span v-if="isSaving" class="animate-spin">⏳</span>
+              <LoaderCircle v-if="isSaving" class="size-3.5 animate-spin" />
               <span>{{ isEditing ? 'Simpan Perubahan' : 'Tambah Akun' }}</span>
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import api from '../../services/api';
-import { useAuth } from '../../composables/useAuth';
-import { useToast } from '../../composables/useToast';
+import {
+  Plus,
+  Search,
+  Users,
+  Pencil,
+  Trash2,
+  LoaderCircle,
+} from '@lucide/vue';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import api from '@/services/api';
+import { useAuth } from '@/composables/useAuth';
+import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
-const { user: currentUser } = useAuth();
+const { user: currentUser, canManageGuru } = useAuth();
 
 const usersList = ref([]);
 const kelasList = ref([]);
 const isLoading = ref(false);
 const isSaving = ref(false);
+
+const totalPengajarCount = computed(() => {
+  return usersList.value.filter(u => u.role === 'guru' || u.id_kelas).length;
+});
+
+const totalWaliKelasCount = computed(() => {
+  return usersList.value.filter(u => !!u.id_kelas).length;
+});
 
 const searchQuery = ref('');
 const filterRole = ref('');
@@ -313,23 +415,21 @@ function handleRoleChange() {
 
 function getRoleLabel(r) {
   switch (r) {
-    case 'kepala': return '👑 Kepala TPQ';
-    case 'sekretaris': return '📝 Sekretaris';
-    case 'bendahara': return '💰 Bendahara';
-    case 'guru': return '📖 Pengajar / Guru';
-    case 'admin': return '⚙️ Administrator';
+    case 'kepala': return 'Kepala TPQ';
+    case 'sekretaris': return 'Sekretaris';
+    case 'bendahara': return 'Bendahara';
+    case 'guru': return 'Pengajar / Guru';
+    case 'admin': return 'Administrator';
     default: return r;
   }
 }
 
-function getRoleBadgeClass(r) {
+function getRoleBadgeVariant(r) {
   switch (r) {
-    case 'kepala': return 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300';
-    case 'sekretaris': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300';
-    case 'bendahara': return 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300';
-    case 'guru': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300';
-    case 'admin': return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200';
-    default: return 'bg-zinc-100 text-zinc-700';
+    case 'admin': return 'default';
+    case 'kepala': return 'secondary';
+    case 'guru': return 'outline';
+    default: return 'outline';
   }
 }
 

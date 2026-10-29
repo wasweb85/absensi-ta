@@ -16,7 +16,7 @@ class AbsensiScannerService
      *
      * @return array{success: bool, message: string, data?: array}
      */
-    public function scan(string $nisn, string $scannerRole = 'guru', ?string $scannerKelas = null, string $metodeScan = 'qr_kamera'): array
+    public function scan(string $nisn, string $scannerRole = 'guru', ?string $scannerKelas = null, string $metodeScan = 'qr_kamera', bool $restrictKelas = false): array
     {
         $timezone = 'Asia/Jakarta';
         $now = Carbon::now($timezone);
@@ -24,12 +24,25 @@ class AbsensiScannerService
         $currentTime = $now->format('H:i:s');
         $currentTimeShort = $now->format('H:i');
 
-        // 1. Cari Siswa berdasarkan NISN
-        $siswa = Siswa::with('kelas')->where('nisn', trim($nisn))->first();
+        // Normalisasi NISN (buang karakter non-printable, prefix NISN, atau URL)
+        $cleanNisn = trim(preg_replace('/[\x00-\x1F\x7F]/', '', $nisn));
+        if (preg_match('/nisn[:\s]+([a-zA-Z0-9_-]+)/i', $cleanNisn, $matches)) {
+            $cleanNisn = $matches[1];
+        } elseif (str_contains($cleanNisn, '/')) {
+            $parts = explode('/', $cleanNisn);
+            $cleanNisn = trim(end($parts));
+        }
+
+        // 1. Cari Siswa berdasarkan NISN atau ID
+        $siswa = Siswa::with('kelas')
+            ->where('nisn', $cleanNisn)
+            ->orWhere('id', $cleanNisn)
+            ->first();
+
         if (! $siswa) {
             return [
                 'success' => false,
-                'message' => "Siswa dengan NISN [{$nisn}] tidak ditemukan.",
+                'message' => "Siswa dengan NISN/Barcode [{$cleanNisn}] tidak ditemukan.",
             ];
         }
 
@@ -41,8 +54,8 @@ class AbsensiScannerService
             ];
         }
 
-        // 3. Validasi akses kelas jika scanner adalah Guru
-        if ($scannerRole === 'guru' && ! empty($scannerKelas)) {
+        // 3. Validasi akses kelas hanya jika scanner meminta pembatasan kelas jilidnya saja
+        if ($restrictKelas && $scannerRole === 'guru' && ! empty($scannerKelas) && $scannerKelas !== 'semua') {
             if ($siswa->kelas && strtoupper(trim($siswa->kelas->nama_kelas)) !== strtoupper(trim($scannerKelas))) {
                 return [
                     'success' => false,
@@ -66,7 +79,6 @@ class AbsensiScannerService
         // 5. Ambil konfigurasi jam operasional
         $jamMasuk = Pengaturan::getValue('jam_masuk', '07:00');
         $jamTerlambat = Pengaturan::getValue('jam_terlambat', '07:15');
-        $jamPulang = Pengaturan::getValue('jam_pulang', '12:00');
 
         // 6. Cek absensi siswa hari ini
         $absensi = Absensi::where('id_siswa', $siswa->id)
@@ -100,48 +112,10 @@ class AbsensiScannerService
             ];
         }
 
-        // Kasus B: Siswa sudah ada catatan absensi hari ini
-        if ($absensi->waktu_pulang !== null) {
-            return [
-                'success' => false,
-                'message' => "Siswa [{$siswa->nama_lengkap}] sudah selesai absen masuk dan pulang hari ini.",
-                'data' => [
-                    'nisn' => $siswa->nisn,
-                    'nama_lengkap' => $siswa->nama_lengkap,
-                    'kelas' => $siswa->kelas?->nama_kelas,
-                    'waktu_masuk' => substr((string) $absensi->waktu_masuk, 0, 5),
-                    'waktu_pulang' => substr((string) $absensi->waktu_pulang, 0, 5),
-                    'status' => $absensi->status,
-                ],
-            ];
-        }
-
-        // Kasus C: Belum absen pulang, periksa apakah sudah jam pulang
-        if ($currentTimeShort >= $jamPulang) {
-            $absensi->update([
-                'waktu_pulang' => $currentTime,
-            ]);
-
-            return [
-                'success' => true,
-                'type' => 'pulang',
-                'status' => $absensi->status,
-                'message' => "Absen pulang berhasil untuk [{$siswa->nama_lengkap}] pada {$currentTimeShort}.",
-                'data' => [
-                    'nisn' => $siswa->nisn,
-                    'nama_lengkap' => $siswa->nama_lengkap,
-                    'kelas' => $siswa->kelas?->nama_kelas,
-                    'waktu_masuk' => substr((string) $absensi->waktu_masuk, 0, 5),
-                    'waktu_pulang' => $currentTimeShort,
-                    'status' => $absensi->status,
-                ],
-            ];
-        }
-
-        // Kasus D: Scan lagi tapi belum waktunya pulang
+        // Kasus B: Siswa sudah melakukan presensi hari ini (TPQ hanya presensi masuk)
         return [
             'success' => false,
-            'message' => "Belum waktu pulang (Jam pulang: {$jamPulang}). Siswa sudah absen masuk pada ".substr((string) $absensi->waktu_masuk, 0, 5).'.',
+            'message' => "Santri [{$siswa->nama_lengkap}] sudah melakukan presensi hari ini pada ".substr((string) $absensi->waktu_masuk, 0, 5)." WIB (Status: {$absensi->status}).",
             'data' => [
                 'nisn' => $siswa->nisn,
                 'nama_lengkap' => $siswa->nama_lengkap,
@@ -227,6 +201,41 @@ class AbsensiScannerService
         $daysInMonth = $startDate->daysInMonth;
         $endDate = $startDate->copy()->endOfMonth();
 
+        // Hitung hari belajar aktif dalam bulan berjalan (mengabaikan hari libur & hari non-aktif)
+        $hariAktifStr = Pengaturan::getValue('hari_aktif', 'Senin,Selasa,Rabu,Kamis,Jumat,Sabtu');
+        $activeDaysList = array_map('trim', explode(',', strtolower($hariAktifStr)));
+        $dayNamesIndo = [
+            0 => 'minggu',
+            1 => 'senin',
+            2 => 'selasa',
+            3 => 'rabu',
+            4 => 'kamis',
+            5 => 'jumat',
+            6 => 'sabtu',
+        ];
+
+        $holidays = HariLibur::where('tanggal_mulai', '<=', $endDate->format('Y-m-d'))
+            ->where('tanggal_selesai', '>=', $startDate->format('Y-m-d'))
+            ->get();
+
+        $effectiveDaysCount = 0;
+        $effectiveDaysMap = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $curDate = Carbon::createFromDate($tahun, $bulan, $d);
+            $dayName = $dayNamesIndo[$curDate->dayOfWeek] ?? '';
+            $dateStr = $curDate->format('Y-m-d');
+
+            $isDayOff = ! in_array($dayName, $activeDaysList, true);
+            $isHoliday = $holidays->contains(fn ($h) => $dateStr >= $h->tanggal_mulai && $dateStr <= $h->tanggal_selesai);
+
+            $isEffective = (! $isDayOff && ! $isHoliday);
+            $effectiveDaysMap[$d] = $isEffective;
+            if ($isEffective) {
+                $effectiveDaysCount++;
+            }
+        }
+        $divisor = $effectiveDaysCount > 0 ? $effectiveDaysCount : $daysInMonth;
+
         $query = Siswa::with(['kelas', 'absensi' => function ($q) use ($startDate, $endDate) {
             $q->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
         }])->where('status', 'aktif');
@@ -237,7 +246,7 @@ class AbsensiScannerService
 
         $siswaList = $query->orderBy('id_kelas')->orderBy('nama_lengkap')->get();
 
-        $rows = $siswaList->map(function ($s) use ($daysInMonth) {
+        $rows = $siswaList->map(function ($s) use ($daysInMonth, $divisor) {
             $absensiByDay = [];
             foreach ($s->absensi as $absen) {
                 $day = (int) Carbon::parse($absen->tanggal)->format('j');
@@ -276,7 +285,7 @@ class AbsensiScannerService
             }
 
             $totalMasuk = $h + $t;
-            $persentase = ($daysInMonth > 0) ? round(($totalMasuk / $daysInMonth) * 100, 1) : 0;
+            $persentase = round(min(100, ($totalMasuk / $divisor) * 100), 1);
 
             return [
                 'id_siswa' => $s->id,
@@ -299,6 +308,7 @@ class AbsensiScannerService
             'bulan' => $bulan,
             'tahun' => $tahun,
             'days_in_month' => $daysInMonth,
+            'effective_days' => $effectiveDaysCount,
             'data' => $rows,
         ];
     }

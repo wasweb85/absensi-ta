@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
-use App\Models\TagihanSpp;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -29,15 +29,12 @@ class RolePermissionTest extends TestCase
 
     protected Siswa $siswa;
 
-    protected TagihanSpp $tagihan;
-
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->kelas = Kelas::create([
             'nama_kelas' => 'JILID 1',
-            'nominal_spp' => 50000,
             'urutan' => 1,
             'warna_label' => '#f44336',
         ]);
@@ -48,15 +45,6 @@ class RolePermissionTest extends TestCase
             'jenis_kelamin' => 'L',
             'id_kelas' => $this->kelas->id,
             'status' => 'aktif',
-        ]);
-
-        $this->tagihan = TagihanSpp::create([
-            'id_siswa' => $this->siswa->id,
-            'bulan' => 10,
-            'tahun' => 2026,
-            'tahun_ajaran' => '2026/2027',
-            'nominal_tagihan' => 50000,
-            'status' => 'belum_lunas',
         ]);
 
         $this->admin = User::create([
@@ -107,52 +95,40 @@ class RolePermissionTest extends TestCase
         Pengaturan::setValue('jam_pulang', '12:00');
     }
 
-    public function test_bendahara_can_pay_spp_but_guru_and_sekretaris_cannot(): void
+    public function test_guru_and_sekretaris_can_update_absensi_status(): void
     {
-        // 1. Bendahara pays -> 200
-        $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->postJson('/api/spp/bayar', [
-            'id_tagihan' => $this->tagihan->id,
-            'jumlah_bayar' => 50000,
-            'metode_pembayaran' => 'Tunai',
-        ]);
-        $resBendahara->assertStatus(200);
+        $today = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
-        // 2. Guru tries to pay -> 403 Forbidden
-        $resGuru = $this->actingAs($this->guru, 'sanctum')->postJson('/api/spp/bayar', [
-            'id_tagihan' => $this->tagihan->id,
-            'jumlah_bayar' => 50000,
-            'metode_pembayaran' => 'Tunai',
+        // 1. Guru updates absensi status -> 200
+        $resGuru = $this->actingAs($this->guru, 'sanctum')->postJson('/api/absensi/status', [
+            'id_siswa' => $this->siswa->id,
+            'tanggal' => $today,
+            'status' => 'Hadir',
         ]);
-        $resGuru->assertStatus(403);
+        $resGuru->assertStatus(200);
 
-        // 3. Sekretaris tries to pay -> 403 Forbidden
-        $resSekretaris = $this->actingAs($this->sekretaris, 'sanctum')->postJson('/api/spp/bayar', [
-            'id_tagihan' => $this->tagihan->id,
-            'jumlah_bayar' => 50000,
-            'metode_pembayaran' => 'Tunai',
+        // 2. Sekretaris updates absensi status -> 200
+        $resSekretaris = $this->actingAs($this->sekretaris, 'sanctum')->postJson('/api/absensi/status', [
+            'id_siswa' => $this->siswa->id,
+            'tanggal' => $today,
+            'status' => 'Sakit',
+            'keterangan' => 'Demam',
         ]);
-        $resSekretaris->assertStatus(403);
+        $resSekretaris->assertStatus(200);
     }
 
-    public function test_kepala_can_view_spp_dashboard_and_tagihan_but_cannot_pay(): void
+    public function test_kepala_and_staff_can_view_absensi_riwayat(): void
     {
-        // Kepala can view SPP dashboard
-        $resDash = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/spp/dashboard');
-        $resDash->assertStatus(200);
+        // Kepala can view riwayat
+        $resKepala = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/absensi/riwayat');
+        $resKepala->assertStatus(200);
 
-        // Kepala can view SPP tagihan
-        $resTagihan = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/spp/tagihan');
-        $resTagihan->assertStatus(200);
-
-        // Kepala cannot pay SPP (403)
-        $resPay = $this->actingAs($this->kepala, 'sanctum')->postJson('/api/spp/bayar', [
-            'id_tagihan' => $this->tagihan->id,
-            'jumlah_bayar' => 50000,
-        ]);
-        $resPay->assertStatus(403);
+        // Guru can view riwayat
+        $resGuru = $this->actingAs($this->guru, 'sanctum')->getJson('/api/absensi/riwayat');
+        $resGuru->assertStatus(200);
     }
 
-    public function test_sekretaris_can_create_siswa_but_guru_cannot(): void
+    public function test_sekretaris_can_create_siswa_but_guru_bendahara_kepala_cannot(): void
     {
         // Sekretaris creates student -> 201
         $resSekretaris = $this->actingAs($this->sekretaris, 'sanctum')->postJson('/api/siswa', [
@@ -171,6 +147,82 @@ class RolePermissionTest extends TestCase
             'id_kelas' => $this->kelas->id,
         ]);
         $resGuru->assertStatus(403);
+
+        // Bendahara tries to create student -> 403 Forbidden
+        $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->postJson('/api/siswa', [
+            'nisn' => '1011',
+            'nama_lengkap' => 'Santri Bendahara',
+            'jenis_kelamin' => 'L',
+            'id_kelas' => $this->kelas->id,
+        ]);
+        $resBendahara->assertStatus(403);
+
+        // Kepala tries to create student -> 403 Forbidden
+        $resKepala = $this->actingAs($this->kepala, 'sanctum')->postJson('/api/siswa', [
+            'nisn' => '1012',
+            'nama_lengkap' => 'Santri Kepala',
+            'jenis_kelamin' => 'P',
+            'id_kelas' => $this->kelas->id,
+        ]);
+        $resKepala->assertStatus(403);
+    }
+
+    public function test_guru_cannot_view_siswa_data_but_struktural_can(): void
+    {
+        // 1. Guru pengajar mencoba melihat daftar santri -> 403 Forbidden
+        $resGuru = $this->actingAs($this->guru, 'sanctum')->getJson('/api/siswa');
+        $resGuru->assertStatus(403);
+
+        // 2. Guru pengajar mencoba melihat detail santri -> 403 Forbidden
+        $resGuruDetail = $this->actingAs($this->guru, 'sanctum')->getJson("/api/siswa/{$this->siswa->id}");
+        $resGuruDetail->assertStatus(403);
+
+        // 3. Sekretaris melihat daftar santri -> 200 OK
+        $resSekretaris = $this->actingAs($this->sekretaris, 'sanctum')->getJson('/api/siswa');
+        $resSekretaris->assertStatus(200);
+
+        // 4. Bendahara melihat daftar santri -> 200 OK
+        $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->getJson('/api/siswa');
+        $resBendahara->assertStatus(200);
+
+        // 5. Kepala melihat daftar santri -> 200 OK
+        $resKepala = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/siswa');
+        $resKepala->assertStatus(200);
+
+        // 6. Admin melihat daftar santri -> 200 OK
+        $resAdmin = $this->actingAs($this->admin, 'sanctum')->getJson('/api/siswa');
+        $resAdmin->assertStatus(200);
+    }
+
+    public function test_bendahara_cannot_update_absensi_status(): void
+    {
+        $today = Carbon::now('Asia/Jakarta')->format('Y-m-d');
+
+        // Bendahara tries to update absensi status -> 403 Forbidden
+        $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->postJson('/api/absensi/status', [
+            'id_siswa' => $this->siswa->id,
+            'tanggal' => $today,
+            'status' => 'Izin',
+        ]);
+        $resBendahara->assertStatus(403);
+    }
+
+    public function test_kepala_and_bendahara_can_view_wa_logs_but_cannot_broadcast(): void
+    {
+        // Kepala can view logs -> 200
+        $resKepala = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/wa/logs');
+        $resKepala->assertStatus(200);
+
+        // Bendahara can view logs -> 200
+        $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->getJson('/api/wa/logs');
+        $resBendahara->assertStatus(200);
+
+        // Bendahara tries to broadcast -> 403 Forbidden
+        $resBroadcast = $this->actingAs($this->bendahara, 'sanctum')->postJson('/api/wa/broadcast', [
+            'judul' => 'Pengumuman',
+            'isi' => 'Tes pesan',
+        ]);
+        $resBroadcast->assertStatus(403);
     }
 
     public function test_only_admin_can_modify_settings(): void
@@ -201,7 +253,7 @@ class RolePermissionTest extends TestCase
         $resList->assertStatus(200)
             ->assertJsonStructure(['success', 'data']);
 
-        // 2. Admin creates a new Bendahara assigned to Jilid 1 -> 201
+        // 2. Admin creates a new Pengurus assigned to Jilid 1 -> 201
         $resCreate = $this->actingAs($this->admin, 'sanctum')->postJson('/api/users', [
             'name' => 'Ustadzah Baru',
             'username' => 'ustadzah_baru',
@@ -234,5 +286,18 @@ class RolePermissionTest extends TestCase
             'role' => 'admin',
         ]);
         $resNonAdmin->assertStatus(403);
+
+        // 5. Kepala TPQ can view Data Guru (200 OK) but cannot create/update/delete users (403)
+        $resKepalaView = $this->actingAs($this->kepala, 'sanctum')->getJson('/api/users');
+        $resKepalaView->assertStatus(200)
+            ->assertJsonStructure(['success', 'data']);
+
+        $resKepalaCreate = $this->actingAs($this->kepala, 'sanctum')->postJson('/api/users', [
+            'name' => 'Guru Baru',
+            'username' => 'gurubaru',
+            'password' => '123456',
+            'role' => 'guru',
+        ]);
+        $resKepalaCreate->assertStatus(403);
     }
 }

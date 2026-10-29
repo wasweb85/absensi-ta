@@ -27,9 +27,18 @@ class AgendaLiburController extends Controller
     {
         $validated = $request->validate([
             'tanggal' => 'required|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal',
             'judul' => 'required|string|max:200',
+            'kategori' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
+
+        if (empty($validated['tanggal_selesai'])) {
+            $validated['tanggal_selesai'] = $validated['tanggal'];
+        }
+        if (empty($validated['kategori'])) {
+            $validated['kategori'] = 'Umum';
+        }
 
         $agenda = Agenda::create($validated);
 
@@ -46,9 +55,18 @@ class AgendaLiburController extends Controller
 
         $validated = $request->validate([
             'tanggal' => 'required|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal',
             'judul' => 'required|string|max:200',
+            'kategori' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
+
+        if (empty($validated['tanggal_selesai'])) {
+            $validated['tanggal_selesai'] = $validated['tanggal'];
+        }
+        if (empty($validated['kategori'])) {
+            $validated['kategori'] = 'Umum';
+        }
 
         $agenda->update($validated);
 

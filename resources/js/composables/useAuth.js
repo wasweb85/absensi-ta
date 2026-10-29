@@ -17,13 +17,30 @@ export function useAuth() {
     const isGuru = computed(() => role.value === 'guru');
     const isSiswa = computed(() => role.value === 'siswa');
 
-    // Matriks Wewenang
-    const canManageSpp = computed(() => ['admin', 'bendahara'].includes(role.value));
-    const canViewSppReports = computed(() => ['admin', 'bendahara', 'kepala'].includes(role.value));
-    const canManageSantri = computed(() => ['admin', 'sekretaris'].includes(role.value));
-    const canManageAgenda = computed(() => ['admin', 'sekretaris'].includes(role.value));
-    const canManageSettings = computed(() => ['admin'].includes(role.value));
+    // Matriks Wewenang Baru (RBAC Standar Lembaga Pendidikan)
+    const canScanQr = computed(() => ['admin', 'sekretaris', 'guru'].includes(role.value));
+    const canEditAbsensi = computed(() => ['admin', 'sekretaris', 'guru'].includes(role.value));
     const canDoAbsensi = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
+    const canViewRekapMatrix = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
+    
+    // Master Santri & Cetak QR: Khusus Struktural (Admin, Kepala, Sekretaris, Bendahara)
+    const canViewSantri = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara'].includes(role.value));
+    const canManageSantri = computed(() => ['admin', 'sekretaris'].includes(role.value));
+    const canPrintQr = computed(() => ['admin', 'sekretaris'].includes(role.value));
+
+    // Data Guru & Pengurus (Admin dapat mengelola, Kepala dapat memonitor/melihat)
+    const canViewGuru = computed(() => ['admin', 'kepala'].includes(role.value));
+    const canManageGuru = computed(() => ['admin'].includes(role.value));
+
+    // Layanan WhatsApp
+    const canViewWaLogs = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara'].includes(role.value));
+    const canManageWaLogs = computed(() => ['admin', 'sekretaris'].includes(role.value));
+
+    // Agenda & Pengaturan
+    const canViewAgenda = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
+    const canManageAgenda = computed(() => ['admin'].includes(role.value));
+    const canManageSettings = computed(() => ['admin'].includes(role.value));
+    const canAccessChatbot = computed(() => ['admin'].includes(role.value));
 
     const kelasBinaan = computed(() => user.value?.nama_kelas || null);
 
@@ -108,12 +125,21 @@ export function useAuth() {
         isBendahara,
         isGuru,
         isSiswa,
-        canManageSpp,
-        canViewSppReports,
+        canViewSantri,
         canManageSantri,
+        canPrintQr,
+        canViewGuru,
+        canManageGuru,
+        canViewWaLogs,
+        canManageWaLogs,
         canManageAgenda,
+        canViewAgenda,
         canManageSettings,
         canDoAbsensi,
+        canViewRekapMatrix,
+        canScanQr,
+        canEditAbsensi,
+        canAccessChatbot,
         kelasBinaan,
         roleLabel,
         login,

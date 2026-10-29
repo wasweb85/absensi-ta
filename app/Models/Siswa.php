@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Siswa extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'siswa';
 
@@ -36,18 +37,13 @@ class Siswa extends Model
         return $this->hasMany(Absensi::class, 'id_siswa');
     }
 
-    public function tagihanSpp(): HasMany
-    {
-        return $this->hasMany(TagihanSpp::class, 'id_siswa');
-    }
-
-    public function pembayaranSpp(): HasMany
-    {
-        return $this->hasMany(PembayaranSpp::class, 'id_siswa');
-    }
-
     public function user(): HasOne
     {
         return $this->hasOne(User::class, 'nisn', 'nisn');
+    }
+
+    public function chatbotLogs(): HasMany
+    {
+        return $this->hasMany(ChatbotLog::class, 'id_siswa');
     }
 }

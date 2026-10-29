@@ -1,130 +1,95 @@
 <template>
-  <div class="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-zinc-100 via-emerald-50/30 to-blue-50/30 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300">
-    <div class="w-full max-w-md bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800 p-8 sm:p-10 transition-all duration-300 animate-fadeIn">
-      
-      <!-- Brand Logo & Header -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white shadow-lg shadow-emerald-500/25 mb-4 transform hover:scale-105 transition-transform">
-          <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
+  <div class="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
+    <div class="w-full max-w-sm">
+      <div class="mb-6 flex flex-col items-center text-center">
+        <div class="mb-3 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <QrCode class="size-6" />
         </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-          Sistem Terpadu
-        </h1>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Aplikasi Terintegrasi Absensi & SPP Santri
-        </p>
+        <h1 class="text-xl font-semibold tracking-tight">Sistem Terpadu</h1>
+        <p class="text-sm text-muted-foreground">Presensi QR &amp; Notifikasi WhatsApp Santri</p>
       </div>
 
-      <!-- Error Alert -->
-      <div v-if="error" class="mb-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-center gap-2.5">
-        <span class="text-base">⚠</span>
-        <span>{{ error }}</span>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Masuk ke Sistem</CardTitle>
+          <CardDescription>Gunakan username atau NISN dan kata sandi Anda.</CardDescription>
+        </CardHeader>
 
-      <!-- Login Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div>
-          <label for="username" class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-            Username / NISN
-          </label>
-          <div class="relative">
-            <input
-              id="username"
-              v-model="username"
-              type="text"
-              required
-              placeholder="Masukkan username atau NISN..."
-              class="w-full px-4 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-            />
+        <CardContent>
+          <div
+            v-if="error"
+            role="alert"
+            class="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            <CircleAlert class="mt-0.5 size-4 shrink-0" />
+            <span>{{ error }}</span>
           </div>
-        </div>
 
-        <div>
-          <label for="password" class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-            Password
-          </label>
-          <div class="relative">
-            <input
-              id="password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              required
-              placeholder="Masukkan kata sandi..."
-              class="w-full px-4 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-            />
-            <button
-              type="button"
-              @click="showPassword = !showPassword"
-              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition font-medium"
-            >
-              {{ showPassword ? 'Sembunyikan' : 'Lihat' }}
-            </button>
-          </div>
-        </div>
+          <form class="space-y-4" @submit.prevent="handleSubmit">
+            <div class="space-y-2">
+              <Label for="username">Username / NISN</Label>
+              <Input
+                id="username"
+                v-model="username"
+                type="text"
+                required
+                autocomplete="username"
+                placeholder="Masukkan username atau NISN"
+                class="h-10"
+              />
+            </div>
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-600/25 active:scale-[0.99] transition duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-        >
-          <span v-if="loading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          <span>{{ loading ? 'Memproses...' : 'Masuk ke Sistem' }}</span>
-        </button>
-      </form>
+            <div class="space-y-2">
+              <Label for="password">Password</Label>
+              <div class="relative">
+                <Input
+                  id="password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Masukkan kata sandi"
+                  class="h-10 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  class="absolute top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground"
+                  :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'"
+                  @click="showPassword = !showPassword"
+                >
+                  <EyeOff v-if="showPassword" />
+                  <Eye v-else />
+                </Button>
+              </div>
+            </div>
+
+            <Button type="submit" class="h-10 w-full" :disabled="loading">
+              <LoaderCircle v-if="loading" class="animate-spin" />
+              <LogIn v-else />
+              {{ loading ? 'Memproses...' : 'Masuk ke Sistem' }}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <!-- Demo Quick Fill Buttons (Sangat berguna untuk presentasi dan pengujian skripsi) -->
-      <div class="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 text-center mb-3">
-          Akses Cepat Pengujian Role (Demo 1-Klik)
-        </p>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <button
+      <div class="mt-6">
+        <p class="mb-2 text-center text-xs text-muted-foreground">Akses Cepat Pengujian Role (Demo 1-Klik)</p>
+        <div class="grid grid-cols-3 gap-2">
+          <Button
+            v-for="account in demoAccounts"
+            :key="account.username"
             type="button"
-            @click="fillCredentials('admin', 'admin123')"
-            class="px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 hover:bg-zinc-100 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 transition text-center cursor-pointer"
+            variant="outline"
+            size="sm"
+            @click="fillCredentials(account.username, account.password)"
           >
-            ⚙️ Admin
-          </button>
-          <button
-            type="button"
-            @click="fillCredentials('kepala', 'kepala123')"
-            class="px-2 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/30 hover:bg-purple-100 text-[11px] font-medium text-purple-700 dark:text-purple-300 transition text-center cursor-pointer"
-          >
-            👑 Kepala TPQ
-          </button>
-          <button
-            type="button"
-            @click="fillCredentials('sekretaris', 'sekretaris123')"
-            class="px-2 py-1.5 rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 text-[11px] font-medium text-blue-700 dark:text-blue-300 transition text-center cursor-pointer"
-          >
-            📝 Sekretaris
-          </button>
-          <button
-            type="button"
-            @click="fillCredentials('bendahara', 'bendahara123')"
-            class="px-2 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100 text-[11px] font-medium text-amber-700 dark:text-amber-300 transition text-center cursor-pointer"
-          >
-            💰 Bendahara
-          </button>
-          <button
-            type="button"
-            @click="fillCredentials('guru', 'guru123')"
-            class="px-2 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 transition text-center cursor-pointer"
-          >
-            📖 Pengajar
-          </button>
-          <button
-            type="button"
-            @click="fillCredentials('1001', '1001')"
-            class="px-2 py-1.5 rounded-lg border border-teal-200 dark:border-teal-900 bg-teal-50/50 dark:bg-teal-950/30 hover:bg-teal-100 text-[11px] font-medium text-teal-700 dark:text-teal-300 transition text-center cursor-pointer"
-          >
-            🎓 Santri
-          </button>
+            {{ account.label }}
+          </Button>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -132,8 +97,13 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuth } from '../../composables/useAuth';
-import { useToast } from '../../composables/useToast';
+import { CircleAlert, Eye, EyeOff, LoaderCircle, LogIn, QrCode } from '@lucide/vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/composables/useAuth';
+import { useToast } from '@/composables/useToast';
 
 const router = useRouter();
 const { login, loading, error } = useAuth();
@@ -143,13 +113,24 @@ const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
 
+const demoAccounts = [
+  { label: 'Admin', username: 'admin', password: 'admin123' },
+  { label: 'Kepala TPQ', username: 'kepala', password: 'kepala123' },
+  { label: 'Sekretaris', username: 'sekretaris', password: 'sekretaris123' },
+  { label: 'Bendahara', username: 'bendahara', password: 'bendahara123' },
+  { label: 'Pengajar', username: 'guru', password: 'guru123' },
+  { label: 'Santri', username: '1001', password: '1001' },
+];
+
 const fillCredentials = (u, p) => {
   username.value = u;
   password.value = p;
 };
 
 const handleSubmit = async () => {
-  if (!username.value || !password.value) return;
+  if (!username.value || !password.value) {
+    return;
+  }
 
   const result = await login(username.value, password.value);
   if (result.success) {
@@ -158,13 +139,3 @@ const handleSubmit = async () => {
   }
 };
 </script>
-
-<style scoped>
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.animate-fadeIn {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-</style>
