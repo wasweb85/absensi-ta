@@ -15,3 +15,4 @@ foreach ($dirs as $dir) {
 }
 
 require __DIR__ . '/../public/index.php';
+

@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "vercel-build": "composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction && vite build",
         "dev": "vite",
         "test:e2e": "playwright test"
     },
