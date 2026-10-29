@@ -90,55 +90,55 @@
     </Card>
 
     <!-- Stat Metrics Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-      <Card class="p-3 text-center">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Total Santri</span>
-        <span class="text-xl font-bold tracking-tight text-foreground">{{ stats.total }}</span>
+    <div class="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-3">
+      <Card class="p-2 sm:p-3 text-center">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">Total</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-foreground">{{ stats.total }}</span>
       </Card>
       
-      <Card class="p-3 text-center border-emerald-500/20 bg-emerald-500/5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Hadir</span>
-        <span class="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{{ stats.hadir }}</span>
+      <Card class="p-2 sm:p-3 text-center border-emerald-500/20 bg-emerald-500/5">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block truncate">Hadir</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{{ stats.hadir }}</span>
       </Card>
 
-      <Card class="p-3 text-center border-amber-500/20 bg-amber-500/5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Terlambat</span>
-        <span class="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{{ stats.terlambat }}</span>
+      <Card class="p-2 sm:p-3 text-center border-amber-500/20 bg-amber-500/5">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 block truncate">Telat</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{{ stats.terlambat }}</span>
       </Card>
 
-      <Card class="p-3 text-center border-blue-500/20 bg-blue-500/5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Sakit</span>
-        <span class="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{{ stats.sakit }}</span>
+      <Card class="p-2 sm:p-3 text-center border-blue-500/20 bg-blue-500/5">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 block truncate">Sakit</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{{ stats.sakit }}</span>
       </Card>
 
-      <Card class="p-3 text-center border-indigo-500/20 bg-indigo-500/5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Izin</span>
-        <span class="text-xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">{{ stats.izin }}</span>
+      <Card class="p-2 sm:p-3 text-center border-indigo-500/20 bg-indigo-500/5">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block truncate">Izin</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">{{ stats.izin }}</span>
       </Card>
 
-      <Card class="p-3 text-center border-rose-500/20 bg-rose-500/5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">Alpa</span>
-        <span class="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{{ stats.alpa }}</span>
+      <Card class="p-2 sm:p-3 text-center border-rose-500/20 bg-rose-500/5">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 block truncate">Alpa</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{{ stats.alpa }}</span>
       </Card>
 
-      <Card class="p-3 text-center bg-muted/40">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Belum Absen</span>
-        <span class="text-xl font-bold tracking-tight text-foreground">{{ stats.belum_absen }}</span>
+      <Card class="p-2 sm:p-3 text-center bg-muted/40 col-span-2 sm:col-span-1">
+        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">Belum Absen</span>
+        <span class="text-base sm:text-xl font-bold tracking-tight text-foreground">{{ stats.belum_absen }}</span>
       </Card>
     </div>
 
     <!-- Live Data Table -->
     <Card class="overflow-hidden">
       <div class="overflow-x-auto">
-        <Table class="w-full">
+        <Table class="w-full table-fixed">
           <TableHeader>
             <TableRow class="bg-muted/30">
-              <TableHead class="w-8 sm:w-12 text-center text-[10px] uppercase whitespace-nowrap px-1.5 sm:px-4">No</TableHead>
-              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[125px]">Santri</TableHead>
-              <TableHead class="text-[10px] uppercase whitespace-nowrap px-1.5 sm:px-4">Jilid / Kelas</TableHead>
-              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[120px]">Status Kehadiran</TableHead>
-              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[95px]">Jam Masuk</TableHead>
-              <TableHead class="text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 min-w-[200px]">Keterangan / Catatan</TableHead>
+              <TableHead class="w-7 sm:w-12 text-center text-[10px] uppercase whitespace-nowrap px-1 sm:px-4">No</TableHead>
+              <TableHead class="text-[10px] uppercase px-1.5 sm:px-4">Santri</TableHead>
+              <TableHead class="w-12 sm:w-16 text-center text-[10px] uppercase whitespace-nowrap px-0.5 sm:px-3">Kelas</TableHead>
+              <TableHead class="w-[122px] sm:w-36 text-right sm:text-left text-[10px] uppercase whitespace-nowrap px-1 sm:px-4">Status</TableHead>
+              <TableHead class="hidden md:table-cell text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 w-28">Jam Masuk</TableHead>
+              <TableHead class="hidden md:table-cell text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 w-52">Keterangan / Catatan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -153,48 +153,59 @@
               :key="s.id_siswa"
               class="transition-colors hover:bg-muted/40"
             >
-              <TableCell class="text-center font-mono text-xs text-muted-foreground px-1.5 sm:px-4 w-8 sm:w-12">
+              <TableCell class="text-center font-mono text-[11px] sm:text-xs text-muted-foreground px-1 sm:px-4 w-7 sm:w-12 align-middle">
                 {{ idx + 1 }}
               </TableCell>
               
-              <TableCell class="py-2.5 px-2 sm:px-4 max-w-[130px] sm:max-w-none">
-                <div class="min-w-0 pr-1">
-                  <p class="font-medium text-foreground text-xs sm:text-sm truncate" :title="s.nama_lengkap">
+              <TableCell class="py-2 px-1.5 sm:px-4 align-middle">
+                <div class="min-w-0 pr-0.5">
+                  <p class="font-semibold text-foreground text-xs sm:text-sm leading-tight break-words">
                     {{ s.nama_lengkap }}
                   </p>
-                  <p class="text-[10px] sm:text-[11px] text-muted-foreground font-mono truncate">
-                    NISN: {{ s.nisn }}
+                  <p class="text-[10px] sm:text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {{ s.nisn }}
                   </p>
+                  <!-- Jam Masuk & Catatan di Mobile jika ada -->
+                  <div v-if="s.waktu_masuk || s.keterangan" class="mt-1 flex flex-wrap items-center gap-1 md:hidden">
+                    <span v-if="s.waktu_masuk" class="inline-flex items-center text-[9px] text-muted-foreground font-mono bg-muted/60 px-1 py-0.2 rounded">
+                      {{ s.waktu_masuk }} WIB
+                    </span>
+                    <span v-if="s.keterangan" class="inline-flex items-center text-[9px] text-amber-600 dark:text-amber-400 italic bg-amber-500/10 px-1 py-0.2 rounded">
+                      {{ s.keterangan }}
+                    </span>
+                  </div>
                 </div>
               </TableCell>
 
-              <TableCell class="whitespace-nowrap px-1.5 sm:px-4">
-                <Badge
-                  variant="outline"
-                  class="font-medium text-[11px]"
-                  :style="s.warna_label ? { borderColor: s.warna_label, color: s.warna_label } : {}"
+              <!-- Jilid / Kelas Compact Badge Mirip Desain Mobile Gambar 2 -->
+              <TableCell class="px-0.5 sm:px-3 text-center align-middle w-12 sm:w-16">
+                <div
+                  class="inline-flex flex-col items-center justify-center rounded-md px-1 py-0.5 text-center border font-semibold leading-tight shadow-2xs w-full max-w-[46px] mx-auto"
+                  :class="s.warna_label ? '' : 'bg-primary/10 text-primary border-primary/20'"
+                  :style="s.warna_label ? { borderColor: s.warna_label, color: s.warna_label, backgroundColor: s.warna_label + '15' } : {}"
                 >
-                  {{ s.nama_kelas || '-' }}
-                </Badge>
+                  <span class="text-[8px] uppercase tracking-wider opacity-80">{{ s.nama_kelas && s.nama_kelas.toLowerCase().includes('jilid') ? 'JILID' : 'KELAS' }}</span>
+                  <span class="text-xs font-bold leading-none mt-0.5">{{ s.nama_kelas ? s.nama_kelas.replace(/jilid\s*/i, '').replace(/kelas\s*/i, '') : '-' }}</span>
+                </div>
               </TableCell>
 
               <!-- Status Kehadiran (Dengan Shadcn DropdownMenu jika punya izin edit) -->
-              <TableCell class="whitespace-nowrap py-2.5 px-2 sm:px-4">
+              <TableCell class="py-2 px-1 sm:px-4 text-right sm:text-left align-middle w-[122px] sm:w-36">
                 <DropdownMenu v-if="canEditAbsensi">
                   <DropdownMenuTrigger as-child>
                     <Button
                       variant="outline"
                       size="sm"
-                      class="h-7 gap-1 px-2 text-xs font-medium"
+                      class="h-7 w-full sm:w-auto justify-between gap-1 px-1.5 text-[10.5px] sm:text-xs font-medium bg-muted/30 hover:bg-muted/60 border-input shadow-2xs"
                       :disabled="updatingStudentId === s.id_siswa"
                     >
                       <span class="size-1.5 shrink-0 rounded-full" :class="getStatusDotClass(s.status)"></span>
-                      <span>{{ s.status }}</span>
-                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground" />
-                      <ChevronDown v-else class="size-3 shrink-0 text-muted-foreground" />
+                      <span class="truncate tracking-tight">{{ s.status }}</span>
+                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground ml-auto" />
+                      <ChevronDown v-else class="size-3 shrink-0 text-muted-foreground ml-auto" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" class="w-44">
+                  <DropdownMenuContent align="end" class="w-48">
                     <DropdownMenuLabel class="text-[10px] uppercase tracking-wider text-muted-foreground">
                       Ubah Status
                     </DropdownMenuLabel>
@@ -210,6 +221,15 @@
                       </div>
                       <Check v-if="s.status === opt.value" class="size-3.5 text-primary" />
                     </DropdownMenuItem>
+
+                    <!-- Opsi Tambah / Edit Catatan Khusus Mobile -->
+                    <DropdownMenuSeparator class="md:hidden" />
+                    <DropdownMenuItem class="md:hidden text-xs" @select="openCatatanModal(s)">
+                      <div class="flex items-center gap-2 text-foreground">
+                        <Pencil class="size-3 text-muted-foreground" />
+                        <span>{{ s.keterangan ? 'Edit Catatan' : 'Tambah Catatan' }}</span>
+                      </div>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -217,19 +237,20 @@
                 <Badge
                   v-else
                   :variant="getStatusBadgeVariant(s.status)"
-                  class="gap-1.5 text-xs font-medium"
+                  class="gap-1 text-[11px] sm:text-xs font-medium w-full sm:w-auto justify-center px-1.5 py-1"
                 >
                   <span class="size-1.5 rounded-full" :class="getStatusDotClass(s.status)"></span>
                   <span>{{ s.status }}</span>
                 </Badge>
               </TableCell>
 
-              <TableCell class="font-mono text-xs text-foreground whitespace-nowrap px-2 sm:px-4">
+              <!-- Jam Masuk (Hanya desktop) -->
+              <TableCell class="hidden md:table-cell font-mono text-xs text-foreground whitespace-nowrap px-2 sm:px-4 align-middle">
                 {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
               </TableCell>
 
-              <!-- Kolom Keterangan / Catatan langsung diisi di kolom ini -->
-              <TableCell class="py-2 px-2 sm:px-4 min-w-[200px]">
+              <!-- Kolom Keterangan / Catatan langsung diisi di kolom ini (Hanya desktop) -->
+              <TableCell class="hidden md:table-cell py-2 px-2 sm:px-4 align-middle">
                 <div v-if="canEditAbsensi" class="relative flex items-center max-w-[240px]">
                   <Input
                     v-model="s.keterangan"
@@ -255,6 +276,35 @@
       </div>
     </Card>
 
+    <!-- Dialog Catatan untuk Mobile -->
+    <Dialog :open="catatanModalOpen" @update:open="catatanModalOpen = $event">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-sm font-semibold">Catatan Kehadiran</DialogTitle>
+          <DialogDescription class="text-xs text-muted-foreground">
+            Santri: <strong class="text-foreground">{{ activeStudentForCatatan?.nama_lengkap }}</strong>
+          </DialogDescription>
+        </DialogHeader>
+        <div class="py-2">
+          <Label for="modalKeterangan" class="text-xs text-muted-foreground mb-1 block">Catatan / Alasan Izin / Sakit</Label>
+          <Input
+            id="modalKeterangan"
+            v-model="catatanInput"
+            placeholder="Contoh: Izin acara keluarga, Sakit demam..."
+            class="text-xs h-9"
+            @keyup.enter="saveModalCatatan"
+          />
+        </div>
+        <DialogFooter class="flex gap-2 sm:justify-end">
+          <Button variant="outline" size="sm" class="text-xs" @click="catatanModalOpen = false">Batal</Button>
+          <Button size="sm" class="text-xs" :disabled="savingCatatan" @click="saveModalCatatan">
+            <LoaderCircle v-if="savingCatatan" class="size-3 animate-spin mr-1" />
+            Simpan Catatan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
   </div>
 </template>
 
@@ -266,12 +316,21 @@ import {
   ChevronDown,
   Check,
   LoaderCircle,
+  Pencil,
 } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -285,6 +344,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import api from '@/services/api';
@@ -411,6 +471,47 @@ const saveDirectKeterangan = async (student) => {
     toast.error('Gagal menyimpan keterangan.');
   } finally {
     updatingKeteranganId.value = null;
+  }
+};
+
+const catatanModalOpen = ref(false);
+const activeStudentForCatatan = ref(null);
+const catatanInput = ref('');
+const savingCatatan = ref(false);
+
+const openCatatanModal = (student) => {
+  activeStudentForCatatan.value = student;
+  catatanInput.value = student.keterangan || '';
+  catatanModalOpen.value = true;
+};
+
+const saveModalCatatan = async () => {
+  if (!activeStudentForCatatan.value) return;
+  savingCatatan.value = true;
+  try {
+    const student = activeStudentForCatatan.value;
+    const res = await api.post('/absensi/status', {
+      id_siswa: student.id_siswa,
+      tanggal: filterDate.value,
+      status: student.status === 'Belum Absen' ? 'Hadir' : student.status,
+      keterangan: catatanInput.value || null,
+    });
+    if (res.data.success) {
+      toast.success(`Catatan untuk ${student.nama_lengkap} disimpan`);
+      student.keterangan = catatanInput.value || null;
+      if (student.status === 'Belum Absen') {
+        student.status = 'Hadir';
+        if (res.data.data?.waktu_masuk) {
+          student.waktu_masuk = res.data.data.waktu_masuk;
+        }
+        recalculateStats();
+      }
+      catatanModalOpen.value = false;
+    }
+  } catch (e) {
+    toast.error('Gagal menyimpan catatan.');
+  } finally {
+    savingCatatan.value = false;
   }
 };
 
