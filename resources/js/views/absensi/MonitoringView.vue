@@ -130,15 +130,17 @@
     <!-- Live Data Table -->
     <Card class="overflow-hidden">
       <div class="overflow-x-auto">
-        <Table class="w-full table-fixed">
+        <Table class="w-full">
           <TableHeader>
-            <TableRow class="bg-muted/30">
-              <TableHead class="w-7 sm:w-12 text-center text-[10px] uppercase whitespace-nowrap px-1 sm:px-4">No</TableHead>
-              <TableHead class="text-[10px] uppercase px-1.5 sm:px-4">Santri</TableHead>
-              <TableHead class="w-12 sm:w-16 text-center text-[10px] uppercase whitespace-nowrap px-0.5 sm:px-3">Kelas</TableHead>
-              <TableHead class="w-[122px] sm:w-36 text-right sm:text-left text-[10px] uppercase whitespace-nowrap px-1 sm:px-4">Status</TableHead>
-              <TableHead class="hidden md:table-cell text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 w-28">Jam Masuk</TableHead>
-              <TableHead class="hidden md:table-cell text-[10px] uppercase whitespace-nowrap px-2 sm:px-4 w-52">Keterangan / Catatan</TableHead>
+            <TableRow class="bg-muted/40 border-b border-border">
+              <TableHead class="w-7 sm:w-10 text-center text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold px-1 sm:px-3">No</TableHead>
+              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold px-1.5 sm:px-3">Siswa</TableHead>
+              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold text-center px-1 sm:px-3">Kelas</TableHead>
+              <TableHead class="hidden md:table-cell text-xs uppercase text-muted-foreground font-semibold text-center px-2 sm:px-4 whitespace-nowrap">Jam Datang</TableHead>
+              <TableHead class="hidden md:table-cell text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 whitespace-nowrap">Keterangan</TableHead>
+              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold text-center px-1.5 sm:px-3 whitespace-nowrap">
+                <span>Status<span class="hidden sm:inline"> Kehadiran</span></span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -151,112 +153,45 @@
             <TableRow
               v-for="(s, idx) in filteredStudents"
               :key="s.id_siswa"
-              class="transition-colors hover:bg-muted/40"
+              class="transition-colors hover:bg-muted/40 border-b border-border/50"
             >
-              <TableCell class="text-center font-mono text-[11px] sm:text-xs text-muted-foreground px-1 sm:px-4 w-7 sm:w-12 align-middle">
+              <!-- Kolom No -->
+              <TableCell class="text-center font-mono text-[11px] sm:text-xs text-muted-foreground px-1 sm:px-3 w-7 sm:w-10 align-middle">
                 {{ idx + 1 }}
               </TableCell>
               
-              <TableCell class="py-2 px-1.5 sm:px-4 align-middle">
-                <div class="min-w-0 pr-0.5">
-                  <p class="font-semibold text-foreground text-xs sm:text-sm leading-tight break-words">
+              <!-- Kolom Siswa (Maksimal 2 baris jika panjang) -->
+              <TableCell class="px-1.5 sm:px-3 py-2.5 align-middle whitespace-normal">
+                <div class="min-w-0 max-w-[130px] sm:max-w-xs md:max-w-none">
+                  <p class="font-bold text-xs sm:text-sm text-foreground line-clamp-2 leading-snug break-words" :title="s.nama_lengkap">
                     {{ s.nama_lengkap }}
                   </p>
-                  <p class="text-[10px] sm:text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <p class="text-[10px] sm:text-xs text-muted-foreground font-mono mt-0.5">
                     {{ s.nisn }}
                   </p>
-                  <!-- Jam Masuk & Catatan di Mobile jika ada -->
-                  <div v-if="s.waktu_masuk || s.keterangan" class="mt-1 flex flex-wrap items-center gap-1 md:hidden">
-                    <span v-if="s.waktu_masuk" class="inline-flex items-center text-[9px] text-muted-foreground font-mono bg-muted/60 px-1 py-0.2 rounded">
-                      {{ s.waktu_masuk }} WIB
-                    </span>
-                    <span v-if="s.keterangan" class="inline-flex items-center text-[9px] text-amber-600 dark:text-amber-400 italic bg-amber-500/10 px-1 py-0.2 rounded">
-                      {{ s.keterangan }}
-                    </span>
-                  </div>
                 </div>
               </TableCell>
 
-              <!-- Jilid / Kelas Compact Badge Mirip Desain Mobile Gambar 2 -->
-              <TableCell class="px-0.5 sm:px-3 text-center align-middle w-12 sm:w-16">
-                <div
-                  class="inline-flex flex-col items-center justify-center rounded-md px-1 py-0.5 text-center border font-semibold leading-tight shadow-2xs w-full max-w-[46px] mx-auto"
-                  :class="s.warna_label ? '' : 'bg-primary/10 text-primary border-primary/20'"
-                  :style="s.warna_label ? { borderColor: s.warna_label, color: s.warna_label, backgroundColor: s.warna_label + '15' } : {}"
-                >
-                  <span class="text-[8px] uppercase tracking-wider opacity-80">{{ s.nama_kelas && s.nama_kelas.toLowerCase().includes('jilid') ? 'JILID' : 'KELAS' }}</span>
-                  <span class="text-xs font-bold leading-none mt-0.5">{{ s.nama_kelas ? s.nama_kelas.replace(/jilid\s*/i, '').replace(/kelas\s*/i, '') : '-' }}</span>
-                </div>
+              <!-- Kolom Kelas (Tulisan Saja, Tanpa Card/Badge) -->
+              <TableCell class="px-1 sm:px-3 py-2.5 text-center align-middle whitespace-nowrap">
+                <span class="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                  {{ s.nama_kelas || '-' }}
+                </span>
               </TableCell>
 
-              <!-- Status Kehadiran (Dengan Shadcn DropdownMenu jika punya izin edit) -->
-              <TableCell class="py-2 px-1 sm:px-4 text-right sm:text-left align-middle w-[122px] sm:w-36">
-                <DropdownMenu v-if="canEditAbsensi">
-                  <DropdownMenuTrigger as-child>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="h-7 w-full sm:w-auto justify-between gap-1 px-1.5 text-[10.5px] sm:text-xs font-medium bg-muted/30 hover:bg-muted/60 border-input shadow-2xs"
-                      :disabled="updatingStudentId === s.id_siswa"
-                    >
-                      <span class="size-1.5 shrink-0 rounded-full" :class="getStatusDotClass(s.status)"></span>
-                      <span class="truncate tracking-tight">{{ s.status }}</span>
-                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground ml-auto" />
-                      <ChevronDown v-else class="size-3 shrink-0 text-muted-foreground ml-auto" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" class="w-48">
-                    <DropdownMenuLabel class="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Ubah Status
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem
-                      v-for="opt in statusOptions"
-                      :key="opt.value"
-                      class="flex items-center justify-between text-xs"
-                      @select="selectStatus(s, opt.value)"
-                    >
-                      <div class="flex items-center gap-2">
-                        <span class="size-2 rounded-full" :class="opt.dotClass"></span>
-                        <span>{{ opt.label }}</span>
-                      </div>
-                      <Check v-if="s.status === opt.value" class="size-3.5 text-primary" />
-                    </DropdownMenuItem>
-
-                    <!-- Opsi Tambah / Edit Catatan Khusus Mobile -->
-                    <DropdownMenuSeparator class="md:hidden" />
-                    <DropdownMenuItem class="md:hidden text-xs" @select="openCatatanModal(s)">
-                      <div class="flex items-center gap-2 text-foreground">
-                        <Pencil class="size-3 text-muted-foreground" />
-                        <span>{{ s.keterangan ? 'Edit Catatan' : 'Tambah Catatan' }}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <!-- Static Badge jika bukan role editor -->
-                <Badge
-                  v-else
-                  :variant="getStatusBadgeVariant(s.status)"
-                  class="gap-1 text-[11px] sm:text-xs font-medium w-full sm:w-auto justify-center px-1.5 py-1"
-                >
-                  <span class="size-1.5 rounded-full" :class="getStatusDotClass(s.status)"></span>
-                  <span>{{ s.status }}</span>
-                </Badge>
-              </TableCell>
-
-              <!-- Jam Masuk (Hanya desktop) -->
-              <TableCell class="hidden md:table-cell font-mono text-xs text-foreground whitespace-nowrap px-2 sm:px-4 align-middle">
+              <!-- Kolom Jam Masuk (Desktop) -->
+              <TableCell class="hidden md:table-cell font-mono text-xs text-foreground whitespace-nowrap p-2 sm:px-3 text-center align-middle">
                 {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
               </TableCell>
 
-              <!-- Kolom Keterangan / Catatan langsung diisi di kolom ini (Hanya desktop) -->
-              <TableCell class="hidden md:table-cell py-2 px-2 sm:px-4 align-middle">
+              <!-- Kolom Keterangan / Catatan (Desktop) -->
+              <TableCell class="hidden md:table-cell p-2 sm:px-3 align-middle">
                 <div v-if="canEditAbsensi" class="relative flex items-center max-w-[240px]">
                   <Input
                     v-model="s.keterangan"
                     type="text"
                     placeholder="Tulis catatan..."
-                    class="h-7 text-xs pr-7 bg-background/50 hover:bg-background focus:bg-background"
+                    class="h-8 text-xs pr-7 bg-background"
                     :disabled="updatingKeteranganId === s.id_siswa"
                     @change="saveDirectKeterangan(s)"
                     @keyup.enter="$event.target.blur()"
@@ -269,6 +204,59 @@
                 <span v-else class="text-xs text-muted-foreground">
                   {{ s.keterangan || '-' }}
                 </span>
+              </TableCell>
+
+              <!-- Kolom Status Kehadiran (Dropdown Button Rapi Sesuai Gambar Acuan) -->
+              <TableCell class="px-1 sm:px-3 py-2.5 text-center align-middle whitespace-nowrap">
+                <DropdownMenu v-if="canEditAbsensi">
+                  <DropdownMenuTrigger as-child>
+                    <button
+                      type="button"
+                      class="h-7 sm:h-8 inline-flex items-center justify-between gap-0.5 px-2 text-[10.5px] sm:text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer w-[105px] sm:w-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      :class="getStatusPillClass(s.status)"
+                      :disabled="updatingStudentId === s.id_siswa"
+                    >
+                      <span class="truncate">{{ s.status }}</span>
+                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground ml-0.5" />
+                      <ChevronDown v-else class="size-3 shrink-0 opacity-60 ml-0.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" class="w-48">
+                    <DropdownMenuLabel class="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Ubah Status
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem
+                      v-for="opt in statusOptions"
+                      :key="opt.value"
+                      class="flex items-center justify-between text-xs cursor-pointer"
+                      @select="selectStatus(s, opt.value)"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="size-2 rounded-full" :class="opt.dotClass"></span>
+                        <span>{{ opt.label }}</span>
+                      </div>
+                      <Check v-if="s.status === opt.value" class="size-3.5 text-primary" />
+                    </DropdownMenuItem>
+
+                    <!-- Opsi Tambah / Edit Catatan Khusus Mobile -->
+                    <DropdownMenuSeparator class="md:hidden" />
+                    <DropdownMenuItem class="md:hidden text-xs cursor-pointer" @select="openCatatanModal(s)">
+                      <div class="flex items-center gap-2 text-foreground">
+                        <Pencil class="size-3 text-muted-foreground" />
+                        <span>{{ s.keterangan ? 'Edit Catatan' : 'Tambah Catatan' }}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <!-- Static Badge jika bukan role editor -->
+                <div
+                  v-else
+                  class="inline-flex items-center justify-center h-7 sm:h-8 px-2 text-[10.5px] sm:text-xs font-semibold rounded-lg w-[105px] sm:w-[120px]"
+                  :class="getStatusPillClass(s.status)"
+                >
+                  <span>{{ s.status }}</span>
+                </div>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -392,6 +380,24 @@ const getStatusDotClass = (status) => {
     case 'Izin': return 'bg-indigo-500';
     case 'Alpa': return 'bg-rose-500';
     default: return 'bg-muted-foreground/60';
+  }
+};
+
+const getStatusPillClass = (status) => {
+  switch (status) {
+    case 'Hadir':
+      return 'bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300';
+    case 'Terlambat':
+      return 'bg-amber-100/80 text-amber-800 hover:bg-amber-200/80 dark:bg-amber-950/60 dark:text-amber-300';
+    case 'Sakit':
+      return 'bg-yellow-100/80 text-yellow-800 hover:bg-yellow-200/80 dark:bg-yellow-950/60 dark:text-yellow-300';
+    case 'Izin':
+      return 'bg-blue-100/80 text-blue-800 hover:bg-blue-200/80 dark:bg-blue-950/60 dark:text-blue-300';
+    case 'Alpa':
+      return 'bg-rose-100/80 text-rose-800 hover:bg-rose-200/80 dark:bg-rose-950/60 dark:text-rose-300';
+    case 'Belum Absen':
+    default:
+      return 'bg-muted/80 text-foreground hover:bg-muted dark:bg-muted/50 dark:text-muted-foreground';
   }
 };
 
