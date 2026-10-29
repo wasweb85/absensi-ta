@@ -89,58 +89,18 @@
       </CardContent>
     </Card>
 
-    <!-- Stat Metrics Cards -->
-    <div class="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-3">
-      <Card class="p-2 sm:p-3 text-center">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">Total</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-foreground">{{ stats.total }}</span>
-      </Card>
-      
-      <Card class="p-2 sm:p-3 text-center border-emerald-500/20 bg-emerald-500/5">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block truncate">Hadir</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{{ stats.hadir }}</span>
-      </Card>
-
-      <Card class="p-2 sm:p-3 text-center border-amber-500/20 bg-amber-500/5">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 block truncate">Telat</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{{ stats.terlambat }}</span>
-      </Card>
-
-      <Card class="p-2 sm:p-3 text-center border-blue-500/20 bg-blue-500/5">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 block truncate">Sakit</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{{ stats.sakit }}</span>
-      </Card>
-
-      <Card class="p-2 sm:p-3 text-center border-indigo-500/20 bg-indigo-500/5">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block truncate">Izin</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">{{ stats.izin }}</span>
-      </Card>
-
-      <Card class="p-2 sm:p-3 text-center border-rose-500/20 bg-rose-500/5">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 block truncate">Alpa</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{{ stats.alpa }}</span>
-      </Card>
-
-      <Card class="p-2 sm:p-3 text-center bg-muted/40 col-span-2 sm:col-span-1">
-        <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">Belum Absen</span>
-        <span class="text-base sm:text-xl font-bold tracking-tight text-foreground">{{ stats.belum_absen }}</span>
-      </Card>
-    </div>
-
     <!-- Live Data Table -->
     <Card class="overflow-hidden">
       <div class="overflow-x-auto">
         <Table class="w-full">
           <TableHeader>
             <TableRow class="bg-muted/40 border-b border-border">
-              <TableHead class="w-7 sm:w-10 text-center text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold px-1 sm:px-3">No</TableHead>
-              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold px-1.5 sm:px-3">Siswa</TableHead>
-              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold text-center px-1 sm:px-3">Kelas</TableHead>
-              <TableHead class="hidden md:table-cell text-xs uppercase text-muted-foreground font-semibold text-center px-2 sm:px-4 whitespace-nowrap">Jam Datang</TableHead>
-              <TableHead class="hidden md:table-cell text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 whitespace-nowrap">Keterangan</TableHead>
-              <TableHead class="text-[11px] sm:text-xs uppercase text-muted-foreground font-semibold text-center px-1.5 sm:px-3 whitespace-nowrap">
-                <span>Status<span class="hidden sm:inline"> Kehadiran</span></span>
-              </TableHead>
+              <TableHead class="w-8 sm:w-12 text-center text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4">No</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 min-w-[130px] sm:min-w-[160px]">Santri</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap">Jilid / Kelas</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap min-w-[120px]">Status Kehadiran</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap min-w-[95px]">Jam Masuk</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 min-w-[180px]">Keterangan / Catatan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -155,70 +115,47 @@
               :key="s.id_siswa"
               class="transition-colors hover:bg-muted/40 border-b border-border/50"
             >
-              <!-- Kolom No -->
-              <TableCell class="text-center font-mono text-[11px] sm:text-xs text-muted-foreground px-1 sm:px-3 w-7 sm:w-10 align-middle">
+              <!-- 1. Kolom No -->
+              <TableCell class="text-center font-mono text-xs text-muted-foreground px-2 sm:px-4 w-8 sm:w-12 align-middle">
                 {{ idx + 1 }}
               </TableCell>
               
-              <!-- Kolom Siswa (Maksimal 2 baris jika panjang) -->
-              <TableCell class="px-1.5 sm:px-3 py-2.5 align-middle whitespace-normal">
-                <div class="min-w-0 max-w-[130px] sm:max-w-xs md:max-w-none">
+              <!-- 2. Kolom Santri (Jika namanya kepanjangan jadikan 2 baris) -->
+              <TableCell class="px-2 sm:px-4 py-2.5 align-middle whitespace-normal max-w-[145px] sm:max-w-none">
+                <div class="min-w-0">
                   <p class="font-bold text-xs sm:text-sm text-foreground line-clamp-2 leading-snug break-words" :title="s.nama_lengkap">
                     {{ s.nama_lengkap }}
                   </p>
                   <p class="text-[10px] sm:text-xs text-muted-foreground font-mono mt-0.5">
-                    {{ s.nisn }}
+                    NISN: {{ s.nisn }}
                   </p>
                 </div>
               </TableCell>
 
-              <!-- Kolom Kelas (Tulisan Saja, Tanpa Card/Badge) -->
-              <TableCell class="px-1 sm:px-3 py-2.5 text-center align-middle whitespace-nowrap">
-                <span class="text-xs font-semibold text-blue-600 dark:text-blue-400">
+              <!-- 3. Kolom Jilid / Kelas (Tulisan Saja, Tanpa Card/Badge) -->
+              <TableCell class="px-2 sm:px-4 py-2.5 text-center align-middle whitespace-nowrap">
+                <span
+                  class="text-xs font-semibold"
+                  :style="s.warna_label ? { color: s.warna_label } : {}"
+                  :class="s.warna_label ? '' : 'text-blue-600 dark:text-blue-400'"
+                >
                   {{ s.nama_kelas || '-' }}
                 </span>
               </TableCell>
 
-              <!-- Kolom Jam Masuk (Desktop) -->
-              <TableCell class="hidden md:table-cell font-mono text-xs text-foreground whitespace-nowrap p-2 sm:px-3 text-center align-middle">
-                {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
-              </TableCell>
-
-              <!-- Kolom Keterangan / Catatan (Desktop) -->
-              <TableCell class="hidden md:table-cell p-2 sm:px-3 align-middle">
-                <div v-if="canEditAbsensi" class="relative flex items-center max-w-[240px]">
-                  <Input
-                    v-model="s.keterangan"
-                    type="text"
-                    placeholder="Tulis catatan..."
-                    class="h-8 text-xs pr-7 bg-background"
-                    :disabled="updatingKeteranganId === s.id_siswa"
-                    @change="saveDirectKeterangan(s)"
-                    @keyup.enter="$event.target.blur()"
-                  />
-                  <LoaderCircle
-                    v-if="updatingKeteranganId === s.id_siswa"
-                    class="size-3 animate-spin text-muted-foreground absolute right-2 pointer-events-none"
-                  />
-                </div>
-                <span v-else class="text-xs text-muted-foreground">
-                  {{ s.keterangan || '-' }}
-                </span>
-              </TableCell>
-
-              <!-- Kolom Status Kehadiran (Dropdown Button Rapi Sesuai Gambar Acuan) -->
-              <TableCell class="px-1 sm:px-3 py-2.5 text-center align-middle whitespace-nowrap">
+              <!-- 4. Kolom Status Kehadiran (Dropdown Button Rapi Sesuai Gambar Acuan) -->
+              <TableCell class="px-2 sm:px-4 py-2.5 text-center align-middle whitespace-nowrap">
                 <DropdownMenu v-if="canEditAbsensi">
                   <DropdownMenuTrigger as-child>
                     <button
                       type="button"
-                      class="h-7 sm:h-8 inline-flex items-center justify-between gap-0.5 px-2 text-[10.5px] sm:text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer w-[105px] sm:w-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      class="h-8 inline-flex items-center justify-between gap-1 px-2.5 sm:px-3 text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer w-28 sm:w-32 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       :class="getStatusPillClass(s.status)"
                       :disabled="updatingStudentId === s.id_siswa"
                     >
                       <span class="truncate">{{ s.status }}</span>
-                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground ml-0.5" />
-                      <ChevronDown v-else class="size-3 shrink-0 opacity-60 ml-0.5" />
+                      <LoaderCircle v-if="updatingStudentId === s.id_siswa" class="size-3 shrink-0 animate-spin text-muted-foreground ml-1" />
+                      <ChevronDown v-else class="size-3 shrink-0 opacity-60 ml-1" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-48">
@@ -252,11 +189,38 @@
                 <!-- Static Badge jika bukan role editor -->
                 <div
                   v-else
-                  class="inline-flex items-center justify-center h-7 sm:h-8 px-2 text-[10.5px] sm:text-xs font-semibold rounded-lg w-[105px] sm:w-[120px]"
+                  class="inline-flex items-center justify-center h-8 px-2.5 sm:px-3 text-xs font-semibold rounded-lg w-28 sm:w-32"
                   :class="getStatusPillClass(s.status)"
                 >
                   <span>{{ s.status }}</span>
                 </div>
+              </TableCell>
+
+              <!-- 5. Kolom Jam Masuk -->
+              <TableCell class="font-mono text-xs text-foreground whitespace-nowrap px-2 sm:px-4 py-2.5 text-center align-middle">
+                {{ s.waktu_masuk ? s.waktu_masuk + ' WIB' : '-' }}
+              </TableCell>
+
+              <!-- 6. Kolom Keterangan / Catatan -->
+              <TableCell class="px-2 sm:px-4 py-2.5 align-middle">
+                <div v-if="canEditAbsensi" class="relative flex items-center min-w-[160px] max-w-[240px]">
+                  <Input
+                    v-model="s.keterangan"
+                    type="text"
+                    placeholder="Tulis catatan..."
+                    class="h-8 text-xs pr-7 bg-background"
+                    :disabled="updatingKeteranganId === s.id_siswa"
+                    @change="saveDirectKeterangan(s)"
+                    @keyup.enter="$event.target.blur()"
+                  />
+                  <LoaderCircle
+                    v-if="updatingKeteranganId === s.id_siswa"
+                    class="size-3 animate-spin text-muted-foreground absolute right-2 pointer-events-none"
+                  />
+                </div>
+                <span v-else class="text-xs text-muted-foreground">
+                  {{ s.keterangan || '-' }}
+                </span>
               </TableCell>
             </TableRow>
           </TableBody>
