@@ -2,12 +2,13 @@
   <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
     <div class="flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-5">
       <router-link to="/dashboard" class="flex items-center gap-3" @click="emit('navigate')">
-        <div class="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <QrCode class="size-5" />
+        <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground overflow-hidden">
+          <img v-if="appLogo" :src="appLogo" alt="Logo" class="size-full object-cover" />
+          <QrCode v-else class="size-5" />
         </div>
-        <div class="leading-tight">
-          <p class="text-sm font-semibold tracking-tight">Sistem Terpadu</p>
-          <p class="text-xs text-muted-foreground">Presensi QR &amp; Notifikasi WA</p>
+        <div class="leading-tight min-w-0">
+          <p class="text-sm font-semibold tracking-tight truncate">{{ appName || 'Sistem Terpadu' }}</p>
+          <p class="text-xs text-muted-foreground truncate">Presensi QR &amp; Notifikasi WA</p>
         </div>
       </router-link>
     </div>
@@ -72,12 +73,14 @@ import {
 } from '@lucide/vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/composables/useAuth';
+import { useAppConfig } from '@/composables/useAppConfig';
 
 const emit = defineEmits(['navigate']);
 
 const route = useRoute();
 const router = useRouter();
 const { user, role, roleLabel } = useAuth();
+const { appName, appLogo } = useAppConfig();
 
 /**
  * Menu visibility follows the `meta.roles` of each route, so the sidebar

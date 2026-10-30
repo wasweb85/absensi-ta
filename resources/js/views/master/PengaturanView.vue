@@ -46,11 +46,68 @@
             <CardTitle class="text-sm font-semibold">1. Profil &amp; Identitas Lembaga</CardTitle>
           </div>
           <CardDescription class="text-xs">
-            Nama resmi instansi dan tahun ajaran yang akan tertera pada kuitansi dan laporan.
+            Identitas resmi lembaga, logo favicon web, dan kop cetak laporan presensi.
           </CardDescription>
         </CardHeader>
 
         <CardContent class="space-y-4 pt-4">
+          <!-- Logo Lembaga (Favicon & Kop Surat) -->
+          <div class="space-y-2">
+            <Label class="text-xs font-medium">Logo Lembaga (Favicon &amp; Kop Laporan)</Label>
+            <div class="flex items-center gap-4">
+              <!-- Preview Box -->
+              <div class="relative flex size-20 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/40 p-1.5 overflow-hidden group">
+                <img
+                  v-if="settings.logo_lembaga"
+                  :src="settings.logo_lembaga"
+                  alt="Logo Lembaga"
+                  class="size-full object-contain"
+                />
+                <div v-else class="flex flex-col items-center justify-center text-muted-foreground text-[10px]">
+                  <ImageIcon class="size-6 text-muted-foreground/60 mb-1" />
+                  <span>Tanpa Logo</span>
+                </div>
+              </div>
+
+              <!-- Upload Actions -->
+              <div class="flex-1 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <input
+                    ref="logoFileInputRef"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    class="hidden"
+                    @change="handleLogoUpload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="h-8 gap-1.5 text-xs"
+                    @click="triggerLogoSelect"
+                  >
+                    <Upload class="size-3.5" />
+                    <span>{{ settings.logo_lembaga ? 'Ganti Logo' : 'Pilih Logo' }}</span>
+                  </Button>
+                  <Button
+                    v-if="settings.logo_lembaga"
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                    @click="removeLogo"
+                  >
+                    <Trash2 class="size-3.5" />
+                    <span>Hapus</span>
+                  </Button>
+                </div>
+                <p class="text-[10px] text-muted-foreground leading-relaxed">
+                  Format PNG / JPG / SVG (disarankan transparan). Otomatis dijadikan <strong>Favicon</strong> browser dan <strong>Kop Surat</strong> cetak laporan.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div class="space-y-1.5">
             <Label for="namaInstansi" class="text-xs font-medium">Nama Instansi / TPQ / Lembaga *</Label>
             <Input
@@ -63,14 +120,38 @@
           </div>
 
           <div class="space-y-1.5">
-            <Label for="tahunAjaran" class="text-xs font-medium">Tahun Ajaran Aktif</Label>
+            <Label for="alamatInstansi" class="text-xs font-medium">Alamat Lembaga (Kop Laporan)</Label>
             <Input
-              id="tahunAjaran"
-              v-model="settings.tahun_ajaran_aktif"
+              id="alamatInstansi"
+              v-model="settings.alamat_instansi"
               type="text"
-              placeholder="Contoh: 2026/2027"
+              placeholder="Contoh: Jl. Raya Karanganyar No. 15, Paiton, Probolinggo"
               class="h-9 text-xs"
             />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <Label for="kontakInstansi" class="text-xs font-medium">Kontak / Telepon / Email</Label>
+              <Input
+                id="kontakInstansi"
+                v-model="settings.kontak_instansi"
+                type="text"
+                placeholder="Contoh: Telp: 0812-3456-7890"
+                class="h-9 text-xs"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="tahunAjaran" class="text-xs font-medium">Tahun Ajaran Aktif</Label>
+              <Input
+                id="tahunAjaran"
+                v-model="settings.tahun_ajaran_aktif"
+                type="text"
+                placeholder="Contoh: 2026/2027"
+                class="h-9 text-xs"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -248,6 +329,9 @@ import {
   Send,
   Radio,
   LoaderCircle,
+  Image as ImageIcon,
+  Upload,
+  Trash2,
 } from '@lucide/vue';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -256,16 +340,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useAppConfig } from '@/composables/useAppConfig';
 
 const toast = useToast();
+const { updateConfig } = useAppConfig();
 
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isTestingWa = ref(false);
+const logoFileInputRef = ref(null);
 
 const settings = ref({
   nama_instansi: "Sistem Terpadu Absensi Santri",
   tahun_ajaran_aktif: "2026/2027",
+  alamat_instansi: "",
+  kontak_instansi: "",
+  logo_lembaga: "",
   jam_masuk: "07:00",
   jam_terlambat: "07:15",
   jam_pulang: "12:00",
@@ -276,6 +366,66 @@ const settings = ref({
 });
 
 const activeDays = ref(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']);
+
+const triggerLogoSelect = () => {
+  if (logoFileInputRef.value) {
+    logoFileInputRef.value.click();
+  }
+};
+
+const handleLogoUpload = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    toast.error('File yang dipilih harus berupa format gambar.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (readerEvent) => {
+    const img = new Image();
+    img.onload = () => {
+      // Resize to max 256x256 to save bandwidth and fit neatly in TiDB
+      const maxDim = 256;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // PNG format to preserve alpha channel transparency
+      const compressedDataUrl = canvas.toDataURL('image/png', 0.9);
+      settings.value.logo_lembaga = compressedDataUrl;
+      toast.success('Logo berhasil dipilih! Klik "Simpan Pengaturan" untuk menerapkan.');
+    };
+    img.src = readerEvent.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+const removeLogo = () => {
+  settings.value.logo_lembaga = '';
+  if (logoFileInputRef.value) {
+    logoFileInputRef.value.value = '';
+  }
+  toast.info('Logo dihapus. Klik "Simpan Pengaturan" untuk menerapkan.');
+};
 
 async function loadSettings() {
   isLoading.value = true;
@@ -306,6 +456,7 @@ async function saveSettings() {
     };
 
     const res = await api.post('/pengaturan', payload);
+    updateConfig(settings.value);
     toast.success(res.data.message || 'Pengaturan sistem berhasil disimpan.');
   } catch (err) {
     const msg = err.response?.data?.message || 'Gagal menyimpan pengaturan sistem.';

@@ -1,19 +1,19 @@
 <template>
-  <div class="min-h-screen bg-muted/40 font-sans text-foreground antialiased">
-    <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-sidebar-border lg:block">
+  <div class="min-h-screen bg-muted/40 font-sans text-foreground antialiased print:bg-white print:text-black">
+    <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-sidebar-border lg:block print:hidden">
       <AppSidebar />
     </aside>
 
     <Sheet v-model:open="mobileMenuOpen">
-      <SheetContent side="left" class="w-72 gap-0 p-0 sm:max-w-72">
+      <SheetContent side="left" class="w-72 gap-0 p-0 sm:max-w-72 print:hidden">
         <SheetTitle class="sr-only">Menu navigasi</SheetTitle>
         <SheetDescription class="sr-only">Daftar halaman aplikasi</SheetDescription>
         <AppSidebar @navigate="mobileMenuOpen = false" />
       </SheetContent>
     </Sheet>
 
-    <div class="flex min-h-screen min-w-0 flex-col lg:pl-64">
-      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
+    <div class="flex min-h-screen min-w-0 flex-col lg:pl-64 print:pl-0">
+      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 print:hidden">
         <Button variant="ghost" size="icon" class="lg:hidden" aria-label="Buka menu" @click="mobileMenuOpen = true">
           <Menu />
         </Button>
@@ -64,12 +64,12 @@
         </DropdownMenu>
       </header>
 
-      <main class="flex-1 overflow-y-auto px-4 pt-2.5 pb-6 sm:px-6 lg:px-8">
+      <main class="flex-1 overflow-y-auto px-4 pt-2.5 pb-6 sm:px-6 lg:px-8 print:p-0 print:overflow-visible">
         <router-view />
       </main>
     </div>
 
-    <ToastContainer />
+    <ToastContainer class="print:hidden" />
   </div>
 </template>
 
@@ -90,8 +90,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/composables/useAuth';
+import { useAppConfig } from '@/composables/useAppConfig';
 
 const { user, roleLabel, logout } = useAuth();
+const { loadAppConfig } = useAppConfig();
 
 const mobileMenuOpen = ref(false);
 const isDark = ref(false);
@@ -111,6 +113,8 @@ const updateClock = () => {
 };
 
 onMounted(() => {
+  loadAppConfig();
+
   const savedTheme = localStorage.getItem('theme');
   isDark.value = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('dark', isDark.value);

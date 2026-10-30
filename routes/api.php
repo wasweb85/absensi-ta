@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 // PUBLIC ROUTES
 // ==========================================
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::get('/pengaturan/public', [SettingController::class, 'getPublicSettings']);
 
 // Webhook WhatsApp Gateway (Fonnte)
 Route::match(['get', 'post'], '/webhook/whatsapp', [ChatbotController::class, 'webhook'])->middleware('throttle:60,1');

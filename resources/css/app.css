@@ -134,3 +134,66 @@
     @apply font-sans;
     }
 }
+
+@media print {
+  /* Sembunyikan elemen navigasi aplikasi, sidebar, header, tombol, toast */
+  aside,
+  header,
+  nav,
+  .print\:hidden,
+  [data-radix-popper-content-wrapper],
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-close"],
+  .toaster,
+  #toast-container,
+  button:not(.print\:inline-block),
+  .btn:not(.print\:inline-block) {
+    display: none !important;
+  }
+
+  /* Reset background body & root untuk cetak dokumen putih bersih */
+  html,
+  body,
+  #app,
+  .min-h-screen {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Reset indentasi sidebar desktop */
+  .lg\:pl-64 {
+    padding-left: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Hilangkan card styling dan shadow saat print */
+  .rounded-xl,
+  .rounded-lg,
+  .rounded-2xl {
+    box-shadow: none !important;
+  }
+
+  /* Akurasi warna cetak (background badge, garis kop, dan tabel) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 8mm 8mm 10mm 8mm;
+  }
+}

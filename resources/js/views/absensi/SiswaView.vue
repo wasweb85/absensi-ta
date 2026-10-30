@@ -355,8 +355,8 @@
 
     <!-- Dialog Cetak Kartu QR Santri -->
     <Dialog :open="!!selectedCardStudent" @update:open="(val) => { if (!val) selectedCardStudent = null; }">
-      <DialogContent class="sm:max-w-sm text-center">
-        <DialogHeader>
+      <DialogContent class="sm:max-w-sm text-center print:border-none print:shadow-none print:p-0 print:static print:transform-none print:w-auto">
+        <DialogHeader class="print:hidden">
           <DialogTitle class="text-base font-semibold">Kartu Presensi QR</DialogTitle>
           <DialogDescription class="text-xs">
             Kartu pengenal santri siap dicetak untuk presensi harian.
@@ -364,27 +364,27 @@
         </DialogHeader>
 
         <!-- Printable Card Area -->
-        <div id="printCardArea" class="p-6 rounded-2xl border-2 border-dashed border-primary/50 bg-muted/20 my-2 text-center">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-primary">KARTU PRESENSI SANTRI</p>
-          <h4 class="text-base font-bold text-foreground mt-1">{{ selectedCardStudent?.nama_lengkap }}</h4>
+        <div id="printCardArea" class="p-6 rounded-2xl border-2 border-dashed border-primary/50 bg-muted/20 my-2 text-center print:border-2 print:border-solid print:border-black print:bg-white print:p-6 print:m-0">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-primary print:text-black">KARTU PRESENSI SANTRI</p>
+          <h4 class="text-base font-bold text-foreground mt-1 print:text-black">{{ selectedCardStudent?.nama_lengkap }}</h4>
           
           <Badge
             variant="outline"
-            class="my-2 text-[10px] font-semibold"
+            class="my-2 text-[10px] font-semibold print:text-black print:border-black"
             :style="selectedCardStudent?.kelas?.warna_label ? { borderColor: selectedCardStudent.kelas.warna_label, color: selectedCardStudent.kelas.warna_label } : {}"
           >
             {{ selectedCardStudent?.kelas?.nama_kelas || '-' }}
           </Badge>
 
           <!-- QR Canvas -->
-          <div class="flex items-center justify-center p-3 my-2 bg-white rounded-xl shadow-xs max-w-[170px] mx-auto border">
+          <div class="flex items-center justify-center p-3 my-2 bg-white rounded-xl shadow-xs max-w-[170px] mx-auto border print:border-black">
             <canvas ref="qrCanvasRef"></canvas>
           </div>
 
-          <p class="text-xs font-mono font-bold text-foreground">NISN: {{ selectedCardStudent?.nisn }}</p>
+          <p class="text-xs font-mono font-bold text-foreground print:text-black">NISN: {{ selectedCardStudent?.nisn }}</p>
         </div>
 
-        <DialogFooter class="flex gap-2 sm:justify-center pt-2">
+        <DialogFooter class="flex gap-2 sm:justify-center pt-2 print:hidden">
           <Button
             size="sm"
             class="w-full gap-1.5 text-xs"

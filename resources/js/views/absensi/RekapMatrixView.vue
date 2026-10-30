@@ -89,44 +89,90 @@
       </CardContent>
     </Card>
 
-    <!-- Printable Header Banner (Only visible during print) -->
-    <div class="hidden print:block text-center border-b pb-4 mb-4">
-      <h1 class="text-lg font-bold">REKAPITULASI PRESENSI SANTRI</h1>
-      <p class="text-xs">
-        Periode: {{ bulanList[selectedBulan] }} {{ selectedTahun }}
-        <span v-if="!canFilterAllKelas && user?.nama_kelas"> - Jilid {{ user.nama_kelas }}</span>
-      </p>
+    <!-- KOP RESMI LAPORAN (Hanya tampil saat dicetak) -->
+    <div class="hidden print:block mb-3 text-black">
+      <div class="flex items-center justify-between gap-4 pb-2">
+        <!-- Logo Lembaga di Kiri -->
+        <div class="w-20 shrink-0 flex items-center justify-center">
+          <img
+            v-if="appLogo"
+            :src="appLogo"
+            alt="Logo Lembaga"
+            class="max-h-20 max-w-20 object-contain"
+          />
+          <div v-else class="size-16 rounded border border-black flex items-center justify-center text-[10px] font-bold">
+            LOGO
+          </div>
+        </div>
+
+        <!-- Teks Kop Surat di Tengah -->
+        <div class="flex-1 text-center px-2">
+          <h1 class="text-base font-bold uppercase tracking-wide leading-tight">
+            {{ appName || 'TPQ & MADRASAH DINIYAH' }}
+          </h1>
+          <p v-if="appAddress" class="text-[11px] text-neutral-800 mt-0.5 leading-snug">
+            {{ appAddress }}
+          </p>
+          <p v-if="appContact" class="text-[10px] text-neutral-700 leading-snug">
+            {{ appContact }}
+          </p>
+        </div>
+
+        <!-- Spacer Kanan Penyeimbang -->
+        <div class="w-20 shrink-0"></div>
+      </div>
+
+      <!-- Garis Ganda Kop Surat Resmi -->
+      <div class="border-t-2 border-black mb-0.5"></div>
+      <div class="border-t border-black mb-3"></div>
+
+      <!-- Judul Dokumen & Periode Laporan -->
+      <div class="text-center my-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider underline">
+          LAPORAN REKAPITULASI PRESENSI SANTRI
+        </h2>
+        <div class="flex justify-between items-center text-[10px] mt-1.5 px-0.5">
+          <div>
+            <span><strong>Periode:</strong> {{ bulanList[selectedBulan] }} {{ selectedTahun }}</span>
+            <span class="mx-2">&bull;</span>
+            <span><strong>Jilid / Kelas:</strong> {{ currentKelasLabel }}</span>
+          </div>
+          <div>
+            <span><strong>Tahun Ajaran:</strong> {{ appTahunAjaran }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Matrix Table Container -->
-    <Card class="overflow-hidden">
-      <div class="overflow-x-auto">
-        <Table class="text-center text-[11px]">
+    <Card class="overflow-hidden print:border-none print:shadow-none print:bg-transparent">
+      <div class="overflow-x-auto print:overflow-visible">
+        <Table class="text-center text-[11px] print:text-[8.5px] print:w-full print:border-collapse">
           <TableHeader>
-            <TableRow class="bg-muted/40 font-semibold">
-              <TableHead class="w-10 text-center sticky left-0 bg-muted/90 backdrop-blur-xs z-10 text-[10px]">No</TableHead>
-              <TableHead class="text-left sticky left-10 bg-muted/90 backdrop-blur-xs z-10 min-w-[160px] text-[10px]">Santri</TableHead>
-              <TableHead class="text-center text-[10px]">Jilid</TableHead>
+            <TableRow class="bg-muted/40 font-semibold print:bg-neutral-100 print:text-black">
+              <TableHead class="w-10 text-center sticky left-0 bg-muted/90 backdrop-blur-xs z-10 text-[10px] print:static print:bg-neutral-100 print:text-black print:w-6 print:p-1">No</TableHead>
+              <TableHead class="text-left sticky left-10 bg-muted/90 backdrop-blur-xs z-10 min-w-[160px] text-[10px] print:static print:bg-neutral-100 print:text-black print:min-w-0 print:p-1">Santri</TableHead>
+              <TableHead class="text-center text-[10px] print:text-[8.5px] print:p-1 print:text-black">Jilid</TableHead>
               
               <!-- Days of Month -->
               <TableHead
                 v-for="day in daysInMonth"
                 :key="day"
-                class="px-1 text-center min-w-[22px] border-l border-border/60 text-[10px]"
+                class="px-1 text-center min-w-[22px] border-l border-border/60 text-[10px] print:min-w-0 print:px-0.5 print:text-[8px] print:text-black"
               >
                 {{ day }}
               </TableHead>
               
               <!-- Summary Totals -->
-              <TableHead class="px-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-l font-bold text-[10px]">H</TableHead>
-              <TableHead class="px-1.5 text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-[10px]">T</TableHead>
-              <TableHead class="px-1.5 text-center bg-blue-500/10 text-blue-700 dark:text-blue-400 font-bold text-[10px]">S</TableHead>
-              <TableHead class="px-1.5 text-center bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-bold text-[10px]">I</TableHead>
-              <TableHead class="px-1.5 text-center bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold text-[10px]">A</TableHead>
-              <TableHead class="px-2 text-center bg-muted/60 font-bold text-[10px]">%</TableHead>
+              <TableHead class="px-1.5 text-center bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-l font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">H</TableHead>
+              <TableHead class="px-1.5 text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">T</TableHead>
+              <TableHead class="px-1.5 text-center bg-blue-500/10 text-blue-700 dark:text-blue-400 font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">S</TableHead>
+              <TableHead class="px-1.5 text-center bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">I</TableHead>
+              <TableHead class="px-1.5 text-center bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">A</TableHead>
+              <TableHead class="px-2 text-center bg-muted/60 font-bold text-[10px] print:bg-neutral-100 print:text-black print:px-1 print:text-[8px]">%</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody class="font-mono">
+          <TableBody class="font-mono print:text-black">
             <TableRow v-if="isLoading">
               <TableCell :colspan="daysInMonth + 9" class="h-36 text-center text-muted-foreground font-sans text-xs">
                 <div class="flex flex-col items-center justify-center gap-2">
@@ -146,43 +192,74 @@
               v-else
               v-for="(row, idx) in matrixData"
               :key="row.id_siswa"
-              class="transition-colors hover:bg-muted/40"
+              class="transition-colors hover:bg-muted/40 print:hover:bg-transparent"
             >
-              <TableCell class="text-center sticky left-0 bg-card z-10 text-muted-foreground font-sans text-xs">{{ idx + 1 }}</TableCell>
-              <TableCell class="text-left sticky left-10 bg-card z-10 font-semibold font-sans text-foreground truncate max-w-[170px]">
+              <TableCell class="text-center sticky left-0 bg-card z-10 text-muted-foreground font-sans text-xs print:static print:bg-transparent print:text-black print:p-0.5 print:text-[8px]">{{ idx + 1 }}</TableCell>
+              <TableCell class="text-left sticky left-10 bg-card z-10 font-semibold font-sans text-foreground truncate max-w-[170px] print:static print:bg-transparent print:text-black print:max-w-none print:p-0.5 print:text-[8.5px]">
                 {{ row.nama_lengkap }}
               </TableCell>
-              <TableCell class="font-sans text-muted-foreground text-[10px]">{{ row.nama_kelas || '-' }}</TableCell>
+              <TableCell class="font-sans text-muted-foreground text-[10px] print:text-black print:p-0.5 print:text-[8px]">{{ row.nama_kelas || '-' }}</TableCell>
 
               <!-- Daily 1..31 Status -->
               <TableCell
                 v-for="d in daysInMonth"
                 :key="d"
-                class="px-1 border-l border-border/40 text-[10px]"
+                class="px-1 border-l border-border/40 text-[10px] print:p-0.5 print:text-[8px]"
                 :class="{
-                  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold': row.daily[d] === 'H',
-                  'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold': row.daily[d] === 'T',
-                  'bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold': row.daily[d] === 'S',
-                  'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold': row.daily[d] === 'I',
-                  'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-bold': row.daily[d] === 'A',
-                  'text-muted-foreground/30': row.daily[d] === '-' || !row.daily[d]
+                  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'H',
+                  'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'T',
+                  'bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'S',
+                  'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'I',
+                  'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'A',
+                  'text-muted-foreground/30 print:text-neutral-300': row.daily[d] === '-' || !row.daily[d]
                 }"
               >
                 {{ row.daily[d] || '-' }}
               </TableCell>
 
               <!-- Summary Columns -->
-              <TableCell class="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/5 border-l">{{ row.summary.hadir }}</TableCell>
-              <TableCell class="font-bold text-amber-700 dark:text-amber-400 bg-amber-500/5">{{ row.summary.terlambat }}</TableCell>
-              <TableCell class="font-bold text-blue-700 dark:text-blue-400 bg-blue-500/5">{{ row.summary.sakit }}</TableCell>
-              <TableCell class="font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-500/5">{{ row.summary.izin }}</TableCell>
-              <TableCell class="font-bold text-rose-700 dark:text-rose-400 bg-rose-500/5">{{ row.summary.alpa }}</TableCell>
-              <TableCell class="font-bold text-foreground bg-muted/30">{{ row.summary.persentase }}%</TableCell>
+              <TableCell class="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/5 border-l print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.hadir }}</TableCell>
+              <TableCell class="font-bold text-amber-700 dark:text-amber-400 bg-amber-500/5 print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.terlambat }}</TableCell>
+              <TableCell class="font-bold text-blue-700 dark:text-blue-400 bg-blue-500/5 print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.sakit }}</TableCell>
+              <TableCell class="font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-500/5 print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.izin }}</TableCell>
+              <TableCell class="font-bold text-rose-700 dark:text-rose-400 bg-rose-500/5 print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.alpa }}</TableCell>
+              <TableCell class="font-bold text-foreground bg-muted/30 print:text-black print:bg-transparent print:p-0.5 print:text-[8px]">{{ row.summary.persentase }}%</TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </div>
     </Card>
+
+    <!-- Legend Indicator Cetak -->
+    <div class="hidden print:flex items-center gap-4 text-[9px] text-black mt-2">
+      <span class="font-bold uppercase tracking-wider">Keterangan:</span>
+      <span><strong>H:</strong> Hadir</span>
+      <span><strong>T:</strong> Terlambat</span>
+      <span><strong>S:</strong> Sakit</span>
+      <span><strong>I:</strong> Izin</span>
+      <span><strong>A:</strong> Alpa</span>
+    </div>
+
+    <!-- Blok Pengesahan Tanda Tangan Resmi (Cetak) -->
+    <div class="hidden print:flex justify-between items-start mt-8 pt-2 text-black text-xs break-inside-avoid">
+      <!-- Sisi Kiri: Mengetahui Kepala TPQ -->
+      <div class="text-center min-w-[200px]">
+        <p class="font-normal">Mengetahui,</p>
+        <p class="font-semibold">Kepala TPQ / Lembaga</p>
+        <div class="h-20"></div>
+        <p class="font-bold underline tracking-wide">( ............................................ )</p>
+        <p class="text-[10px] text-neutral-600 mt-0.5">NIP/NIY: ..........................</p>
+      </div>
+
+      <!-- Sisi Kanan: Wali Kelas / Ustadz Pengampu -->
+      <div class="text-center min-w-[200px]">
+        <p class="font-normal">{{ formattedCurrentDate }}</p>
+        <p class="font-semibold">Wali Kelas / Ustadz Pengampu</p>
+        <div class="h-20"></div>
+        <p class="font-bold underline tracking-wide">( {{ ustadzPengampuName }} )</p>
+        <p class="text-[10px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
+      </div>
+    </div>
 
     <!-- Legend Indicator -->
     <Card class="print:hidden">
@@ -235,9 +312,11 @@ import {
 import api from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import { useAppConfig } from '@/composables/useAppConfig';
 
 const toast = useToast();
 const { user, role } = useAuth();
+const { appName, appLogo, appAddress, appContact, appTahunAjaran } = useAppConfig();
 
 const canFilterAllKelas = computed(() => ['admin', 'kepala', 'sekretaris'].includes(role.value));
 
@@ -248,6 +327,37 @@ const selectedKelas = ref(user.value?.id_kelas || '');
 const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
+
+const currentKelasLabel = computed(() => {
+  if (canFilterAllKelas.value) {
+    if (selectedKelas.value) {
+      const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
+      return found ? found.nama_kelas : 'Jilid';
+    }
+    return 'Semua Jilid / Kelas';
+  }
+  return user.value?.nama_kelas ? `Jilid ${user.value.nama_kelas}` : 'Semua Jilid';
+});
+
+const ustadzPengampuName = computed(() => {
+  if (!canFilterAllKelas.value) {
+    return user.value?.name || '............................................';
+  }
+  if (selectedKelas.value) {
+    const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
+    if (found?.wali_kelas) return found.wali_kelas;
+  }
+  return '............................................';
+});
+
+const formattedCurrentDate = computed(() => {
+  const today = new Date();
+  return today.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+});
 
 const bulanList = {
   1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
@@ -347,3 +457,23 @@ onMounted(async () => {
   ]);
 });
 </script>
+
+<style scoped>
+@media print {
+  @page {
+    size: landscape;
+    margin: 8mm 6mm 10mm 6mm;
+  }
+
+  :deep(table) {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  :deep(th),
+  :deep(td) {
+    border: 1px solid #111827 !important;
+    color: #111827 !important;
+  }
+}
+</style>

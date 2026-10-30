@@ -2,10 +2,11 @@
   <div class="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
     <div class="w-full max-w-sm">
       <div class="mb-6 flex flex-col items-center text-center">
-        <div class="mb-3 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <QrCode class="size-6" />
+        <div class="mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground overflow-hidden shadow-sm">
+          <img v-if="appLogo" :src="appLogo" alt="Logo" class="size-full object-contain p-1" />
+          <QrCode v-else class="size-7" />
         </div>
-        <h1 class="text-xl font-semibold tracking-tight">Sistem Terpadu</h1>
+        <h1 class="text-xl font-semibold tracking-tight">{{ appName || 'Sistem Terpadu' }}</h1>
         <p class="text-sm text-muted-foreground">Presensi QR &amp; Notifikasi WhatsApp Santri</p>
       </div>
 
@@ -95,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { CircleAlert, Eye, EyeOff, LoaderCircle, LogIn, QrCode } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
@@ -104,10 +105,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import { useAppConfig } from '@/composables/useAppConfig';
 
 const router = useRouter();
 const { login, loading, error } = useAuth();
 const toast = useToast();
+const { appName, appLogo, loadAppConfig } = useAppConfig();
+
+onMounted(() => {
+  loadAppConfig();
+});
 
 const username = ref('');
 const password = ref('');
