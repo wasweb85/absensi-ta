@@ -11,6 +11,9 @@ use App\Services\AbsensiScannerService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+use function Illuminate\Support\defer;
 
 class AbsensiController extends Controller
 {
@@ -111,18 +114,30 @@ class AbsensiController extends Controller
             ]
         );
 
-        // Sinkronkan perubahan status manual ke Google Spreadsheet
+        // Sinkronkan perubahan status manual ke Google Spreadsheet secara deferred di background
         $siswa = Siswa::with('kelas')->find($validated['id_siswa']);
         if ($siswa) {
             $currentTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
-            $this->scannerService->syncToGoogleSheet(
-                $siswa,
-                $validated['status'],
-                $absensi->waktu_masuk ?: $currentTime,
-                $validated['tanggal'],
-                $absensi->waktu_pulang ?: '-',
-                ($validated['keterangan'] ?? null) ?: ($validated['status'] === 'Hadir' ? 'Tepat Waktu' : '-')
-            );
+            $status = $validated['status'];
+            $waktuMasuk = $absensi->waktu_masuk ?: $currentTime;
+            $tanggal = $validated['tanggal'];
+            $waktuPulang = $absensi->waktu_pulang ?: '-';
+            $keterangan = ($validated['keterangan'] ?? null) ?: ($status === 'Hadir' ? 'Tepat Waktu' : '-');
+
+            defer(function () use ($siswa, $status, $waktuMasuk, $tanggal, $waktuPulang, $keterangan) {
+                try {
+                    $this->scannerService->syncToGoogleSheet(
+                        $siswa,
+                        $status,
+                        $waktuMasuk,
+                        $tanggal,
+                        $waktuPulang,
+                        $keterangan
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('Gagal sinkronisasi Google Sheet manual update: '.$e->getMessage());
+                }
+            });
         }
 
         return response()->json([

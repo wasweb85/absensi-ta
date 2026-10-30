@@ -103,7 +103,18 @@ class ApiBackendTest extends TestCase
             'scanner_role' => 'admin',
         ]);
 
-        $this->assertTrue(in_array($scanResponse->status(), [200, 422]));
+        $scanResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'nisn' => '1001',
+                    'nama_lengkap' => 'Ahmad Fauzi',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('absensi', [
+            'id_siswa' => $this->siswa->id,
+        ]);
 
         // 2. Monitoring kehadiran
         $monResponse = $this->getJson('/api/absensi/monitoring');

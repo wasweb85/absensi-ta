@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use function Illuminate\Support\defer;
+
 class AbsensiScannerService
 {
     public function __construct(
@@ -104,15 +106,31 @@ class AbsensiScannerService
                 'metode_scan' => $metodeScan,
             ]);
 
-            // Kirim notifikasi WhatsApp otomatis ke orang tua dengan perlindungan anti-spam
-            $waResult = $this->sendPresensiNotification($siswa, $status, $currentTimeShort, $todayDate);
+            // Siapkan rencana notifikasi WhatsApp secara instan tanpa blocking HTTP network
+            $waPlan = $this->preparePresensiNotification($siswa, $status, $currentTimeShort, $todayDate);
 
-            // Sinkronkan ke Google Spreadsheet sheet 'absensi' jika webhook dikonfigurasi
-            $this->syncToGoogleSheet($siswa, $status, $currentTime, $todayDate);
+            // Eksekusi notifikasi WA & sinkronisasi Google Spreadsheet di background (deferred)
+            // Scanner langsung menerima HTTP response < 0.5 detik tanpa terblokir jaringan pihak ketiga
+            defer(function () use ($waPlan, $siswa, $status, $currentTime, $todayDate) {
+                if (! empty($waPlan['should_send']) && ! empty($waPlan['payload'])) {
+                    try {
+                        $p = $waPlan['payload'];
+                        $this->waService->sendViaFonnte($p['phone'], $p['message'], $p['token'], $p['metadata']);
+                    } catch (\Throwable $e) {
+                        Log::warning('Gagal kirim notifikasi WA (deferred): '.$e->getMessage());
+                    }
+                }
+
+                try {
+                    $this->syncToGoogleSheet($siswa, $status, $currentTime, $todayDate);
+                } catch (\Throwable $e) {
+                    Log::warning('Gagal sinkronisasi Google Sheet (deferred): '.$e->getMessage());
+                }
+            });
 
             $waNoteSuffix = '';
-            if (! empty($waResult['note'])) {
-                $waNoteSuffix = " ({$waResult['note']})";
+            if (! empty($waPlan['note'])) {
+                $waNoteSuffix = " ({$waPlan['note']})";
             }
 
             return [
@@ -126,9 +144,9 @@ class AbsensiScannerService
                     'kelas' => $siswa->kelas?->nama_kelas,
                     'waktu_masuk' => $currentTimeShort,
                     'status' => $status,
-                    'wa_status' => $waResult['status'],
-                    'wa_message' => $waResult['message'],
-                    'wa_target' => $waResult['target'] ?? null,
+                    'wa_status' => $waPlan['status'],
+                    'wa_message' => $waPlan['message'],
+                    'wa_target' => $waPlan['target'] ?? null,
                 ],
             ];
         }
@@ -148,16 +166,18 @@ class AbsensiScannerService
     }
 
     /**
-     * Mengirim notifikasi WhatsApp otomatis ke orang tua santri dengan jeda anti-spam cerdas
+     * Menyiapkan rencana notifikasi WhatsApp otomatis ke orang tua santri dengan jeda anti-spam cerdas
+     * Berjalan secara instan di memori/cache tanpa blocking koneksi HTTP eksternal.
      *
-     * @return array{status: string, message: string, note: ?string, target: ?string}
+     * @return array{should_send: bool, status: string, message: string, note: ?string, target: ?string, payload?: array}
      */
-    protected function sendPresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
+    protected function preparePresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
     {
         // 1. Periksa apakah fitur notifikasi WA aktif di pengaturan
         $isWaEnabled = Pengaturan::getValue('wa_notif_presensi', '1') !== '0';
         if (! $isWaEnabled) {
             return [
+                'should_send' => false,
                 'status' => 'disabled',
                 'message' => 'Notifikasi WhatsApp otomatis dinonaktifkan di pengaturan.',
                 'note' => null,
@@ -169,6 +189,7 @@ class AbsensiScannerService
         $fonnteToken = Pengaturan::getValue('fonnte_token');
         if (empty($fonnteToken)) {
             return [
+                'should_send' => false,
                 'status' => 'no_token',
                 'message' => 'Token WhatsApp Fonnte belum dikonfigurasi.',
                 'note' => null,
@@ -180,6 +201,7 @@ class AbsensiScannerService
         $noHpOrtu = trim((string) ($siswa->no_hp_ortu ?? ''));
         if (empty($noHpOrtu)) {
             return [
+                'should_send' => false,
                 'status' => 'no_phone',
                 'message' => 'Nomor WhatsApp orang tua belum terdaftar.',
                 'note' => 'No. WA wali belum ada',
@@ -231,40 +253,65 @@ class AbsensiScannerService
                 $formattedDate
             );
 
-            // 6. Kirim ke Fonnte dengan parameter delay anti-spam
+            // 6. Siapkan metadata dan payload Fonnte
             $metadata = [
                 'nama_penerima' => $siswa->nama_ortu ?: ('Wali '.$siswa->nama_lengkap),
                 'tipe_pesan' => 'presensi',
                 'delay' => (string) $delaySeconds,
             ];
 
-            $res = $this->waService->sendViaFonnte($noHpOrtu, $pesan, $fonnteToken, $metadata);
-
-            if ($res['success'] ?? false) {
-                return [
-                    'status' => 'sent',
-                    'message' => "Notifikasi WA berhasil dijadwalkan (Jeda {$delaySeconds} detik).",
-                    'note' => "WA terjadwal (jeda {$delaySeconds}s)",
-                    'target' => $noHpOrtu,
-                ];
-            }
-
             return [
-                'status' => 'failed',
-                'message' => $res['message'] ?? 'Gagal mengirim notifikasi WA ke gateway.',
-                'note' => 'Gagal WA: '.($res['message'] ?? 'Error gateway'),
+                'should_send' => true,
+                'status' => 'sent',
+                'message' => "Notifikasi WA berhasil dijadwalkan (Jeda {$delaySeconds} detik).",
+                'note' => "WA terjadwal (jeda {$delaySeconds}s)",
                 'target' => $noHpOrtu,
+                'payload' => [
+                    'phone' => $noHpOrtu,
+                    'message' => $pesan,
+                    'token' => $fonnteToken,
+                    'metadata' => $metadata,
+                ],
             ];
         } catch (\Throwable $e) {
-            Log::warning('Error saat proses notifikasi WA presensi santri: '.$e->getMessage());
+            Log::warning('Error saat persiapan notifikasi WA presensi santri: '.$e->getMessage());
 
             return [
+                'should_send' => false,
                 'status' => 'error',
                 'message' => 'Kendala gateway WA: '.$e->getMessage(),
                 'note' => null,
                 'target' => $noHpOrtu,
             ];
         }
+    }
+
+    /**
+     * Mengirim notifikasi WhatsApp otomatis ke orang tua santri secara langsung
+     *
+     * @return array{status: string, message: string, note: ?string, target: ?string}
+     */
+    protected function sendPresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
+    {
+        $plan = $this->preparePresensiNotification($siswa, $status, $waktuShort, $tanggal);
+
+        if (! empty($plan['should_send']) && ! empty($plan['payload'])) {
+            $p = $plan['payload'];
+            $res = $this->waService->sendViaFonnte($p['phone'], $p['message'], $p['token'], $p['metadata']);
+
+            if (! ($res['success'] ?? false)) {
+                $plan['status'] = 'failed';
+                $plan['message'] = $res['message'] ?? 'Gagal mengirim notifikasi WA ke gateway.';
+                $plan['note'] = 'Gagal WA: '.($res['message'] ?? 'Error gateway');
+            }
+        }
+
+        return [
+            'status' => $plan['status'],
+            'message' => $plan['message'],
+            'note' => $plan['note'],
+            'target' => $plan['target'],
+        ];
     }
 
     /**
