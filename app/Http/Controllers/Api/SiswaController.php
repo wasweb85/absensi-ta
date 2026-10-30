@@ -179,7 +179,7 @@ class SiswaController extends Controller
                 $kelas = $kelases[$rawKelas] ?? null;
 
                 if (! $kelas) {
-                    $errors[] = "Baris #{$idx}: Kelas '{$item['kelas']}' tidak ditemukan.";
+                    $errors[] = "Baris #{$idx}: Jilid '{$item['kelas']}' tidak ditemukan.";
 
                     continue;
                 }

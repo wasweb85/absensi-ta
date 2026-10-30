@@ -70,16 +70,16 @@
             </select>
           </div>
 
-          <!-- Filter Kelas (Hanya untuk Admin & Sekretaris) -->
+          <!-- Filter Jilid (Hanya untuk Admin & Sekretaris) -->
           <div v-if="canFilterAllKelas" class="w-full md:w-60 space-y-1.5">
-            <Label for="selectKelas" class="text-xs font-medium text-muted-foreground">Filter Jilid / Kelas</Label>
+            <Label for="selectKelas" class="text-xs font-medium text-muted-foreground">Filter Jilid</Label>
             <select
               id="selectKelas"
               v-model="selectedKelas"
               class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               @change="loadMatrix"
             >
-              <option value="">Semua Jilid / Kelas</option>
+              <option value="">Semua Jilid</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">
                 {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
               </option>
@@ -135,7 +135,7 @@
           <div>
             <span><strong>Periode:</strong> {{ bulanList[selectedBulan] }} {{ selectedTahun }}</span>
             <span class="mx-2">&bull;</span>
-            <span><strong>Jilid / Kelas:</strong> {{ currentKelasLabel }}</span>
+            <span><strong>Jilid:</strong> {{ currentKelasLabel }}</span>
           </div>
           <div>
             <span><strong>Tahun Ajaran:</strong> {{ appTahunAjaran }}</span>
@@ -251,10 +251,10 @@
         <p class="text-[10px] text-neutral-600 mt-0.5">NIP/NIY: ..........................</p>
       </div>
 
-      <!-- Sisi Kanan: Wali Kelas / Ustadz Pengampu -->
+      <!-- Sisi Kanan: Wali Jilid / Ustadz Pengampu -->
       <div class="text-center min-w-[200px]">
         <p class="font-normal">{{ formattedCurrentDate }}</p>
-        <p class="font-semibold">Wali Kelas / Ustadz Pengampu</p>
+        <p class="font-semibold">Wali Jilid / Ustadz Pengampu</p>
         <div class="h-20"></div>
         <p class="font-bold underline tracking-wide">( {{ ustadzPengampuName }} )</p>
         <p class="text-[10px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
@@ -334,7 +334,7 @@ const currentKelasLabel = computed(() => {
       const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
       return found ? found.nama_kelas : 'Jilid';
     }
-    return 'Semua Jilid / Kelas';
+    return 'Semua Jilid';
   }
   return user.value?.nama_kelas ? `Jilid ${user.value.nama_kelas}` : 'Semua Jilid';
 });
@@ -419,7 +419,7 @@ const exportCsv = () => {
     return;
   }
 
-  let csv = 'No,NISN,Nama Lengkap,Kelas,';
+  let csv = 'No,NISN,Nama Lengkap,Jilid,';
   for (let d = 1; d <= daysInMonth.value; d++) {
     csv += `Tgl ${d},`;
   }

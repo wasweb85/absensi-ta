@@ -224,7 +224,7 @@
                     <span>Rasio Presensi {{ kelasBinaan || 'Jilid' }}</span>
                   </CardTitle>
                   <CardDescription class="text-xs mt-0.5">
-                    Persentase kehadiran santri kelas binaan hari ini
+                    Persentase kehadiran santri jilid binaan hari ini
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" class="font-semibold text-xs">
@@ -488,7 +488,7 @@
                   <div>
                     <CardTitle class="text-sm font-semibold flex items-center gap-2">
                       <Layers class="size-4 text-primary" />
-                      <span>Monitoring Presensi Per Jilid &amp; Wali Kelas</span>
+                      <span>Monitoring Presensi Per Jilid &amp; Wali Jilid</span>
                     </CardTitle>
                     <CardDescription class="text-xs mt-0.5">
                       Rekapitulasi aktivitas kehadiran santri hari ini di setiap jilid beserta ustadz/ustadzah pengampu
@@ -540,7 +540,7 @@
                 </div>
 
                 <div v-else class="py-10 text-center text-muted-foreground text-xs">
-                  Belum ada data jilid/kelas yang terdaftar.
+                  Belum ada data jilid yang terdaftar.
                 </div>
               </CardContent>
             </div>

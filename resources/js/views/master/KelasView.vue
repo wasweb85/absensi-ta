@@ -12,7 +12,7 @@
           </Badge>
         </div>
         <p class="text-xs text-muted-foreground mt-0.5">
-          Pengaturan tingkatan jilid/kelas santri, urutan jilid, dan wali kelas masing-masing.
+          Pengaturan tingkatan jilid santri, urutan jilid, dan wali jilid masing-masing.
         </p>
       </div>
 
@@ -30,14 +30,14 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="p-12 text-center text-muted-foreground">
       <LoaderCircle class="size-8 mx-auto animate-spin mb-2 text-primary" />
-      <p class="text-xs font-medium">Memuat data jilid &amp; kelas...</p>
+      <p class="text-xs font-medium">Memuat data jilid...</p>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="kelasList.length === 0" class="p-16 text-center text-muted-foreground border rounded-xl bg-card">
       <Layers class="size-10 mx-auto mb-2 text-muted-foreground/40" />
-      <p class="text-xs font-semibold text-foreground">Belum ada jilid / kelas yang didaftarkan.</p>
-      <p class="text-[11px] text-muted-foreground mt-0.5">Klik tombol Tambah Jilid Baru untuk membuat tingkatan kelas pertama.</p>
+      <p class="text-xs font-semibold text-foreground">Belum ada jilid yang didaftarkan.</p>
+      <p class="text-[11px] text-muted-foreground mt-0.5">Klik tombol Tambah Jilid Baru untuk membuat tingkatan jilid pertama.</p>
     </div>
 
     <!-- Kelas Card Grid -->
@@ -72,7 +72,7 @@
 
         <CardContent class="py-2 text-xs space-y-1.5 border-t">
           <div class="flex items-center justify-between pt-2">
-            <span class="text-muted-foreground text-[11px]">Wali Kelas:</span>
+            <span class="text-muted-foreground text-[11px]">Wali Jilid:</span>
             <span class="font-medium text-foreground text-[11px] truncate max-w-[170px]">
               {{ k.wali_kelas || '-' }}
             </span>
@@ -100,7 +100,7 @@
             size="sm"
             class="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
             :disabled="k.siswa_count > 0"
-            :title="k.siswa_count > 0 ? 'Kelas masih memiliki santri aktif' : 'Hapus kelas'"
+            :title="k.siswa_count > 0 ? 'Jilid masih memiliki santri aktif' : 'Hapus jilid'"
             @click="deleteKelas(k)"
           >
             <Trash2 class="size-3.5" />
@@ -115,16 +115,16 @@
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
           <DialogTitle class="text-base font-semibold">
-            {{ isEditing ? 'Edit Data Jilid / Kelas' : 'Tambah Jilid / Kelas Baru' }}
+            {{ isEditing ? 'Edit Data Jilid' : 'Tambah Jilid Baru' }}
           </DialogTitle>
           <DialogDescription class="text-xs">
-            Lengkapi nama tingkatan jilid, nomor urutan, dan identitas wali kelas.
+            Lengkapi nama tingkatan jilid, nomor urutan, dan identitas wali jilid.
           </DialogDescription>
         </DialogHeader>
 
         <form class="space-y-4 pt-2" @submit.prevent="saveKelas">
           <div class="space-y-1.5">
-            <Label for="namaKelas" class="text-xs font-medium">Nama Jilid / Kelas *</Label>
+            <Label for="namaKelas" class="text-xs font-medium">Nama Jilid *</Label>
             <Input
               id="namaKelas"
               v-model="form.nama_kelas"
@@ -148,7 +148,7 @@
           </div>
 
           <div class="space-y-1.5">
-            <Label for="waliKelas" class="text-xs font-medium">Nama Wali Kelas / Guru</Label>
+            <Label for="waliKelas" class="text-xs font-medium">Nama Wali Jilid / Guru</Label>
             <Input
               id="waliKelas"
               v-model="form.wali_kelas"
@@ -159,7 +159,7 @@
           </div>
 
           <div class="space-y-1.5">
-            <Label for="noHpWali" class="text-xs font-medium">No. WhatsApp Wali Kelas</Label>
+            <Label for="noHpWali" class="text-xs font-medium">No. WhatsApp Wali Jilid</Label>
             <Input
               id="noHpWali"
               v-model="form.no_hp_wali"
@@ -270,7 +270,7 @@ async function loadKelas() {
     kelasList.value = res.data.data || [];
     sessionStorage.setItem('cached_kelas_list', JSON.stringify(kelasList.value));
   } catch (err) {
-    toast.error('Gagal memuat data kelas.');
+    toast.error('Gagal memuat data jilid.');
   } finally {
     isLoading.value = false;
   }
@@ -313,10 +313,10 @@ async function saveKelas() {
   try {
     if (isEditing.value) {
       await api.put(`/kelas/${editingId.value}`, form.value);
-      toast.success('Data jilid/kelas berhasil diperbarui.');
+      toast.success('Data jilid berhasil diperbarui.');
     } else {
       await api.post('/kelas', form.value);
-      toast.success('Jilid/kelas baru berhasil ditambahkan.');
+      toast.success('Jilid baru berhasil ditambahkan.');
     }
     closeModal();
     await loadKelas();
@@ -330,7 +330,7 @@ async function saveKelas() {
 
 async function deleteKelas(k) {
   if (k.siswa_count > 0) {
-    toast.warning('Jilid/kelas ini masih memiliki santri aktif dan tidak dapat dihapus.');
+    toast.warning('Jilid ini masih memiliki santri aktif dan tidak dapat dihapus.');
     return;
   }
 

@@ -45,7 +45,7 @@
           <!-- Class Filter -->
           <div class="space-y-1.5">
             <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
-              Filter Jilid / Kelas
+              Filter Jilid
             </Label>
             <select
               id="filterKelas"
@@ -53,7 +53,7 @@
               class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               @change="loadSiswa"
             >
-              <option value="">Semua Kelas</option>
+              <option value="">Semua Jilid</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
             </select>
           </div>
@@ -108,7 +108,7 @@
               <TableHead class="text-[10px] uppercase">NISN</TableHead>
               <TableHead class="text-[10px] uppercase">Nama Lengkap</TableHead>
               <TableHead class="text-[10px] uppercase text-center">L/P</TableHead>
-              <TableHead class="text-[10px] uppercase">Jilid / Kelas</TableHead>
+              <TableHead class="text-[10px] uppercase">Jilid</TableHead>
               <TableHead class="text-[10px] uppercase">Wali &amp; WhatsApp</TableHead>
               <TableHead class="text-[10px] uppercase text-center">Status</TableHead>
               <TableHead class="text-[10px] uppercase text-center">Aksi</TableHead>
@@ -225,7 +225,7 @@
             {{ isEditing ? 'Edit Data Santri' : 'Tambah Santri Baru' }}
           </DialogTitle>
           <DialogDescription class="text-xs">
-            Lengkapi identitas santri, jilid kelas, dan kontak wali santri untuk notifikasi WA.
+            Lengkapi identitas santri, jilid, dan kontak wali santri untuk notifikasi WA.
           </DialogDescription>
         </DialogHeader>
 
@@ -270,14 +270,14 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
-              <Label for="formKelas" class="text-xs font-medium">Jilid / Kelas *</Label>
+              <Label for="formKelas" class="text-xs font-medium">Jilid *</Label>
               <select
                 id="formKelas"
                 v-model="form.id_kelas"
                 required
                 class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="">Pilih Jilid/Kelas</option>
+                <option value="">Pilih Jilid</option>
                 <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
               </select>
             </div>

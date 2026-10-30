@@ -12,7 +12,7 @@
           </Badge>
         </div>
         <p class="text-xs text-muted-foreground mt-0.5">
-          Kelola peran pengguna, hak akses modul, dan penetapan wali jilid/kelas santri.
+          Kelola peran pengguna, hak akses modul, dan penetapan wali jilid santri.
         </p>
       </div>
 
@@ -53,7 +53,7 @@
           <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
             {{ totalWaliKelasCount }} <span class="text-[10px] sm:text-xs font-normal text-muted-foreground">/ {{ kelasList.length }}</span>
           </span>
-          <span class="hidden sm:block text-[10px] text-muted-foreground">Kelas dengan ustadz/ustadzah</span>
+          <span class="hidden sm:block text-[10px] text-muted-foreground">Jilid dengan ustadz/ustadzah</span>
         </div>
         <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
           <Users class="size-5" />
@@ -222,7 +222,7 @@
             {{ isEditing ? 'Edit Akun & Peran Pengurus' : 'Tambah Guru / Pengurus Baru' }}
           </DialogTitle>
           <DialogDescription class="text-xs">
-            Lengkapi data akun login, penetapan peran (role), dan jilid kelas binaan.
+            Lengkapi data akun login, penetapan peran (role), dan jilid binaan.
           </DialogDescription>
         </DialogHeader>
 
@@ -297,7 +297,7 @@
             </div>
 
             <div class="space-y-1.5">
-              <Label for="userKelas" class="text-xs font-medium">Wali Jilid / Kelas Binaan</Label>
+              <Label for="userKelas" class="text-xs font-medium">Wali Jilid Binaan</Label>
               <select
                 id="userKelas"
                 v-model="form.id_kelas"
@@ -313,7 +313,7 @@
           </div>
 
           <div v-if="isRoleNonTeaching" class="p-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-[11px] text-indigo-700 dark:text-indigo-400">
-            Jabatan <strong>{{ getRoleLabel(form.role) }}</strong> tidak memegang kelas mengajar langsung.
+            Jabatan <strong>{{ getRoleLabel(form.role) }}</strong> tidak memegang jilid mengajar langsung.
           </div>
 
           <DialogFooter class="flex gap-2 sm:justify-end pt-2">

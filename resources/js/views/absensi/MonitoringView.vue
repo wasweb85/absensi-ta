@@ -13,7 +13,7 @@
           </Badge>
         </div>
         <p class="text-xs text-muted-foreground mt-0.5">
-          Pantau status presensi santri per kelas, ubah kehadiran manual, dan tambahkan catatan izin/sakit.
+          Pantau status presensi santri per jilid, ubah kehadiran manual, dan tambahkan catatan izin/sakit.
         </p>
       </div>
     </div>
@@ -40,7 +40,7 @@
           <div class="lg:col-span-3 space-y-1.5">
             <div class="flex items-center justify-between">
               <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
-                Filter Jilid / Kelas
+                Filter Jilid
               </Label>
               <span v-if="user?.nama_kelas && selectedKelas == user?.id_kelas" class="text-[10px] text-primary font-medium truncate">
                 ({{ user.nama_kelas }})
@@ -52,7 +52,7 @@
               class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               @change="loadMonitoring"
             >
-              <option value="">Semua Jilid / Kelas</option>
+              <option value="">Semua Jilid</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">
                 {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
               </option>
@@ -97,7 +97,7 @@
             <TableRow class="bg-muted/40 border-b border-border">
               <TableHead class="w-8 sm:w-12 text-center text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4">No</TableHead>
               <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 min-w-[130px] sm:min-w-[160px]">Santri</TableHead>
-              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap">Jilid / Kelas</TableHead>
+              <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap">Jilid</TableHead>
               <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap min-w-[120px]">Status Kehadiran</TableHead>
               <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 text-center whitespace-nowrap min-w-[95px]">Jam Masuk</TableHead>
               <TableHead class="text-[10px] sm:text-xs uppercase text-muted-foreground font-semibold px-2 sm:px-4 min-w-[180px]">Keterangan / Catatan</TableHead>

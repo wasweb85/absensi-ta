@@ -16,17 +16,8 @@
         </p>
       </div>
 
-      <!-- Jadwal Presensi Badges & Filter Jilid Guru -->
+      <!-- Jadwal Presensi Badges -->
       <div class="flex items-center gap-2 text-xs flex-wrap">
-        <label v-if="isGuru && kelasBinaan" class="inline-flex items-center gap-1.5 text-xs cursor-pointer text-muted-foreground select-none mr-1">
-          <input
-            v-model="restrictKelas"
-            type="checkbox"
-            class="rounded border-input text-primary focus:ring-ring size-3.5 cursor-pointer"
-          />
-          <span>Hanya santri {{ kelasBinaan }}</span>
-        </label>
-
         <Badge variant="outline" class="gap-1 font-normal text-xs py-1">
           <span class="text-muted-foreground">Masuk:</span>
           <strong class="font-semibold text-foreground">{{ configData.jam_masuk }}</strong>
@@ -242,7 +233,7 @@
                 <!-- Student Details Grid -->
                 <div v-if="lastResult.data" class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t text-xs">
                   <div>
-                    <span class="text-[10px] text-muted-foreground block">NISN / Kelas</span>
+                    <span class="text-[10px] text-muted-foreground block">NISN / Jilid</span>
                     <span class="font-semibold text-foreground">{{ lastResult.data.nisn }} / {{ lastResult.data.kelas || '-' }}</span>
                   </div>
                   <div>
@@ -391,7 +382,6 @@ const cameraLoading = ref(false);
 const cameraError = ref('');
 const cameras = ref([]);
 const selectedCameraMode = ref('environment'); // 'environment' (belakang) | 'user' (depan) | specific deviceId
-const restrictKelas = ref(false);
 
 const isScanSuccessFlash = ref(false);
 const isScanErrorFlash = ref(false);
@@ -478,7 +468,7 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
       nisn: nisnToScan,
       scanner_role: role.value || 'guru',
       scanner_kelas: user.value?.nama_kelas || null,
-      restrict_kelas: restrictKelas.value,
+      restrict_kelas: false,
       metode_scan: metode,
     });
 

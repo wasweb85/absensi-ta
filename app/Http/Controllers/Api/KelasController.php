@@ -63,7 +63,7 @@ class KelasController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Kelas berhasil ditambahkan',
+            'message' => 'Jilid berhasil ditambahkan',
             'data' => $kelas->load('guru'),
         ], 201);
     }
@@ -113,7 +113,7 @@ class KelasController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Kelas berhasil diperbarui',
+            'message' => 'Jilid berhasil diperbarui',
             'data' => $kelas->fresh()->load('guru'),
         ]);
     }
@@ -125,7 +125,7 @@ class KelasController extends Controller
         if ($kelas->siswa()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kelas tidak dapat dihapus karena masih memiliki santri aktif.',
+                'message' => 'Jilid tidak dapat dihapus karena masih memiliki santri aktif.',
             ], 422);
         }
 
@@ -138,7 +138,7 @@ class KelasController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Kelas berhasil dihapus',
+            'message' => 'Jilid berhasil dihapus',
         ]);
     }
 }

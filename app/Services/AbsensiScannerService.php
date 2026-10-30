@@ -68,7 +68,7 @@ class AbsensiScannerService
             if ($siswa->kelas && strtoupper(trim($siswa->kelas->nama_kelas)) !== strtoupper(trim($scannerKelas))) {
                 return [
                     'success' => false,
-                    'message' => "Siswa terdaftar di {$siswa->kelas->nama_kelas}, bukan di kelas Anda ({$scannerKelas}).",
+                    'message' => "Santri terdaftar di {$siswa->kelas->nama_kelas}, bukan di jilid Anda ({$scannerKelas}).",
                 ];
             }
         }

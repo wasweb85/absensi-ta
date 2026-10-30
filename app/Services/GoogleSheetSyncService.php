@@ -430,7 +430,7 @@ class GoogleSheetSyncService
                         'row' => $rowNum,
                         'nisn' => $nisn,
                         'nama' => $nama,
-                        'reason' => "Kelas '{$rawKelas}' belum terdaftar di sistem.",
+                        'reason' => "Jilid '{$rawKelas}' belum terdaftar di sistem.",
                     ];
 
                     continue;
