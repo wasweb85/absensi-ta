@@ -12,12 +12,21 @@
           </Badge>
         </div>
         <p class="text-xs text-muted-foreground mt-0.5">
-          Pindai kartu santri secara otomatis atau input nomor NISN secara manual.
+          Pindai kartu santri secara otomatis menggunakan kamera perangkat atau webcam.
         </p>
       </div>
 
-      <!-- Jadwal Presensi Badges -->
-      <div class="flex items-center gap-2 text-xs">
+      <!-- Jadwal Presensi Badges & Filter Jilid Guru -->
+      <div class="flex items-center gap-2 text-xs flex-wrap">
+        <label v-if="isGuru && kelasBinaan" class="inline-flex items-center gap-1.5 text-xs cursor-pointer text-muted-foreground select-none mr-1">
+          <input
+            v-model="restrictKelas"
+            type="checkbox"
+            class="rounded border-input text-primary focus:ring-ring size-3.5 cursor-pointer"
+          />
+          <span>Hanya santri {{ kelasBinaan }}</span>
+        </label>
+
         <Badge variant="outline" class="gap-1 font-normal text-xs py-1">
           <span class="text-muted-foreground">Masuk:</span>
           <strong class="font-semibold text-foreground">{{ configData.jam_masuk }}</strong>
@@ -38,72 +47,63 @@
         
         <!-- Camera Scanner Card -->
         <Card class="overflow-hidden">
-          <CardHeader class="pb-3">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                  <Camera class="size-4 text-primary" />
-                  <span>Kamera Pemindai</span>
-                </CardTitle>
-                <CardDescription class="text-xs mt-0.5">
-                  Dekatkan kartu santri hingga kode QR berada di dalam area pemindaian.
-                </CardDescription>
-              </div>
-
-              <div class="flex items-center gap-2 flex-wrap">
-                <!-- Dropdown Pilihan Kamera (Belakang / Depan / Perangkat Terdeteksi) -->
-                <div v-if="cameraActive" class="relative">
-                  <select
-                    v-model="selectedCameraMode"
-                    class="h-8 rounded-lg border border-input bg-background pl-2.5 pr-7 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shadow-2xs appearance-none"
-                    title="Pilih Kamera Depan atau Belakang"
-                    :disabled="cameraLoading"
-                    @change="onCameraModeChange"
-                  >
-                    <option value="environment">📷 Kamera Belakang (Utama)</option>
-                    <option value="user">🤳 Kamera Depan (Selfie)</option>
-                    <optgroup v-if="cameras.length > 1" label="Daftar Perangkat Terdeteksi">
-                      <option v-for="cam in cameras" :key="cam.id" :value="cam.id">
-                        {{ cam.label || 'Kamera ' + cam.id.slice(0, 5) }}
-                      </option>
-                    </optgroup>
-                  </select>
-                  <ChevronDown class="size-3.5 opacity-50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                <!-- Tombol Balik Kamera (Flip Depan / Belakang) -->
-                <Button
-                  v-if="cameraActive"
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  class="h-8 gap-1.5 px-2.5 text-xs shadow-2xs"
-                  :disabled="cameraLoading"
-                  title="Balik Kamera (Depan / Belakang)"
-                  @click="flipCamera"
-                >
-                  <SwitchCamera class="size-3.5" />
-                  <span class="hidden sm:inline">Balik Kamera</span>
-                </Button>
-
-                <!-- Toggle Camera Button -->
-                <Button
-                  size="sm"
-                  :variant="cameraActive ? 'destructive' : 'default'"
-                  class="h-8 gap-1.5 text-xs shadow-2xs"
-                  :disabled="cameraLoading"
-                  @click="toggleCamera"
-                >
-                  <LoaderCircle v-if="cameraLoading" class="size-3.5 animate-spin" />
-                  <VideoOff v-else-if="cameraActive" class="size-3.5" />
-                  <Camera v-else class="size-3.5" />
-                  <span>{{ cameraActive ? 'Matikan Kamera' : 'Nyalakan Kamera' }}</span>
-                </Button>
-              </div>
+          <!-- Compact Single-Row Toolbar (Sejajar & Bersih) -->
+          <div class="px-3 py-2 border-b bg-muted/20 flex items-center justify-between gap-2">
+            <!-- Pilihan Kamera (Depan / Belakang) -->
+            <div class="relative flex-1 min-w-0 max-w-[240px] sm:max-w-xs">
+              <select
+                v-model="selectedCameraMode"
+                class="w-full h-8 rounded-lg border border-input bg-background pl-2.5 pr-7 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shadow-2xs appearance-none truncate"
+                title="Pilih Kamera Depan atau Belakang"
+                :disabled="cameraLoading"
+                @change="onCameraModeChange"
+              >
+                <option value="environment">📷 Kamera Belakang (Utama)</option>
+                <option value="user">🤳 Kamera Depan (Selfie)</option>
+                <optgroup v-if="cameras.length > 1" label="Daftar Perangkat Terdeteksi">
+                  <option v-for="cam in cameras" :key="cam.id" :value="cam.id">
+                    {{ cam.label || 'Kamera ' + cam.id.slice(0, 5) }}
+                  </option>
+                </optgroup>
+              </select>
+              <ChevronDown class="size-3.5 opacity-50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-          </CardHeader>
 
-          <CardContent class="pt-0">
+            <!-- Tombol Aksi Kamera (Sejajar dengan Pilihan Kamera, Cukup Icon Saja) -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Tombol Balik Kamera (Icon Saja) -->
+              <Button
+                v-if="cameraActive"
+                type="button"
+                variant="outline"
+                size="sm"
+                class="size-8 p-0 shrink-0 shadow-2xs"
+                :disabled="cameraLoading"
+                title="Balik Kamera (Depan / Belakang)"
+                @click="flipCamera"
+              >
+                <SwitchCamera class="size-4" />
+                <span class="sr-only">Balik Kamera</span>
+              </Button>
+
+              <!-- Tombol Matikan / Nyalakan Kamera (Icon Saja) -->
+              <Button
+                size="sm"
+                :variant="cameraActive ? 'destructive' : 'default'"
+                class="size-8 p-0 shrink-0 shadow-2xs"
+                :disabled="cameraLoading"
+                :title="cameraActive ? 'Matikan Kamera' : 'Nyalakan Kamera'"
+                @click="toggleCamera"
+              >
+                <LoaderCircle v-if="cameraLoading" class="size-4 animate-spin" />
+                <VideoOff v-else-if="cameraActive" class="size-4 text-destructive-foreground" />
+                <Camera v-else class="size-4" />
+                <span class="sr-only">{{ cameraActive ? 'Matikan Kamera' : 'Nyalakan Kamera' }}</span>
+              </Button>
+            </div>
+          </div>
+
+          <CardContent class="p-3">
             <!-- Video Reader Container with Overlay -->
             <div
               class="relative bg-zinc-950 rounded-xl overflow-hidden min-h-[320px] flex items-center justify-center border transition-all duration-300"
@@ -187,56 +187,6 @@
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <!-- Input NISN Cadangan -->
-        <Card>
-          <CardHeader class="pb-3">
-            <div class="flex items-center justify-between">
-              <Label for="manualNisn" class="text-xs font-semibold text-foreground">
-                Input NISN Manual (Cadangan)
-              </Label>
-              
-              <!-- Filter Jilid Toggle jika user adalah Guru -->
-              <label v-if="isGuru && kelasBinaan" class="inline-flex items-center gap-1.5 text-xs cursor-pointer text-muted-foreground select-none">
-                <input
-                  v-model="restrictKelas"
-                  type="checkbox"
-                  class="rounded border-input text-primary focus:ring-ring size-3.5 cursor-pointer"
-                />
-                <span>Hanya santri {{ kelasBinaan }}</span>
-              </label>
-            </div>
-            <CardDescription class="text-xs">
-              Gunakan opsi ini jika kartu santri belum tercetak atau scanner kamera sedang bermasalah.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form class="flex gap-2" @submit.prevent="handleManualSubmit">
-              <div class="relative flex-1">
-                <Input
-                  id="manualNisn"
-                  ref="barcodeInputRef"
-                  v-model="manualNisn"
-                  type="text"
-                  autocomplete="off"
-                  placeholder="Ketik nomor NISN santri lalu tekan Catat..."
-                  class="h-10 font-mono text-xs"
-                  :disabled="isProcessing"
-                />
-              </div>
-              <Button
-                type="submit"
-                class="h-10 px-5 text-xs gap-1.5"
-                :disabled="!manualNisn.trim() || isProcessing"
-              >
-                <LoaderCircle v-if="isProcessing" class="size-3.5 animate-spin" />
-                <ScanLine v-else class="size-3.5" />
-                <span>Catat Masuk</span>
-              </Button>
-            </form>
           </CardContent>
         </Card>
 
@@ -428,8 +378,6 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import api from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
@@ -437,8 +385,6 @@ import { useToast } from '@/composables/useToast';
 const { role, user, isGuru, kelasBinaan } = useAuth();
 const toast = useToast();
 
-const manualNisn = ref('');
-const barcodeInputRef = ref(null);
 const isProcessing = ref(false);
 const cameraActive = ref(false);
 const cameraLoading = ref(false);
@@ -572,10 +518,6 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
     toast.error(msg);
   } finally {
     isProcessing.value = false;
-    manualNisn.value = '';
-    nextTick(() => {
-      barcodeInputRef.value?.focus();
-    });
   }
 };
 
@@ -591,13 +533,6 @@ const handleCameraScan = (decodedText) => {
   }
 
   executeScan(code, 'qr_kamera');
-};
-
-const handleManualSubmit = () => {
-  const code = manualNisn.value.trim();
-  if (code) {
-    executeScan(code, 'manual');
-  }
 };
 
 const cleanHtml5QrCode = async () => {
@@ -813,9 +748,6 @@ const loadConfig = async () => {
 onMounted(() => {
   loadConfig();
   startCamera();
-  nextTick(() => {
-    barcodeInputRef.value?.focus();
-  });
 });
 
 onUnmounted(() => {
