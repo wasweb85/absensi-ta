@@ -412,6 +412,91 @@
         </CardContent>
       </Card>
 
+      <!-- Card 6: Integrasi Google Spreadsheet (Sheet Absensi Realtime) -->
+      <Card class="flex flex-col justify-between">
+        <CardHeader class="pb-3 border-b">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <FileSpreadsheet class="size-4 text-emerald-600 dark:text-emerald-400" />
+              <CardTitle class="text-sm font-semibold">6. Google Spreadsheet (Sheet Absensi)</CardTitle>
+            </div>
+            <Badge
+              :variant="settings.spreadsheet_absensi_webhook_url ? 'default' : 'secondary'"
+              class="text-[10px] font-semibold"
+            >
+              {{ settings.spreadsheet_absensi_webhook_url ? 'Webhook Terisi' : 'Belum Diisi' }}
+            </Badge>
+          </div>
+          <CardDescription class="text-xs">
+            Sinkronkan otomatis data kehadiran dari web/scanner ke Google Spreadsheet sheet 'absensi' secara realtime.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent class="space-y-4 pt-4">
+          <div class="space-y-1.5">
+            <Label for="sheetWebhookUrl" class="text-xs font-medium">URL Web App Google Apps Script</Label>
+            <Input
+              id="sheetWebhookUrl"
+              v-model="settings.spreadsheet_absensi_webhook_url"
+              type="text"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              class="h-9 font-mono text-xs"
+            />
+            <p class="text-[10px] text-muted-foreground leading-relaxed">
+              Database utama <strong>tetap di MySQL (TiDB Cloud)</strong>. Setiap santri scan, data otomatis ditambahkan ke sheet <code>absensi</code> di Google Spreadsheet Anda.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="h-8 gap-1.5 text-xs"
+              :disabled="!settings.spreadsheet_absensi_webhook_url || isTestingSpreadsheet"
+              @click="testSpreadsheetWebhook"
+            >
+              <LoaderCircle v-if="isTestingSpreadsheet" class="size-3.5 animate-spin" />
+              <Radio v-else class="size-3.5 text-emerald-600" />
+              <span>Uji Kirim Baris ke Spreadsheet</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              @click="showScriptTemplate = !showScriptTemplate"
+            >
+              <Code class="size-3.5" />
+              <span>{{ showScriptTemplate ? 'Tutup Panduan Kode' : 'Lihat Kode Apps Script' }}</span>
+            </Button>
+          </div>
+
+          <!-- Template Kode Apps Script -->
+          <div v-if="showScriptTemplate" class="mt-3 rounded-lg border bg-muted/40 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-foreground">Kode untuk Code.gs di Google Spreadsheet:</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="h-6 px-2 text-[10px] gap-1"
+                @click="copyAppsScriptCode"
+              >
+                <Check v-if="isScriptCopied" class="size-3 text-emerald-600" />
+                <Copy v-else class="size-3" />
+                <span>{{ isScriptCopied ? 'Tersalin!' : 'Salin Kode' }}</span>
+              </Button>
+            </div>
+            <pre class="text-[10px] font-mono p-2 rounded bg-background border overflow-x-auto max-h-40 leading-relaxed text-muted-foreground select-all">{{ appsScriptCodeTemplate }}</pre>
+            <p class="text-[10px] text-muted-foreground">
+              Buka Google Sheet Anda &gt; Menu <strong>Ekstensi (Extensions)</strong> &gt; <strong>Apps Script</strong> &gt; Tempel kode di atas &gt; Klik <strong>Deploy</strong> sebagai <strong>Web App</strong> (Akses: <em>Anyone / Siapa saja</em>).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   </div>
 </template>
@@ -422,7 +507,10 @@ import {
   Check,
   Building2,
   Clock,
+  Code,
+  Copy,
   Download,
+  FileSpreadsheet,
   MessageSquare,
   Send,
   Radio,
@@ -449,6 +537,9 @@ const { isInstallable, isInstalled, installApp } = usePwa();
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isTestingWa = ref(false);
+const isTestingSpreadsheet = ref(false);
+const showScriptTemplate = ref(false);
+const isScriptCopied = ref(false);
 const logoFileInputRef = ref(null);
 
 const settings = ref({
@@ -464,6 +555,7 @@ const settings = ref({
   fonnte_token: "",
   wa_notif_presensi: "1",
   wa_notif_delay: "3-5",
+  spreadsheet_absensi_webhook_url: "",
   telegram_bot_token: "",
   telegram_chat_id: "",
 });
@@ -604,6 +696,85 @@ async function testWaGateway() {
     toast.error(msg);
   } finally {
     isTestingWa.value = false;
+  }
+}
+
+const appsScriptCodeTemplate = `/**
+ * Tempelkan fungsi ini ke file Code.gs di Google Apps Script Spreadsheet Anda.
+ * Kemudian Deploy sebagai Web App (Akses: Siapa saja / Anyone).
+ */
+function doPost(e) {
+  try {
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else if (e && e.parameter) {
+      data = e.parameter;
+    }
+
+    if (data.action === 'syncAbsensi') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheet = ss.getSheetByName('absensi');
+      if (!sheet) {
+        sheet = ss.insertSheet('absensi');
+        sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
+      }
+
+      sheet.appendRow([
+        data.tanggal,
+        "'" + String(data.nisn).replace(/^'/, ''),
+        data.nama,
+        data.kelas,
+        data.jam_datang || '-',
+        data.jam_pulang || '-',
+        data.keterangan_waktu || '-',
+        data.status
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'Baris kehadiran berhasil ditambahkan' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Action tidak dikenali' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+async function testSpreadsheetWebhook() {
+  if (!settings.value.spreadsheet_absensi_webhook_url) {
+    toast.warning('Silakan masukkan URL Web App Google Apps Script terlebih dahulu.');
+    return;
+  }
+
+  isTestingSpreadsheet.value = true;
+  try {
+    const res = await api.post('/pengaturan/test-spreadsheet', {
+      webhook_url: settings.value.spreadsheet_absensi_webhook_url,
+    });
+    if (res.data.success) {
+      toast.success(res.data.message || 'Berhasil terhubung ke Google Spreadsheet!');
+    } else {
+      toast.error(res.data.message || 'Gagal mengirim ke Google Spreadsheet.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Gagal menghubungi Google Apps Script.';
+    toast.error(msg);
+  } finally {
+    isTestingSpreadsheet.value = false;
+  }
+}
+
+function copyAppsScriptCode() {
+  if (navigator?.clipboard) {
+    navigator.clipboard.writeText(appsScriptCodeTemplate);
+    isScriptCopied.value = true;
+    toast.success('Kode Google Apps Script berhasil disalin!');
+    setTimeout(() => {
+      isScriptCopied.value = false;
+    }, 3000);
   }
 }
 

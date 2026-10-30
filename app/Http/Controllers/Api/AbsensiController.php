@@ -111,6 +111,20 @@ class AbsensiController extends Controller
             ]
         );
 
+        // Sinkronkan perubahan status manual ke Google Spreadsheet
+        $siswa = Siswa::with('kelas')->find($validated['id_siswa']);
+        if ($siswa) {
+            $currentTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
+            $this->scannerService->syncToGoogleSheet(
+                $siswa,
+                $validated['status'],
+                $absensi->waktu_masuk ?: $currentTime,
+                $validated['tanggal'],
+                $absensi->waktu_pulang ?: '-',
+                ($validated['keterangan'] ?? null) ?: ($validated['status'] === 'Hadir' ? 'Tepat Waktu' : '-')
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Status absensi berhasil diperbarui',
@@ -174,6 +188,37 @@ class AbsensiController extends Controller
             'jam_terlambat' => Pengaturan::getValue('jam_terlambat', '07:15'),
             'jam_pulang' => Pengaturan::getValue('jam_pulang', '12:00'),
             'nama_instansi' => Pengaturan::getValue('nama_instansi', 'Sekolah / Lembaga'),
+        ]);
+    }
+
+    /**
+     * Endpoint API penyedia data kehadiran harian untuk ditarik oleh Google Apps Script
+     */
+    public function sheetData(Request $request): JsonResponse
+    {
+        $tanggal = $request->input('tanggal', Carbon::now('Asia/Jakarta')->format('Y-m-d'));
+        $absensi = Absensi::with(['siswa.kelas'])
+            ->where('tanggal', $tanggal)
+            ->get();
+
+        $rows = $absensi->map(function ($a) {
+            return [
+                'tanggal' => Carbon::parse($a->tanggal)->format('m/d/Y'),
+                'nisn' => (string) ($a->siswa?->nisn ?? ''),
+                'nama' => (string) ($a->siswa?->nama_lengkap ?? ''),
+                'kelas' => (string) ($a->siswa?->kelas?->nama_kelas ?? '-'),
+                'jam_datang' => $a->waktu_masuk ? substr((string) $a->waktu_masuk, 0, 8) : '-',
+                'jam_pulang' => $a->waktu_pulang ? substr((string) $a->waktu_pulang, 0, 8) : '-',
+                'keterangan_waktu' => $a->keterangan ?: ($a->status === 'Terlambat' ? 'Terlambat' : ($a->status === 'Hadir' ? 'Tepat Waktu' : '-')),
+                'status' => $a->status,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'tanggal' => $tanggal,
+            'total' => $rows->count(),
+            'data' => $rows,
         ]);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Pengaturan;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AbsensiScannerService
@@ -105,6 +106,9 @@ class AbsensiScannerService
 
             // Kirim notifikasi WhatsApp otomatis ke orang tua dengan perlindungan anti-spam
             $waResult = $this->sendPresensiNotification($siswa, $status, $currentTimeShort, $todayDate);
+
+            // Sinkronkan ke Google Spreadsheet sheet 'absensi' jika webhook dikonfigurasi
+            $this->syncToGoogleSheet($siswa, $status, $currentTime, $todayDate);
 
             $waNoteSuffix = '';
             if (! empty($waResult['note'])) {
@@ -260,6 +264,58 @@ class AbsensiScannerService
                 'note' => null,
                 'target' => $noHpOrtu,
             ];
+        }
+    }
+
+    /**
+     * Mengirim baris data absensi ke Google Spreadsheet via Apps Script Web App
+     */
+    public function syncToGoogleSheet(
+        Siswa $siswa,
+        string $status,
+        string $currentTime,
+        string $todayDate,
+        ?string $jamPulang = '-',
+        ?string $keteranganWaktu = null
+    ): void {
+        $webhookUrl = Pengaturan::getValue('spreadsheet_absensi_webhook_url');
+        if (empty($webhookUrl)) {
+            return;
+        }
+
+        try {
+            $jamTerlambat = Pengaturan::getValue('jam_terlambat', '07:15');
+            $currentTimeShort = substr($currentTime, 0, 5);
+
+            if (! $keteranganWaktu) {
+                if ($status === 'Hadir') {
+                    $keteranganWaktu = ($currentTimeShort <= $jamTerlambat) ? 'Tepat Waktu' : 'Terlambat';
+                } elseif ($status === 'Terlambat') {
+                    $keteranganWaktu = 'Terlambat';
+                } else {
+                    $keteranganWaktu = '-';
+                }
+            }
+
+            // Format tanggal persis m/d/Y seperti pada Apps Script user (misal 10/28/2026)
+            $formattedDate = Carbon::parse($todayDate)->format('m/d/Y');
+
+            $payload = [
+                'action' => 'syncAbsensi',
+                'tanggal' => $formattedDate,
+                'nisn' => (string) $siswa->nisn,
+                'nama' => (string) $siswa->nama_lengkap,
+                'kelas' => (string) ($siswa->kelas?->nama_kelas ?: '-'),
+                'jam_datang' => in_array($status, ['Hadir', 'Terlambat'], true) ? $currentTime : '-',
+                'jam_pulang' => $jamPulang ?: '-',
+                'keterangan_waktu' => $keteranganWaktu,
+                'status' => $status,
+            ];
+
+            // Kirim secara non-blocking dengan timeout singkat (3 detik) agar scan tetap super cepat
+            Http::timeout(3)->post($webhookUrl, $payload);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal sinkronisasi data presensi ke Google Sheet: '.$e->getMessage());
         }
     }
 

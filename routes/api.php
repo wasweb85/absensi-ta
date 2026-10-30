@@ -25,6 +25,7 @@ Route::prefix('absensi')->group(function () {
     Route::get('/config', [AbsensiController::class, 'config']);
     Route::post('/scan', [AbsensiController::class, 'scan'])->middleware('throttle:120,1');
     Route::get('/monitoring', [AbsensiController::class, 'monitoring']);
+    Route::get('/sheet-data', [AbsensiController::class, 'sheetData']);
 });
 
 // ==========================================
@@ -111,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('pengaturan')->group(function () {
             Route::get('/', [SettingController::class, 'getSettings']);
             Route::post('/', [SettingController::class, 'updateSettings']);
+            Route::post('/test-spreadsheet', [SettingController::class, 'testSpreadsheetWebhook']);
         });
     });
 
