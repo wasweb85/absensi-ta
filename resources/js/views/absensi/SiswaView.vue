@@ -2,18 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Data Santri
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            {{ siswaList.length }} Santri
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Manajemen data induk santri, wali santri, dan pencetakan kartu presensi QR Code.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Data Santri
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          {{ siswaList.length }} Santri
+        </Badge>
       </div>
 
       <!-- Action Buttons -->
@@ -38,65 +33,35 @@
       </div>
     </div>
 
-    <!-- Filters Card -->
-    <Card>
-      <CardContent class="p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <!-- Class Filter -->
-          <div class="space-y-1.5">
-            <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
-              Filter Jilid
-            </Label>
-            <select
-              id="filterKelas"
-              v-model="filterKelas"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadSiswa"
-            >
-              <option value="">Semua Jilid</option>
-              <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-            </select>
-          </div>
+    <!-- Toolbar Pencarian & Filter Status (Clean, Simple, Professional) -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div class="relative flex-1 max-w-md">
+        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          id="searchSantri"
+          v-model="search"
+          type="text"
+          placeholder="Cari nama santri, NISN, jilid, atau no HP..."
+          class="h-9 pl-9 text-xs bg-card"
+          @input="onSearchInput"
+        />
+      </div>
 
-          <!-- Status Filter -->
-          <div class="space-y-1.5">
-            <Label for="filterStatus" class="text-xs font-medium text-muted-foreground">
-              Status Keaktifan
-            </Label>
-            <select
-              id="filterStatus"
-              v-model="filterStatus"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadSiswa"
-            >
-              <option value="">Semua Status</option>
-              <option value="aktif">Aktif</option>
-              <option value="nonaktif">Nonaktif</option>
-              <option value="lulus">Lulus</option>
-              <option value="pindah">Pindah</option>
-            </select>
-          </div>
-
-          <!-- Search Filter -->
-          <div class="space-y-1.5">
-            <Label for="searchSantri" class="text-xs font-medium text-muted-foreground">
-              Cari Nama / NISN
-            </Label>
-            <div class="relative">
-              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="searchSantri"
-                v-model="search"
-                type="text"
-                placeholder="Ketik nama atau NISN..."
-                class="h-9 pl-9 text-xs"
-                @input="onSearchInput"
-              />
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div class="flex items-center gap-2">
+        <select
+          id="filterStatus"
+          v-model="filterStatus"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          @change="loadSiswa"
+        >
+          <option value="">Semua Status</option>
+          <option value="aktif">Status: Aktif</option>
+          <option value="nonaktif">Status: Nonaktif</option>
+          <option value="lulus">Status: Lulus</option>
+          <option value="pindah">Status: Pindah</option>
+        </select>
+      </div>
+    </div>
 
     <!-- Data Table Card -->
     <Card class="overflow-hidden">

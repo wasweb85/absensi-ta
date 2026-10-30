@@ -2,18 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Pengaturan
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            Konfigurasi
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Atur identitas lembaga, jam operasional presensi, dan koneksi WhatsApp Gateway Fonnte.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Pengaturan
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          Konfigurasi
+        </Badge>
       </div>
 
       <!-- Action Button -->

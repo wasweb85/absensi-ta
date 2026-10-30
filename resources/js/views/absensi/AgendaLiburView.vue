@@ -2,23 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Agenda &amp; Libur
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            Kalender Akademik
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          <template v-if="canManageAgenda">
-            Klik langsung pada tanggal di kalender untuk menambahkan agenda kegiatan atau hari libur baru.
-          </template>
-          <template v-else>
-            Jadwal agenda kegiatan santri dan kalender hari libur resmi lembaga pendidikan. Klik tanggal untuk melihat rincian.
-          </template>
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Agenda &amp; Libur
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          Kalender Akademik
+        </Badge>
       </div>
 
       <!-- Tombol Tambah Manual (Hanya Admin) -->

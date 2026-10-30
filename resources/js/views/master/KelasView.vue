@@ -2,18 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Data Jilid
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            {{ kelasList.length }} Jilid
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Pengaturan tingkatan jilid santri, urutan jilid, dan wali jilid masing-masing.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Data Jilid
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          {{ kelasList.length }} Jilid
+        </Badge>
       </div>
 
       <!-- Action Button -->

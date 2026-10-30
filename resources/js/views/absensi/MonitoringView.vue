@@ -2,92 +2,39 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Monitoring
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1.5">
-            <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Live Monitoring</span>
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Pantau status presensi santri per jilid, ubah kehadiran manual, dan tambahkan catatan izin/sakit.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Monitoring
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1.5">
+          <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Live Monitoring</span>
+        </Badge>
       </div>
     </div>
 
-    <!-- Filter Card -->
-    <Card>
-      <CardContent class="p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-          <!-- Date Filter -->
-          <div class="lg:col-span-3 space-y-1.5">
-            <Label for="filterDate" class="text-xs font-medium text-muted-foreground">
-              Tanggal Absensi
-            </Label>
-            <Input
-              id="filterDate"
-              v-model="filterDate"
-              type="date"
-              class="h-9 text-xs"
-              @change="loadMonitoring"
-            />
-          </div>
+    <!-- Toolbar Pencarian & Aksi Scanner (Clean, Simple, Professional) -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div class="relative flex-1 max-w-md">
+        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          id="searchSantri"
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari nama santri atau NISN..."
+          class="h-9 pl-9 text-xs bg-card"
+        />
+      </div>
 
-          <!-- Class Dropdown -->
-          <div class="lg:col-span-3 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <Label for="filterKelas" class="text-xs font-medium text-muted-foreground">
-                Filter Jilid
-              </Label>
-              <span v-if="user?.nama_kelas && selectedKelas == user?.id_kelas" class="text-[10px] text-primary font-medium truncate">
-                ({{ user.nama_kelas }})
-              </span>
-            </div>
-            <select
-              id="filterKelas"
-              v-model="selectedKelas"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadMonitoring"
-            >
-              <option value="">Semua Jilid</option>
-              <option v-for="k in kelasList" :key="k.id" :value="k.id">
-                {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
-              </option>
-            </select>
-          </div>
-
-          <!-- Search Box -->
-          <div :class="canScanQr ? 'lg:col-span-4' : 'lg:col-span-6'" class="space-y-1.5">
-            <Label for="searchSantri" class="text-xs font-medium text-muted-foreground">
-              Cari Santri
-            </Label>
-            <div class="relative">
-              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="searchSantri"
-                v-model="searchQuery"
-                type="text"
-                placeholder="Ketik nama atau NISN..."
-                class="h-9 pl-9 text-xs"
-              />
-            </div>
-          </div>
-
-          <!-- Buka Scanner Button -->
-          <div v-if="canScanQr" class="lg:col-span-2">
-            <Button as-child class="h-9 w-full gap-1.5 text-xs">
-              <router-link to="/absensi/scanner">
-                <ScanLine class="size-3.5" />
-                <span>Buka Scanner</span>
-              </router-link>
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div v-if="canScanQr" class="flex items-center gap-2 shrink-0">
+        <Button as-child size="sm" class="h-9 gap-1.5 text-xs">
+          <router-link to="/absensi/scanner">
+            <ScanLine class="size-3.5" />
+            <span>Buka Scanner</span>
+          </router-link>
+        </Button>
+      </div>
+    </div>
 
     <!-- Live Data Table -->
     <Card class="overflow-hidden">
@@ -379,7 +326,7 @@ const filteredStudents = computed(() => {
   return students.value.filter(s => {
     if (!searchQuery.value) return true;
     const q = searchQuery.value.toLowerCase();
-    return s.nama_lengkap.toLowerCase().includes(q) || s.nisn.toLowerCase().includes(q);
+    return s.nama_lengkap.toLowerCase().includes(q) || s.nisn.toLowerCase().includes(q) || (s.nama_kelas && s.nama_kelas.toLowerCase().includes(q));
   });
 });
 

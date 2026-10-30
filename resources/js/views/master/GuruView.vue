@@ -2,18 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Data Guru
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            {{ usersList.length }} Akun
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Kelola peran pengguna, hak akses modul, dan penetapan wali jilid santri.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Data Guru
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          {{ usersList.length }} Akun
+        </Badge>
       </div>
 
       <!-- Action Button (Khusus Admin) -->
@@ -76,44 +71,36 @@
       </Card>
     </div>
 
-    <!-- Filters Card -->
-    <Card>
-      <CardContent class="p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-          <div class="sm:col-span-8 space-y-1.5">
-            <Label for="searchUser" class="text-xs font-medium text-muted-foreground">Cari Nama / Username</Label>
-            <div class="relative">
-              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="searchUser"
-                v-model="searchQuery"
-                type="text"
-                placeholder="Ketik nama atau username..."
-                class="h-9 pl-9 text-xs"
-                @input="onSearchInput"
-              />
-            </div>
-          </div>
+    <!-- Toolbar Pencarian & Filter Jabatan (Clean & Profesional) -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div class="relative flex-1 max-w-md">
+        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          id="searchUser"
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari nama atau username..."
+          class="h-9 pl-9 text-xs bg-card"
+          @input="onSearchInput"
+        />
+      </div>
 
-          <div class="sm:col-span-4 space-y-1.5">
-            <Label for="filterRole" class="text-xs font-medium text-muted-foreground">Filter Jabatan / Role</Label>
-            <select
-              id="filterRole"
-              v-model="filterRole"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadUsers"
-            >
-              <option value="">Semua Jabatan</option>
-              <option value="kepala">Kepala TPQ</option>
-              <option value="sekretaris">Sekretaris</option>
-              <option value="bendahara">Bendahara</option>
-              <option value="guru">Pengajar / Guru</option>
-              <option value="admin">Administrator</option>
-            </select>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div class="flex items-center gap-2">
+        <select
+          id="filterRole"
+          v-model="filterRole"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          @change="loadUsers"
+        >
+          <option value="">Semua Jabatan</option>
+          <option value="kepala">Jabatan: Kepala TPQ</option>
+          <option value="sekretaris">Jabatan: Sekretaris</option>
+          <option value="bendahara">Jabatan: Bendahara</option>
+          <option value="guru">Jabatan: Pengajar / Guru</option>
+          <option value="admin">Jabatan: Administrator</option>
+        </select>
+      </div>
+    </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="p-12 text-center text-muted-foreground">

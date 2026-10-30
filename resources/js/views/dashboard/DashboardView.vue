@@ -2,16 +2,11 @@
   <div class="space-y-6">
     <!-- Header Dashboard -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">Dashboard</h2>
-          <Badge variant="outline" class="font-normal text-muted-foreground text-xs">
-            {{ currentDateFormatted }}
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Monitoring aktivitas presensi santri, data ustadz/ustadzah per jilid, dan layanan notifikasi secara realtime.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">Dashboard</h2>
+        <Badge variant="outline" class="font-normal text-muted-foreground text-xs">
+          {{ currentDateFormatted }}
+        </Badge>
       </div>
     </div>
 

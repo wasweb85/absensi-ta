@@ -2,19 +2,14 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Chatbot
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1">
-            <Bot class="size-3 text-emerald-500" />
-            <span>AI Auto-Reply</span>
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Monitoring percakapan bot otomatis, uji coba pertanyaan di simulator, dan pengaturan webhook Fonnte.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Chatbot
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1">
+          <Bot class="size-3 text-emerald-500" />
+          <span>AI Auto-Reply</span>
+        </Badge>
       </div>
 
       <!-- Tab Switcher (Shadcn Tabs) -->

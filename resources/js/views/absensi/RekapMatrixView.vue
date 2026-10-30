@@ -1,19 +1,28 @@
 <template>
   <div class="space-y-6">
     <!-- Header Halaman -->
-    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b print:hidden">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Rekap
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            {{ bulanList[selectedBulan] }} {{ selectedTahun }}
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Matriks presensi santri harian dari tanggal 1 sampai 31 dengan ringkasan persentase kehadiran bulanan.
-        </p>
+    <div class="flex items-center gap-2 pb-2 border-b print:hidden">
+      <h2 class="text-lg font-semibold tracking-tight text-foreground">
+        Rekap
+      </h2>
+      <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+        {{ bulanList[selectedBulan] }} {{ selectedTahun }}
+      </Badge>
+    </div>
+
+    <!-- Toolbar Bulan & Aksi Rekap (Clean, Simple, Professional) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
+      <div class="flex items-center gap-2">
+        <select
+          id="selectBulan"
+          v-model="selectedBulan"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          @change="loadMatrix"
+        >
+          <option v-for="(nama, num) in bulanList" :key="num" :value="num">
+            Bulan: {{ nama }}
+          </option>
+        </select>
       </div>
 
       <!-- Action Buttons (Cetak & Export CSV) -->
@@ -21,7 +30,7 @@
         <Button
           variant="outline"
           size="sm"
-          class="h-8 gap-1.5 text-xs"
+          class="h-9 gap-1.5 text-xs"
           @click="printMatrix"
         >
           <Printer class="size-3.5" />
@@ -29,7 +38,7 @@
         </Button>
         <Button
           size="sm"
-          class="h-8 gap-1.5 text-xs"
+          class="h-9 gap-1.5 text-xs"
           @click="exportCsv"
         >
           <Download class="size-3.5" />
@@ -37,57 +46,6 @@
         </Button>
       </div>
     </div>
-
-    <!-- Filter Card -->
-    <Card class="print:hidden">
-      <CardContent class="p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-end gap-3 flex-1">
-          <!-- Bulan Selector -->
-          <div class="w-full md:w-44 space-y-1.5">
-            <Label for="selectBulan" class="text-xs font-medium text-muted-foreground">Bulan</Label>
-            <select
-              id="selectBulan"
-              v-model="selectedBulan"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadMatrix"
-            >
-              <option v-for="(nama, num) in bulanList" :key="num" :value="num">
-                {{ nama }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Tahun Selector -->
-          <div class="w-full md:w-32 space-y-1.5">
-            <Label for="selectTahun" class="text-xs font-medium text-muted-foreground">Tahun</Label>
-            <select
-              id="selectTahun"
-              v-model="selectedTahun"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadMatrix"
-            >
-              <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-            </select>
-          </div>
-
-          <!-- Filter Jilid (Hanya untuk Admin & Sekretaris) -->
-          <div v-if="canFilterAllKelas" class="w-full md:w-60 space-y-1.5">
-            <Label for="selectKelas" class="text-xs font-medium text-muted-foreground">Filter Jilid</Label>
-            <select
-              id="selectKelas"
-              v-model="selectedKelas"
-              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              @change="loadMatrix"
-            >
-              <option value="">Semua Jilid</option>
-              <option v-for="k in kelasList" :key="k.id" :value="k.id">
-                {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
-              </option>
-            </select>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
 
     <!-- KOP RESMI LAPORAN (Hanya tampil saat dicetak) -->
     <div class="hidden print:block mb-3 text-black">

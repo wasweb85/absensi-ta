@@ -2,18 +2,13 @@
   <div class="space-y-6">
     <!-- Header Halaman -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold tracking-tight text-foreground">
-            Scanner
-          </h2>
-          <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-            QR &amp; Barcode
-          </Badge>
-        </div>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Pindai kartu santri secara otomatis menggunakan kamera perangkat atau webcam.
-        </p>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+          Scanner
+        </h2>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+          QR &amp; Barcode
+        </Badge>
       </div>
 
       <!-- Jadwal Presensi Badges -->
