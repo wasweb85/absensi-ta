@@ -51,24 +51,46 @@
               </div>
 
               <div class="flex items-center gap-2 flex-wrap">
-                <!-- Camera Device Selector -->
-                <select
-                  v-if="cameras.length > 1 && cameraActive"
-                  v-model="selectedCameraId"
-                  class="h-8 rounded-lg border border-input bg-transparent px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  title="Pilih Kamera"
-                  @change="switchCamera"
+                <!-- Dropdown Pilihan Kamera (Belakang / Depan / Perangkat Terdeteksi) -->
+                <div v-if="cameraActive" class="relative">
+                  <select
+                    v-model="selectedCameraMode"
+                    class="h-8 rounded-lg border border-input bg-background pl-2.5 pr-7 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shadow-2xs appearance-none"
+                    title="Pilih Kamera Depan atau Belakang"
+                    :disabled="cameraLoading"
+                    @change="onCameraModeChange"
+                  >
+                    <option value="environment">📷 Kamera Belakang (Utama)</option>
+                    <option value="user">🤳 Kamera Depan (Selfie)</option>
+                    <optgroup v-if="cameras.length > 1" label="Daftar Perangkat Terdeteksi">
+                      <option v-for="cam in cameras" :key="cam.id" :value="cam.id">
+                        {{ cam.label || 'Kamera ' + cam.id.slice(0, 5) }}
+                      </option>
+                    </optgroup>
+                  </select>
+                  <ChevronDown class="size-3.5 opacity-50 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                <!-- Tombol Balik Kamera (Flip Depan / Belakang) -->
+                <Button
+                  v-if="cameraActive"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="h-8 gap-1.5 px-2.5 text-xs shadow-2xs"
+                  :disabled="cameraLoading"
+                  title="Balik Kamera (Depan / Belakang)"
+                  @click="flipCamera"
                 >
-                  <option v-for="cam in cameras" :key="cam.id" :value="cam.id">
-                    {{ cam.label || 'Kamera ' + cam.id.slice(0, 5) }}
-                  </option>
-                </select>
+                  <SwitchCamera class="size-3.5" />
+                  <span class="hidden sm:inline">Balik Kamera</span>
+                </Button>
 
                 <!-- Toggle Camera Button -->
                 <Button
                   size="sm"
                   :variant="cameraActive ? 'destructive' : 'default'"
-                  class="h-8 gap-1.5 text-xs"
+                  class="h-8 gap-1.5 text-xs shadow-2xs"
                   :disabled="cameraLoading"
                   @click="toggleCamera"
                 >
@@ -359,6 +381,8 @@ import {
   X,
   LoaderCircle,
   AlertCircle,
+  ChevronDown,
+  SwitchCamera,
 } from '@lucide/vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -379,7 +403,7 @@ const cameraActive = ref(false);
 const cameraLoading = ref(false);
 const cameraError = ref('');
 const cameras = ref([]);
-const selectedCameraId = ref('');
+const selectedCameraMode = ref('environment'); // 'environment' (belakang) | 'user' (depan) | specific deviceId
 const restrictKelas = ref(false);
 
 const isScanSuccessFlash = ref(false);
@@ -552,49 +576,75 @@ const cleanHtml5QrCode = async () => {
   }
 };
 
-const startCamera = async (forceCameraId = null) => {
+const startCamera = async (forceMode = null) => {
   cameraError.value = '';
   cameraLoading.value = true;
   cameraActive.value = true;
 
+  if (forceMode) {
+    selectedCameraMode.value = forceMode;
+  }
+
   await nextTick();
   await cleanHtml5QrCode();
 
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  const qrConfig = {
-    fps: 20,
-    aspectRatio: isMobile ? 1.0 : 1.333,
-    disableFlip: false,
-    videoConstraints: {
-      width: { ideal: 1280, min: 640 },
-      height: { ideal: 720, min: 480 },
-    },
-  };
-
+  // Ambil daftar kamera jika belum pernah diambil
   try {
     const devices = await Html5Qrcode.getCameras();
-    cameras.value = devices || [];
+    if (devices && devices.length > 0) {
+      cameras.value = devices;
+    }
   } catch (e) {
     console.warn('Gagal deteksi kamera awal:', e);
   }
 
+  const mode = selectedCameraMode.value || 'environment';
   const strategies = [];
-  const targetId = forceCameraId || selectedCameraId.value;
-  if (targetId) {
-    strategies.push({ name: 'selected_id', camera: targetId });
+
+  const isSpecificDevice = mode !== 'environment' && mode !== 'user';
+  if (isSpecificDevice) {
+    strategies.push({ name: 'specific_device', camera: mode });
+  } else if (mode === 'environment') {
+    // 1. Prioritas utama: facingMode 'environment' (kamera belakang)
+    strategies.push({ name: 'facingMode_environment', camera: { facingMode: 'environment' } });
+
+    // 2. Coba cari device yang labelnya menandakan kamera belakang
+    const backCam = cameras.value.find(c => {
+      const l = (c.label || '').toLowerCase();
+      return l.includes('back') || l.includes('rear') || l.includes('environment') || l.includes('belakang') || l.includes('0, facing back');
+    });
+    if (backCam) {
+      strategies.push({ name: 'device_back', camera: backCam.id });
+    }
+
+    // 3. Fallback jika di PC/Laptop yang tidak punya kamera belakang
+    if (cameras.value.length > 0) {
+      strategies.push({ name: 'device_fallback', camera: cameras.value[0].id });
+    }
+    strategies.push({ name: 'facingMode_user_fallback', camera: { facingMode: 'user' } });
+  } else {
+    // mode === 'user' (kamera depan)
+    strategies.push({ name: 'facingMode_user', camera: { facingMode: 'user' } });
+
+    const frontCam = cameras.value.find(c => {
+      const l = (c.label || '').toLowerCase();
+      return l.includes('front') || l.includes('user') || l.includes('depan') || l.includes('facing front');
+    });
+    if (frontCam) {
+      strategies.push({ name: 'device_front', camera: frontCam.id });
+    }
+
+    if (cameras.value.length > 0) {
+      strategies.push({ name: 'device_fallback', camera: cameras.value[0].id });
+    }
   }
 
-  if (isMobile) {
-    strategies.push({ name: 'environment', camera: { facingMode: 'environment' } });
-    strategies.push({ name: 'user', camera: { facingMode: 'user' } });
-  } else {
-    strategies.push({ name: 'user', camera: { facingMode: 'user' } });
-    if (cameras.value.length > 0) {
-      strategies.push({ name: 'device_first', camera: cameras.value[0].id });
-    }
-    strategies.push({ name: 'environment', camera: { facingMode: 'environment' } });
-  }
+  // PENTING: JANGAN cantumkan videoConstraints di qrConfig agar html5-qrcode
+  // tidak mengabaikan konfigurasi camera/facingMode yang diberikan!
+  const qrConfig = {
+    fps: 15,
+    disableFlip: false,
+  };
 
   let success = false;
   let lastErr = null;
@@ -622,6 +672,7 @@ const startCamera = async (forceCameraId = null) => {
       success = true;
       cameraActive.value = true;
 
+      // Coba aktifkan continuous autofocus jika didukung
       try {
         const capabilities = scanner.getRunningTrackCapabilities();
         if (capabilities && capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
@@ -631,12 +682,20 @@ const startCamera = async (forceCameraId = null) => {
         }
       } catch (focusErr) {}
 
+      // Perbarui daftar perangkat setelah izin kamera diberikan
       try {
         const updatedDevices = await Html5Qrcode.getCameras();
         if (updatedDevices && updatedDevices.length > 0) {
           cameras.value = updatedDevices;
-          if (typeof strat.camera === 'string') {
-            selectedCameraId.value = strat.camera;
+        }
+      } catch (e) {}
+
+      // Sinkronkan facingMode aktual jika terdeteksi
+      try {
+        const settings = scanner.getRunningTrackSettings();
+        if (settings && settings.facingMode) {
+          if (settings.facingMode === 'environment' || settings.facingMode === 'user') {
+            selectedCameraMode.value = settings.facingMode;
           }
         }
       } catch (e) {}
@@ -683,10 +742,17 @@ const toggleCamera = async () => {
   }
 };
 
-const switchCamera = async () => {
-  if (selectedCameraId.value) {
-    await startCamera(selectedCameraId.value);
+const onCameraModeChange = async () => {
+  if (selectedCameraMode.value) {
+    await startCamera(selectedCameraMode.value);
   }
+};
+
+const flipCamera = async () => {
+  const newMode = selectedCameraMode.value === 'environment' ? 'user' : 'environment';
+  selectedCameraMode.value = newMode;
+  toast.info(newMode === 'environment' ? 'Beralih ke Kamera Belakang...' : 'Beralih ke Kamera Depan...');
+  await startCamera(newMode);
 };
 
 const loadConfig = async () => {
