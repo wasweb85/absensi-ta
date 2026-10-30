@@ -3,7 +3,7 @@
     <!-- Kontainer Tunggal Terpadu (Judul, Tombol Aksi, Filter, Pencarian, dan Tabel Menyatu) -->
     <Card class="overflow-hidden">
       <!-- Toolbar Atas di Dalam Kontainer Card (Padding Mepet & Rapi) -->
-      <div class="px-3 pt-2 pb-3 sm:p-4 border-b border-border bg-card space-y-2.5 sm:space-y-3">
+      <div class="px-2 pt-2 pb-2 sm:p-4 border-b border-border bg-card space-y-2.5 sm:space-y-3">
         <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Tombol Import CSV & Tambah Santri [Kanan] -->
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 sm:gap-2">
