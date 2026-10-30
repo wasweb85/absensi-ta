@@ -265,6 +265,10 @@ class AbsensiScannerService
 
     /**
      * Mengambil data pemantauan kehadiran realtime hari ini
+     */
+    public function getMonitoring(?int $idKelas = null, ?string $targetDate = null): array
+    {
+        $date = $targetDate ?: Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
         $query = Siswa::with(['kelas', 'absensi' => function ($q) use ($date) {
             $q->where('tanggal', $date);

@@ -36,13 +36,11 @@ export function useAppConfig() {
         try {
           const parsed = JSON.parse(cached);
           appName.value = parsed.nama_instansi || 'Sistem Terpadu Presensi';
-          appLogo.value = parsed.logo_lembaga || '';
+          appLogo.value = parsed.logo_lembaga || '/LOGOTPQ.png';
           appAddress.value = parsed.alamat_instansi || '';
           appContact.value = parsed.kontak_instansi || '';
           appTahunAjaran.value = parsed.tahun_ajaran_aktif || '2026/2027';
-          if (appLogo.value) {
-            setBrowserFavicon(appLogo.value);
-          }
+          setBrowserFavicon(appLogo.value);
           isConfigLoaded.value = true;
         } catch (e) {}
       }
@@ -54,16 +52,14 @@ export function useAppConfig() {
       if (res.data?.success && res.data?.data) {
         const data = res.data.data;
         appName.value = data.nama_instansi || 'Sistem Terpadu Presensi';
-        appLogo.value = data.logo_lembaga || '';
+        appLogo.value = data.logo_lembaga || '/LOGOTPQ.png';
         appAddress.value = data.alamat_instansi || '';
         appContact.value = data.kontak_instansi || '';
         appTahunAjaran.value = data.tahun_ajaran_aktif || '2026/2027';
 
         sessionStorage.setItem('app_public_config', JSON.stringify(data));
 
-        if (appLogo.value) {
-          setBrowserFavicon(appLogo.value);
-        }
+        setBrowserFavicon(appLogo.value);
         isConfigLoaded.value = true;
       }
     } catch (e) {

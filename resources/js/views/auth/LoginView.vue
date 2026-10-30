@@ -91,6 +91,20 @@
           </Button>
         </div>
       </div>
+
+      <!-- Tombol Install PWA di Halaman Login -->
+      <div v-if="isInstallable && !isInstalled" class="mt-4 text-center">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-2xs"
+          @click="installApp"
+        >
+          <Download class="size-3.5" />
+          <span>Install Aplikasi Presensi (PWA)</span>
+        </Button>
+      </div>
     </div>
   </div>
 </template>
@@ -98,7 +112,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { CircleAlert, Eye, EyeOff, LoaderCircle, LogIn, QrCode } from '@lucide/vue';
+import { CircleAlert, Download, Eye, EyeOff, LoaderCircle, LogIn, QrCode } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -106,11 +120,13 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { useAppConfig } from '@/composables/useAppConfig';
+import { usePwa } from '@/composables/usePwa';
 
 const router = useRouter();
 const { login, loading, error } = useAuth();
 const toast = useToast();
 const { appName, appLogo, loadAppConfig } = useAppConfig();
+const { isInstallable, isInstalled, installApp } = usePwa();
 
 onMounted(() => {
   loadAppConfig();

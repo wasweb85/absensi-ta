@@ -362,6 +362,56 @@
         </CardContent>
       </Card>
 
+      <!-- Card 5: Aplikasi Mobile PWA (Progressive Web App) -->
+      <Card class="flex flex-col justify-between">
+        <CardHeader class="pb-3 border-b">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Smartphone class="size-4 text-primary" />
+              <CardTitle class="text-sm font-semibold">5. Aplikasi Mobile (PWA)</CardTitle>
+            </div>
+            <Badge variant="outline" class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
+              PWA Aktif
+            </Badge>
+          </div>
+          <CardDescription class="text-xs">
+            Aplikasi dapat dipasang di layar utama HP (Android / iOS) atau Desktop tanpa melalui Play Store.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent class="space-y-4 pt-4">
+          <div class="flex items-center gap-3 rounded-xl border p-3 bg-muted/20">
+            <div class="size-12 rounded-xl bg-white border p-1 shadow-2xs shrink-0 overflow-hidden flex items-center justify-center">
+              <img :src="'/icons/pwa-192x192.png'" alt="Ikon PWA" class="size-full object-contain" />
+            </div>
+            <div class="min-w-0 flex-1 text-xs">
+              <p class="font-semibold text-foreground">Presensi Santri TPQ</p>
+              <p class="text-muted-foreground text-[11px]">Ikon terverifikasi (192x192, 512x512, Maskable &amp; iOS)</p>
+            </div>
+            <Button
+              v-if="isInstallable && !isInstalled"
+              size="sm"
+              class="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+              @click="installApp"
+            >
+              <Download class="size-3.5" />
+              <span>Install</span>
+            </Button>
+            <Badge v-else-if="isInstalled" variant="secondary" class="text-[11px] font-medium shrink-0">
+              Terpasang
+            </Badge>
+          </div>
+
+          <div class="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+            <p class="font-medium text-foreground">Panduan Instalasi di HP:</p>
+            <ul class="list-disc list-inside space-y-1 text-[11px]">
+              <li><strong>Android (Chrome/Edge):</strong> Klik tombol <em>"Install App"</em> di bilah atas/sidebar atau buka menu titik tiga ⋮ lalu pilih <em>"Tambahkan ke Layar Utama" / "Install Aplikasi"</em>.</li>
+              <li><strong>iPhone / iPad (Safari):</strong> Buka website ini di Safari, ketuk tombol <strong>Bagikan (Share ⎋)</strong>, lalu pilih <strong>"Tambah ke Layar Utama"</strong>.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   </div>
 </template>
@@ -372,11 +422,13 @@ import {
   Check,
   Building2,
   Clock,
+  Download,
   MessageSquare,
   Send,
   Radio,
   LoaderCircle,
   Image as ImageIcon,
+  Smartphone,
   Upload,
   Trash2,
 } from '@lucide/vue';
@@ -388,9 +440,11 @@ import { Label } from '@/components/ui/label';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
 import { useAppConfig } from '@/composables/useAppConfig';
+import { usePwa } from '@/composables/usePwa';
 
 const toast = useToast();
 const { updateConfig } = useAppConfig();
+const { isInstallable, isInstalled, installApp } = usePwa();
 
 const isLoading = ref(false);
 const isSaving = ref(false);

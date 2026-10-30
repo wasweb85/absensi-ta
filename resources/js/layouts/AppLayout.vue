@@ -25,6 +25,19 @@
           </p>
         </div>
 
+        <!-- Tombol Install PWA di Topbar Header -->
+        <Button
+          v-if="isInstallable && !isInstalled"
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 px-2.5 text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-2xs"
+          title="Install Aplikasi ke Layar Utama"
+          @click="installApp"
+        >
+          <Download class="size-3.5" />
+          <span class="hidden sm:inline font-semibold">Install App</span>
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -75,7 +88,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { ChevronsUpDown, Clock, LogOut, Menu, Moon, Sun } from '@lucide/vue';
+import { ChevronsUpDown, Clock, Download, LogOut, Menu, Moon, Sun } from '@lucide/vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import ToastContainer from '@/components/ToastContainer.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -91,9 +104,11 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/composables/useAuth';
 import { useAppConfig } from '@/composables/useAppConfig';
+import { usePwa } from '@/composables/usePwa';
 
 const { user, roleLabel, logout } = useAuth();
 const { loadAppConfig } = useAppConfig();
+const { isInstallable, isInstalled, installApp } = usePwa();
 
 const mobileMenuOpen = ref(false);
 const isDark = ref(false);

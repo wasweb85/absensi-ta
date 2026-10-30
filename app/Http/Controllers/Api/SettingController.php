@@ -39,7 +39,7 @@ class SettingController extends Controller
                 'tahun_ajaran_aktif' => $settings['tahun_ajaran_aktif'] ?? '2026/2027',
                 'alamat_instansi' => $settings['alamat_instansi'] ?? '',
                 'kontak_instansi' => $settings['kontak_instansi'] ?? '',
-                'logo_lembaga' => $settings['logo_lembaga'] ?? '',
+                'logo_lembaga' => ! empty($settings['logo_lembaga']) ? $settings['logo_lembaga'] : '/LOGOTPQ.png',
             ],
         ]);
     }

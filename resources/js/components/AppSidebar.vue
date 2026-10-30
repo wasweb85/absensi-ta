@@ -36,6 +36,29 @@
       </div>
     </nav>
 
+    <!-- Tombol Install PWA di Sidebar -->
+    <div v-if="isInstallable && !isInstalled" class="shrink-0 px-3 pb-2">
+      <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5 space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="size-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+            <Download class="size-4" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold text-foreground truncate">Aplikasi Presensi</p>
+            <p class="text-[10px] text-muted-foreground truncate">Pasang di Layar Utama</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-xs font-medium shadow-2xs transition-colors cursor-pointer"
+          @click="installApp"
+        >
+          <Download class="size-3.5" />
+          <span>Install Aplikasi</span>
+        </button>
+      </div>
+    </div>
+
     <div class="shrink-0 border-t border-sidebar-border p-3">
       <div class="flex items-center gap-3 rounded-lg px-2 py-1.5">
         <Avatar class="size-8">
@@ -61,6 +84,7 @@ import {
   Activity,
   Bot,
   CalendarDays,
+  Download,
   GraduationCap,
   Layers,
   LayoutDashboard,
@@ -74,6 +98,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/composables/useAuth';
 import { useAppConfig } from '@/composables/useAppConfig';
+import { usePwa } from '@/composables/usePwa';
 
 const emit = defineEmits(['navigate']);
 
@@ -81,6 +106,7 @@ const route = useRoute();
 const router = useRouter();
 const { user, role, roleLabel } = useAuth();
 const { appName, appLogo } = useAppConfig();
+const { isInstallable, isInstalled, installApp } = usePwa();
 
 /**
  * Menu visibility follows the `meta.roles` of each route, so the sidebar
