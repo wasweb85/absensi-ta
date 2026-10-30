@@ -13,21 +13,53 @@
       </div>
     </div>
 
-    <!-- Toolbar Pencarian & Aksi Scanner (Clean, Simple, Professional) -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="relative flex-1 max-w-md">
-        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+    <!-- Toolbar Filter & Pencarian (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
+      <!-- Date Filter -->
+      <div class="lg:col-span-3">
         <Input
-          id="searchSantri"
-          v-model="searchQuery"
-          type="text"
-          placeholder="Cari nama santri atau NISN..."
-          class="h-9 pl-9 text-xs bg-card"
+          id="filterDate"
+          v-model="filterDate"
+          type="date"
+          class="h-9 text-xs bg-card cursor-pointer"
+          title="Pilih Tanggal Presensi"
+          @change="loadMonitoring"
         />
       </div>
 
-      <div v-if="canScanQr" class="flex items-center gap-2 shrink-0">
-        <Button as-child size="sm" class="h-9 gap-1.5 text-xs">
+      <!-- Jilid Dropdown Filter -->
+      <div class="lg:col-span-3">
+        <select
+          id="filterKelas"
+          v-model="selectedKelas"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Jilid"
+          @change="loadMonitoring"
+        >
+          <option value="">Semua Jilid</option>
+          <option v-for="k in kelasList" :key="k.id" :value="k.id">
+            {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
+          </option>
+        </select>
+      </div>
+
+      <!-- Search Box -->
+      <div :class="canScanQr ? 'lg:col-span-4' : 'lg:col-span-6'">
+        <div class="relative">
+          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            id="searchSantri"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Cari nama santri atau NISN..."
+            class="h-9 pl-9 text-xs bg-card"
+          />
+        </div>
+      </div>
+
+      <!-- Buka Scanner Button -->
+      <div v-if="canScanQr" class="lg:col-span-2">
+        <Button as-child size="sm" class="h-9 w-full gap-1.5 text-xs">
           <router-link to="/absensi/scanner">
             <ScanLine class="size-3.5" />
             <span>Buka Scanner</span>

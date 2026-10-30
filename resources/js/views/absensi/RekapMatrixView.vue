@@ -10,17 +10,47 @@
       </Badge>
     </div>
 
-    <!-- Toolbar Bulan & Aksi Rekap (Clean, Simple, Professional) -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
-      <div class="flex items-center gap-2">
+    <!-- Toolbar Filter Rekap & Aksi (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 print:hidden">
+      <div class="flex flex-wrap items-center gap-2 flex-1">
+        <!-- Bulan Selector (Tanpa Label di Atasnya) -->
         <select
           id="selectBulan"
           v-model="selectedBulan"
           class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Bulan"
           @change="loadMatrix"
         >
           <option v-for="(nama, num) in bulanList" :key="num" :value="num">
             Bulan: {{ nama }}
+          </option>
+        </select>
+
+        <!-- Tahun Selector (Tanpa Label di Atasnya) -->
+        <select
+          id="selectTahun"
+          v-model="selectedTahun"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Tahun"
+          @change="loadMatrix"
+        >
+          <option v-for="y in [2024, 2025, 2026, 2027, 2028]" :key="y" :value="y">
+            Tahun {{ y }}
+          </option>
+        </select>
+
+        <!-- Filter Jilid (Hanya untuk Admin & Sekretaris, Tanpa Label di Atasnya) -->
+        <select
+          v-if="canFilterAllKelas"
+          id="selectKelas"
+          v-model="selectedKelas"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Jilid"
+          @change="loadMatrix"
+        >
+          <option value="">Semua Jilid</option>
+          <option v-for="k in kelasList" :key="k.id" :value="k.id">
+            {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
           </option>
         </select>
       </div>

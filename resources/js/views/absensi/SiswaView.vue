@@ -33,25 +33,46 @@
       </div>
     </div>
 
-    <!-- Toolbar Pencarian & Filter Status (Clean, Simple, Professional) -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="relative flex-1 max-w-md">
-        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          id="searchSantri"
-          v-model="search"
-          type="text"
-          placeholder="Cari nama santri, NISN, jilid, atau no HP..."
-          class="h-9 pl-9 text-xs bg-card"
-          @input="onSearchInput"
-        />
+    <!-- Toolbar Filter & Pencarian (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
+      <!-- Search Box -->
+      <div class="sm:col-span-2 lg:col-span-6">
+        <div class="relative">
+          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            id="searchSantri"
+            v-model="search"
+            type="text"
+            placeholder="Cari nama santri, NISN, atau no HP..."
+            class="h-9 pl-9 text-xs bg-card"
+            @input="onSearchInput"
+          />
+        </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <!-- Filter Jilid (Tanpa Label di Atasnya) -->
+      <div class="lg:col-span-3">
+        <select
+          id="filterKelas"
+          v-model="filterKelas"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Filter Jilid"
+          @change="loadSiswa"
+        >
+          <option value="">Semua Jilid</option>
+          <option v-for="k in kelasList" :key="k.id" :value="k.id">
+            Jilid: {{ k.nama_kelas }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Filter Status (Tanpa Label di Atasnya) -->
+      <div class="lg:col-span-3">
         <select
           id="filterStatus"
           v-model="filterStatus"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Status Keaktifan"
           @change="loadSiswa"
         >
           <option value="">Semua Status</option>
