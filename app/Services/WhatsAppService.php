@@ -125,14 +125,20 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::timeout(20)
-                ->retry(2, 500)
+            $payload = [
+                'target' => $target,
+                'message' => $message,
+                'countryCode' => '62',
+            ];
+
+            if (! empty($metadata['delay'])) {
+                $payload['delay'] = (string) $metadata['delay'];
+            }
+
+            $response = Http::timeout(10)
                 ->withHeaders([
                     'Authorization' => $token,
-                ])->post('https://api.fonnte.com/send', [
-                    'target' => $target,
-                    'message' => $message,
-                ]);
+                ])->post('https://api.fonnte.com/send', $payload);
 
             $json = $response->json();
 

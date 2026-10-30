@@ -302,6 +302,38 @@
                     </span>
                   </div>
                 </div>
+
+                <!-- WhatsApp Notification Status Banner -->
+                <div v-if="lastResult.data?.wa_status" class="mt-2.5 pt-2 border-t flex items-center justify-between gap-2 text-[11px]">
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="size-2 rounded-full shrink-0"
+                      :class="{
+                        'bg-emerald-500 animate-pulse': lastResult.data.wa_status === 'sent',
+                        'bg-amber-500': lastResult.data.wa_status === 'no_phone',
+                        'bg-rose-500': lastResult.data.wa_status === 'failed' || lastResult.data.wa_status === 'error',
+                        'bg-muted-foreground/40': lastResult.data.wa_status === 'disabled' || lastResult.data.wa_status === 'no_token',
+                      }"
+                    ></span>
+                    <span class="font-medium text-foreground">
+                      <template v-if="lastResult.data.wa_status === 'sent'">
+                        Notifikasi WA Terjadwal (Anti-Spam)
+                      </template>
+                      <template v-else-if="lastResult.data.wa_status === 'no_phone'">
+                        No. WA Wali Belum Ada
+                      </template>
+                      <template v-else-if="lastResult.data.wa_status === 'disabled'">
+                        Notifikasi WA Nonaktif
+                      </template>
+                      <template v-else>
+                        WA Gateway: {{ lastResult.data.wa_status }}
+                      </template>
+                    </span>
+                  </div>
+                  <span v-if="lastResult.data.wa_target" class="font-mono text-muted-foreground text-[10px]">
+                    {{ lastResult.data.wa_target }}
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -349,7 +381,16 @@
                     }"
                   ></span>
                   <div class="min-w-0 truncate">
-                    <p class="font-medium text-foreground truncate">{{ log.nama }}</p>
+                    <div class="flex items-center gap-1.5">
+                      <p class="font-medium text-foreground truncate">{{ log.nama }}</p>
+                      <span
+                        v-if="log.wa_status === 'sent'"
+                        class="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded"
+                        title="Notifikasi WA terkirim/terjadwal ke orang tua"
+                      >
+                        WA
+                      </span>
+                    </div>
                     <p class="text-[10px] text-muted-foreground">NISN: {{ log.nisn }} &bull; {{ log.kelas }}</p>
                   </div>
                 </div>
@@ -509,6 +550,8 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
       waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       status: res.status,
       success: true,
+      wa_status: res.data?.wa_status,
+      wa_target: res.data?.wa_target,
     });
 
     toast.success(res.message);

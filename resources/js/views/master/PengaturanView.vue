@@ -275,6 +275,53 @@
               <span>Uji Koneksi Gateway Fonnte</span>
             </Button>
           </div>
+
+          <!-- Pengaturan Otomatis Notifikasi Presensi Santri -->
+          <div class="pt-3 border-t space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-0.5">
+                <Label for="waNotifPresensi" class="text-xs font-semibold cursor-pointer">
+                  Kirim Notifikasi WA Presensi Otomatis
+                </Label>
+                <p class="text-[11px] text-muted-foreground leading-relaxed">
+                  Kirim otomatis notifikasi WhatsApp ke nomor HP orang tua begitu santri berhasil scan presensi masuk.
+                </p>
+              </div>
+              <input
+                id="waNotifPresensi"
+                v-model="settings.wa_notif_presensi"
+                type="checkbox"
+                true-value="1"
+                false-value="0"
+                class="size-4 rounded border-input text-primary focus:ring-ring cursor-pointer mt-0.5"
+              />
+            </div>
+
+            <!-- Pengaturan Jeda Waktu (Anti-Spam Fonnte & WA) -->
+            <div v-if="settings.wa_notif_presensi === '1'" class="space-y-1.5 pt-1">
+              <div class="flex items-center justify-between">
+                <Label for="waNotifDelay" class="text-xs font-medium">
+                  Jeda Antrean Scan Bersamaan (Anti-Spam Delay)
+                </Label>
+                <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  Proteksi Anti-Spam
+                </span>
+              </div>
+              <select
+                id="waNotifDelay"
+                v-model="settings.wa_notif_delay"
+                class="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-2xs cursor-pointer"
+              >
+                <option value="3-5">3 - 5 detik (Direkomendasikan - Aman & Alami)</option>
+                <option value="5-10">5 - 10 detik (Sangat Aman untuk Akun Baru)</option>
+                <option value="2-3">2 - 3 detik (Cepat)</option>
+                <option value="1">1 detik (Minimum Jeda)</option>
+              </select>
+              <p class="text-[10px] text-muted-foreground leading-relaxed">
+                Jika beberapa santri scan dalam waktu berdekatan, sistem otomatis memberikan jeda bertingkat pada antrean pesan sehingga nomor WhatsApp lembaga terhindar dari pemblokiran spam.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -361,6 +408,8 @@ const settings = ref({
   jam_pulang: "12:00",
   hari_aktif: "Senin,Selasa,Rabu,Kamis,Jumat,Sabtu",
   fonnte_token: "",
+  wa_notif_presensi: "1",
+  wa_notif_delay: "3-5",
   telegram_bot_token: "",
   telegram_chat_id: "",
 });

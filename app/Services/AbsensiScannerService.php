@@ -8,9 +8,15 @@ use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class AbsensiScannerService
 {
+    public function __construct(
+        protected WhatsAppService $waService
+    ) {}
+
     /**
      * Memproses pemindaian absensi (QR / Barcode / NISN)
      *
@@ -97,17 +103,28 @@ class AbsensiScannerService
                 'metode_scan' => $metodeScan,
             ]);
 
+            // Kirim notifikasi WhatsApp otomatis ke orang tua dengan perlindungan anti-spam
+            $waResult = $this->sendPresensiNotification($siswa, $status, $currentTimeShort, $todayDate);
+
+            $waNoteSuffix = '';
+            if (! empty($waResult['note'])) {
+                $waNoteSuffix = " ({$waResult['note']})";
+            }
+
             return [
                 'success' => true,
                 'type' => 'masuk',
                 'status' => $status,
-                'message' => "Absen masuk berhasil. Status: {$status} pada {$currentTimeShort}.",
+                'message' => "Absen masuk berhasil. Status: {$status} pada {$currentTimeShort}.{$waNoteSuffix}",
                 'data' => [
                     'nisn' => $siswa->nisn,
                     'nama_lengkap' => $siswa->nama_lengkap,
                     'kelas' => $siswa->kelas?->nama_kelas,
                     'waktu_masuk' => $currentTimeShort,
                     'status' => $status,
+                    'wa_status' => $waResult['status'],
+                    'wa_message' => $waResult['message'],
+                    'wa_target' => $waResult['target'] ?? null,
                 ],
             ];
         }
@@ -127,11 +144,127 @@ class AbsensiScannerService
     }
 
     /**
-     * Mengambil data pemantauan kehadiran realtime hari ini
+     * Mengirim notifikasi WhatsApp otomatis ke orang tua santri dengan jeda anti-spam cerdas
+     *
+     * @return array{status: string, message: string, note: ?string, target: ?string}
      */
-    public function getMonitoring(?int $idKelas = null, ?string $targetDate = null): array
+    protected function sendPresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
     {
-        $date = $targetDate ?: Carbon::now('Asia/Jakarta')->format('Y-m-d');
+        // 1. Periksa apakah fitur notifikasi WA aktif di pengaturan
+        $isWaEnabled = Pengaturan::getValue('wa_notif_presensi', '1') !== '0';
+        if (! $isWaEnabled) {
+            return [
+                'status' => 'disabled',
+                'message' => 'Notifikasi WhatsApp otomatis dinonaktifkan di pengaturan.',
+                'note' => null,
+                'target' => null,
+            ];
+        }
+
+        // 2. Periksa apakah token Fonnte sudah dikonfigurasi
+        $fonnteToken = Pengaturan::getValue('fonnte_token');
+        if (empty($fonnteToken)) {
+            return [
+                'status' => 'no_token',
+                'message' => 'Token WhatsApp Fonnte belum dikonfigurasi.',
+                'note' => null,
+                'target' => null,
+            ];
+        }
+
+        // 3. Periksa nomor telepon orang tua
+        $noHpOrtu = trim((string) ($siswa->no_hp_ortu ?? ''));
+        if (empty($noHpOrtu)) {
+            return [
+                'status' => 'no_phone',
+                'message' => 'Nomor WhatsApp orang tua belum terdaftar.',
+                'note' => 'No. WA wali belum ada',
+                'target' => null,
+            ];
+        }
+
+        // 4. Hitung Jeda Waktu (Anti-Spam Delay) bertingkat menggunakan Cache
+        // Mencegah deteksi spam oleh WhatsApp & Fonnte saat puluhan santri scan berurutan
+        try {
+            $nowTs = time();
+            $lastScheduledTs = (int) Cache::get('fonnte_last_presensi_scheduled_time', 0);
+
+            // Jeda dasar per pesan (misal: 3-5 detik)
+            $configuredDelayRange = Pengaturan::getValue('wa_notif_delay', '3-5');
+            $minDelay = 3;
+            $maxDelay = 5;
+            if (str_contains($configuredDelayRange, '-')) {
+                $parts = explode('-', $configuredDelayRange);
+                $minDelay = max(1, (int) trim($parts[0]));
+                $maxDelay = max($minDelay, (int) trim($parts[1] ?? (string) $minDelay));
+            } elseif (is_numeric($configuredDelayRange)) {
+                $minDelay = max(1, (int) $configuredDelayRange);
+                $maxDelay = $minDelay;
+            }
+
+            $stepInterval = random_int($minDelay, $maxDelay);
+
+            if ($lastScheduledTs < $nowTs) {
+                // Belum ada antrean pesan berjalan, berikan jeda awal 1-2 detik
+                $scheduledTs = $nowTs + random_int(1, 2);
+            } else {
+                // Ada santri lain yang baru saja scan beberapa saat lalu!
+                // Geser jadwal santri ini setelah santri sebelumnya + interval acak
+                $scheduledTs = $lastScheduledTs + $stepInterval;
+            }
+
+            // Simpan jadwal santri ini ke cache selama 10 menit
+            Cache::put('fonnte_last_presensi_scheduled_time', $scheduledTs, 600);
+
+            $delaySeconds = max(1, $scheduledTs - $nowTs);
+
+            // 5. Susun template pesan
+            $formattedDate = Carbon::parse($tanggal)->locale('id')->isoFormat('D MMMM YYYY');
+            $pesan = $this->waService->buildPesanPresensi(
+                $siswa->nama_lengkap,
+                $status,
+                $waktuShort,
+                $formattedDate
+            );
+
+            // 6. Kirim ke Fonnte dengan parameter delay anti-spam
+            $metadata = [
+                'nama_penerima' => $siswa->nama_ortu ?: ('Wali '.$siswa->nama_lengkap),
+                'tipe_pesan' => 'presensi',
+                'delay' => (string) $delaySeconds,
+            ];
+
+            $res = $this->waService->sendViaFonnte($noHpOrtu, $pesan, $fonnteToken, $metadata);
+
+            if ($res['success'] ?? false) {
+                return [
+                    'status' => 'sent',
+                    'message' => "Notifikasi WA berhasil dijadwalkan (Jeda {$delaySeconds} detik).",
+                    'note' => "WA terjadwal (jeda {$delaySeconds}s)",
+                    'target' => $noHpOrtu,
+                ];
+            }
+
+            return [
+                'status' => 'failed',
+                'message' => $res['message'] ?? 'Gagal mengirim notifikasi WA ke gateway.',
+                'note' => 'Gagal WA: '.($res['message'] ?? 'Error gateway'),
+                'target' => $noHpOrtu,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Error saat proses notifikasi WA presensi santri: '.$e->getMessage());
+
+            return [
+                'status' => 'error',
+                'message' => 'Kendala gateway WA: '.$e->getMessage(),
+                'note' => null,
+                'target' => $noHpOrtu,
+            ];
+        }
+    }
+
+    /**
+     * Mengambil data pemantauan kehadiran realtime hari ini
 
         $query = Siswa::with(['kelas', 'absensi' => function ($q) use ($date) {
             $q->where('tanggal', $date);
