@@ -1,38 +1,40 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <!-- Kontainer Tunggal Terpadu (Judul, Tombol Aksi, Filter, Pencarian, dan Tabel Menyatu) -->
     <Card class="overflow-hidden">
-      <!-- Toolbar Atas di Dalam Kontainer Card -->
-      <div class="p-3.5 sm:p-4 border-b border-border bg-card space-y-3">
+      <!-- Toolbar Atas di Dalam Kontainer Card (Padding Mepet & Rapi) -->
+      <div class="px-3 pt-2 pb-3 sm:p-4 border-b border-border bg-card space-y-2.5 sm:space-y-3">
         <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Tombol Import CSV & Tambah Santri [Kanan] -->
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <h2 class="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h2 class="text-sm sm:text-lg font-semibold tracking-tight text-foreground">
               Data Santri
             </h2>
-            <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
               {{ siswaList.length }} Santri
             </Badge>
           </div>
 
-          <!-- Tombol Aksi (Import CSV & Tambah Santri) -->
-          <div class="flex items-center gap-2 shrink-0">
+          <!-- Tombol Aksi (Import CSV & Tambah Santri - Di Mobile Cukup Icon Saja) -->
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
-              class="h-8 sm:h-9 gap-1.5 text-xs"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Import CSV"
               @click="showImportModal = true"
             >
               <Upload class="size-3.5" />
-              <span>Import CSV</span>
+              <span class="hidden sm:inline">Import CSV</span>
             </Button>
             <Button
               size="sm"
-              class="h-8 sm:h-9 gap-1.5 text-xs"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Tambah Santri"
               @click="openAddModal"
             >
               <Plus class="size-3.5" />
-              <span>Tambah Santri</span>
+              <span class="hidden sm:inline">Tambah Santri</span>
             </Button>
           </div>
         </div>
