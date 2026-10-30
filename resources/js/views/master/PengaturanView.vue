@@ -474,9 +474,27 @@
           </div>
 
           <!-- Template Kode Apps Script -->
-          <div v-if="showScriptTemplate" class="mt-3 rounded-lg border bg-muted/40 p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-semibold text-foreground">Kode untuk Code.gs di Google Spreadsheet:</span>
+          <div v-if="showScriptTemplate" class="mt-3 rounded-lg border bg-muted/40 p-3 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 text-xs">
+                <button
+                  type="button"
+                  class="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
+                  :class="scriptMode === 'insert' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-background text-muted-foreground hover:text-foreground border'"
+                  @click="scriptMode = 'insert'"
+                >
+                  Sisipkan ke Code.gs Lama (Aman)
+                </button>
+                <button
+                  type="button"
+                  class="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
+                  :class="scriptMode === 'full' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-background text-muted-foreground hover:text-foreground border'"
+                  @click="scriptMode = 'full'"
+                >
+                  Kode Lengkap Baru
+                </button>
+              </div>
+
               <Button
                 type="button"
                 variant="outline"
@@ -489,10 +507,26 @@
                 <span>{{ isScriptCopied ? 'Tersalin!' : 'Salin Kode' }}</span>
               </Button>
             </div>
-            <pre class="text-[10px] font-mono p-2 rounded bg-background border overflow-x-auto max-h-40 leading-relaxed text-muted-foreground select-all">{{ appsScriptCodeTemplate }}</pre>
-            <p class="text-[10px] text-muted-foreground">
-              Buka Google Sheet Anda &gt; Menu <strong>Ekstensi (Extensions)</strong> &gt; <strong>Apps Script</strong> &gt; Tempel kode di atas &gt; Klik <strong>Deploy</strong> sebagai <strong>Web App</strong> (Akses: <em>Anyone / Siapa saja</em>).
-            </p>
+
+            <div v-if="scriptMode === 'insert'" class="text-[11px] text-muted-foreground leading-relaxed bg-amber-500/10 border border-amber-500/20 rounded p-2 text-amber-900 dark:text-amber-200">
+              <strong>PENTING:</strong> Jangan hapus kode <code>Code.gs</code> lama agar website absensi Apps Script Anda tidak rusak. Cukup buka <code>Code.gs</code>, gulir ke bagian paling bawah ke fungsi <code>function doPost(e)</code>, lalu sisipkan potongan kode di bawah ini tepat di bawah <code>if (data.action === 'scanAbsensi') { ... }</code>.
+            </div>
+
+            <div v-else class="text-[11px] text-muted-foreground leading-relaxed bg-blue-500/10 border border-blue-500/20 rounded p-2 text-blue-900 dark:text-blue-200">
+              Gunakan kode lengkap ini jika Anda membuat proyek Apps Script baru yang terpisah dari website lama.
+            </div>
+
+            <pre class="text-[10px] font-mono p-2.5 rounded bg-background border overflow-x-auto max-h-48 leading-relaxed text-muted-foreground select-all">{{ activeScriptCode }}</pre>
+
+            <div class="space-y-1 text-[10px] text-muted-foreground">
+              <p><strong>Langkah wajib setelah simpan kode di Apps Script:</strong></p>
+              <ol class="list-decimal list-inside space-y-0.5">
+                <li>Klik tombol <strong>Deploy (Terapkan)</strong> &gt; pilih <strong>Kelola Penerapan (Manage Deployments)</strong>.</li>
+                <li>Klik ikon <strong>Pensil (Edit)</strong> pada penerapan aktif.</li>
+                <li>Pada bagian <strong>Versi (Version)</strong>, pilih <strong>Versi baru (New version)</strong>.</li>
+                <li>Klik <strong>Deploy (Terapkan)</strong>, lalu klik <em>"Uji Kirim Baris ke Spreadsheet"</em> di atas untuk memastikan.</li>
+              </ol>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -502,7 +536,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   Check,
   Building2,
@@ -539,6 +573,7 @@ const isSaving = ref(false);
 const isTestingWa = ref(false);
 const isTestingSpreadsheet = ref(false);
 const showScriptTemplate = ref(false);
+const scriptMode = ref('insert');
 const isScriptCopied = ref(false);
 const logoFileInputRef = ref(null);
 
@@ -699,9 +734,47 @@ async function testWaGateway() {
   }
 }
 
-const appsScriptCodeTemplate = `/**
+const appsScriptInsertSnippet = `      // === SINKRONISASI OTOMATIS DARI WEBSITE LARAVEL BARU KE SHEET 'absensi' ===
+      if (data.action === 'syncAbsensi') {
+        var ss = null;
+        try {
+          ss = SpreadsheetApp.getActiveSpreadsheet();
+        } catch (e1) {}
+
+        if (!ss) {
+          ss = getSpreadsheet();
+        }
+
+        var sheet = ss.getSheetByName('absensi');
+        if (!sheet) {
+          sheet = ss.insertSheet('absensi');
+          sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
+        }
+
+        var newRow = [
+          data.tanggal || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MM/dd/yyyy'),
+          "'" + String(data.nisn || '').replace(/^'/, ''),
+          data.nama || '-',
+          data.kelas || '-',
+          data.jam_datang || '-',
+          data.jam_pulang || '-',
+          data.keterangan_waktu || '-',
+          data.status || 'Hadir'
+        ];
+
+        sheet.appendRow(newRow);
+        SpreadsheetApp.flush(); // Terapkan langsung ke spreadsheet
+
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Baris kehadiran berhasil ditambahkan ke sheet absensi!',
+          row: newRow
+        })).setMimeType(ContentService.MimeType.JSON);
+      }`;
+
+const appsScriptFullTemplate = `/**
  * KODE SINKRONISASI ABSENSI OTOMATIS (WEB LARAVEL -> GOOGLE SPREADSHEET)
- * Tempelkan kode ini di editor Apps Script spreadsheet Anda.
+ * Gunakan ini jika spreadsheet belum memiliki script sama sekali.
  */
 function doGet(e) {
   return handleSyncAbsensi(e);
@@ -730,7 +803,6 @@ function handleSyncAbsensi(e) {
         ss = SpreadsheetApp.getActiveSpreadsheet();
       } catch (e1) {}
 
-      // Fallback ID spreadsheet utama jika script berdiri sendiri
       if (!ss) {
         ss = SpreadsheetApp.openById('1mVn1iXEGDYQoQ1Ft-_nHgC7WOGJeuAg--Bu-cdoiTNk');
       }
@@ -741,7 +813,6 @@ function handleSyncAbsensi(e) {
         sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
       }
 
-      // Masukkan baris baru persis 8 kolom
       sheet.appendRow([
         data.tanggal || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MM/dd/yyyy'),
         "'" + String(data.nisn || '').replace(/^'/, ''),
@@ -753,7 +824,6 @@ function handleSyncAbsensi(e) {
         data.status || 'Hadir'
       ]);
 
-      // Terapkan perubahan seketika ke spreadsheet
       SpreadsheetApp.flush();
 
       return ContentService.createTextOutput(JSON.stringify({ 
@@ -773,7 +843,11 @@ function handleSyncAbsensi(e) {
       error: err.message 
     })).setMimeType(ContentService.MimeType.JSON);
   }
-};`;
+}`;
+
+const activeScriptCode = computed(() => {
+  return scriptMode.value === 'insert' ? appsScriptInsertSnippet : appsScriptFullTemplate;
+});
 
 async function testSpreadsheetWebhook() {
   if (!settings.value.spreadsheet_absensi_webhook_url) {
@@ -801,7 +875,7 @@ async function testSpreadsheetWebhook() {
 
 function copyAppsScriptCode() {
   if (navigator?.clipboard) {
-    navigator.clipboard.writeText(appsScriptCodeTemplate);
+    navigator.clipboard.writeText(activeScriptCode.value);
     isScriptCopied.value = true;
     toast.success('Kode Google Apps Script berhasil disalin!');
     setTimeout(() => {
