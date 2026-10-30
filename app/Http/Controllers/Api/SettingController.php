@@ -102,13 +102,22 @@ class SettingController extends Controller
                 'status' => 'Hadir',
             ]);
 
-            if ($response->successful()) {
+            $json = $response->json();
+            if ($response->successful() && is_array($json) && ($json['success'] ?? false) === true) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Berhasil terhubung ke Google Apps Script! Baris uji coba telah dikirim ke spreadsheet.',
-                    'response' => $response->json() ?: $response->body(),
+                    'message' => 'Berhasil terhubung! Baris uji coba telah berhasil masuk ke spreadsheet.',
+                    'response' => $json,
                 ]);
             }
+
+            $errorDetail = is_array($json) ? ($json['message'] ?? $json['error'] ?? 'Respons bukan sukses') : 'Respons bukan JSON yang valid';
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Google Apps Script merespons: "'.$errorDetail.'". Pastikan Anda telah menempelkan kode handleSyncAbsensi dan memilih "Versi Baru" (New Version) saat Deploy.',
+                'response' => $json ?: $response->body(),
+            ], 422);
 
             return response()->json([
                 'success' => false,

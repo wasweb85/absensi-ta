@@ -700,48 +700,80 @@ async function testWaGateway() {
 }
 
 const appsScriptCodeTemplate = `/**
- * Tempelkan fungsi ini ke file Code.gs di Google Apps Script Spreadsheet Anda.
- * Kemudian Deploy sebagai Web App (Akses: Siapa saja / Anyone).
+ * KODE SINKRONISASI ABSENSI OTOMATIS (WEB LARAVEL -> GOOGLE SPREADSHEET)
+ * Tempelkan kode ini di editor Apps Script spreadsheet Anda.
  */
+function doGet(e) {
+  return handleSyncAbsensi(e);
+}
+
 function doPost(e) {
+  return handleSyncAbsensi(e);
+}
+
+function handleSyncAbsensi(e) {
   try {
     var data = {};
     if (e && e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (errJson) {
+        data = e.parameter || {};
+      }
     } else if (e && e.parameter) {
       data = e.parameter;
     }
 
     if (data.action === 'syncAbsensi') {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var ss = null;
+      try {
+        ss = SpreadsheetApp.getActiveSpreadsheet();
+      } catch (e1) {}
+
+      // Fallback ID spreadsheet utama jika script berdiri sendiri
+      if (!ss) {
+        ss = SpreadsheetApp.openById('1mVn1iXEGDYQoQ1Ft-_nHgC7WOGJeuAg--Bu-cdoiTNk');
+      }
+
       var sheet = ss.getSheetByName('absensi');
       if (!sheet) {
         sheet = ss.insertSheet('absensi');
         sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
       }
 
+      // Masukkan baris baru persis 8 kolom
       sheet.appendRow([
-        data.tanggal,
-        "'" + String(data.nisn).replace(/^'/, ''),
-        data.nama,
-        data.kelas,
+        data.tanggal || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MM/dd/yyyy'),
+        "'" + String(data.nisn || '').replace(/^'/, ''),
+        data.nama || '-',
+        data.kelas || '-',
         data.jam_datang || '-',
         data.jam_pulang || '-',
         data.keterangan_waktu || '-',
-        data.status
+        data.status || 'Hadir'
       ]);
 
-      return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'Baris kehadiran berhasil ditambahkan' }))
-        .setMimeType(ContentService.MimeType.JSON);
+      // Terapkan perubahan seketika ke spreadsheet
+      SpreadsheetApp.flush();
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true, 
+        message: 'Baris kehadiran berhasil ditambahkan ke sheet absensi!' 
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Action tidak dikenali' }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      message: 'Aksi tidak dikenali: ' + (data.action || 'kosong') 
+    })).setMimeType(ContentService.MimeType.JSON);
+
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      error: err.message 
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-}`;
+};`;
 
 async function testSpreadsheetWebhook() {
   if (!settings.value.spreadsheet_absensi_webhook_url) {
