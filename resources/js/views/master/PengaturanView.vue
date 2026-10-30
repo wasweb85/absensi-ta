@@ -386,33 +386,47 @@ const handleLogoUpload = (e) => {
   reader.onload = (readerEvent) => {
     const img = new Image();
     img.onload = () => {
-      // Resize to max 256x256 to save bandwidth and fit neatly in TiDB
-      const maxDim = 256;
-      let width = img.width;
-      let height = img.height;
+      // Optimasi ukuran gambar agar Base64 ringkas (< 40.000 karakter)
+      // Hal ini menjamin data selalu muat di kolom database tanpa error 'Data too long'
+      let targetDim = 160;
+      let compressedDataUrl = '';
 
-      if (width > height) {
-        if (width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > targetDim) {
+            height = Math.round((height * targetDim) / width);
+            width = targetDim;
+          }
+        } else {
+          if (height > targetDim) {
+            width = Math.round((width * targetDim) / height);
+            height = targetDim;
+          }
         }
-      } else {
-        if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Format PNG untuk menjaga transparansi logo
+        compressedDataUrl = canvas.toDataURL('image/png');
+
+        if (compressedDataUrl.length < 40000 || targetDim <= 70) {
+          break;
         }
+        targetDim -= 25;
       }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // PNG format to preserve alpha channel transparency
-      const compressedDataUrl = canvas.toDataURL('image/png', 0.9);
       settings.value.logo_lembaga = compressedDataUrl;
-      toast.success('Logo berhasil dipilih! Klik "Simpan Pengaturan" untuk menerapkan.');
+      toast.success('Logo berhasil dioptimalkan & dipilih! Klik "Simpan Pengaturan" untuk menerapkan.');
     };
     img.src = readerEvent.target.result;
   };

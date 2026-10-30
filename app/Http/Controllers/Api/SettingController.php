@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pengaturan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SettingController extends Controller
 {
@@ -55,6 +56,13 @@ class SettingController extends Controller
                 'success' => false,
                 'message' => 'Format pengaturan tidak valid',
             ], 422);
+        }
+
+        // Pastikan kolom 'value' di tabel pengaturan mendukung teks panjang (LONGTEXT) agar muat data gambar Base64
+        try {
+            DB::statement('ALTER TABLE `pengaturan` MODIFY `value` LONGTEXT NULL');
+        } catch (\Throwable $e) {
+            // Abaikan jika sudah LONGTEXT atau koneksi tidak memiliki wewenang DDL
         }
 
         foreach ($settings as $key => $value) {
