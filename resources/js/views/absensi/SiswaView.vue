@@ -1,91 +1,89 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Halaman -->
-    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">
-          Data Santri
-        </h2>
-        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-          {{ siswaList.length }} Santri
-        </Badge>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          class="h-8 gap-1.5 text-xs"
-          @click="showImportModal = true"
-        >
-          <Upload class="size-3.5" />
-          <span>Import CSV</span>
-        </Button>
-        <Button
-          size="sm"
-          class="h-8 gap-1.5 text-xs"
-          @click="openAddModal"
-        >
-          <Plus class="size-3.5" />
-          <span>Tambah Santri</span>
-        </Button>
-      </div>
+    <!-- Header Halaman (Hanya Judul & Badge Jumlah Santri di Pojok Kiri Atas) -->
+    <div class="flex items-center gap-2 pb-1 border-b">
+      <h2 class="text-lg font-semibold tracking-tight text-foreground">
+        Data Santri
+      </h2>
+      <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+        {{ siswaList.length }} Santri
+      </Badge>
     </div>
 
-    <!-- Toolbar Filter & Pencarian (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
-      <!-- Search Box -->
-      <div class="sm:col-span-2 lg:col-span-6">
-        <div class="relative">
-          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            id="searchSantri"
-            v-model="search"
-            type="text"
-            placeholder="Cari nama santri, NISN, atau no HP..."
-            class="h-9 pl-9 text-xs bg-card"
-            @input="onSearchInput"
-          />
+    <!-- Kontainer Tunggal (Pencarian [Kiri], Filter [Tengah], Aksi [Kanan], dan Tabel Menyatu) -->
+    <Card class="overflow-hidden">
+      <!-- Baris Atas Toolbar di dalam Kontainer Card -->
+      <div class="p-3 sm:p-4 border-b border-border bg-card">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          <!-- [KIRI]: Kolom Input Pencarian -->
+          <div class="relative flex-1 min-w-[220px] max-w-md">
+            <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="searchSantri"
+              v-model="search"
+              type="text"
+              placeholder="Cari nama santri, NISN, atau no HP..."
+              class="h-9 pl-9 text-xs bg-background"
+              @input="onSearchInput"
+            />
+          </div>
+
+          <!-- [TENGAH & KANAN]: Filter dan Tombol Aksi Sejajar -->
+          <div class="flex flex-wrap items-center justify-between lg:justify-end gap-2 flex-1">
+            <!-- [TENGAH]: Dropdown Filter Jilid dan Status -->
+            <div class="flex items-center gap-2">
+              <select
+                id="filterKelas"
+                v-model="filterKelas"
+                class="h-9 rounded-lg border border-input bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[130px]"
+                title="Filter Jilid"
+                @change="loadSiswa"
+              >
+                <option value="">Semua Jilid</option>
+                <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                  {{ k.nama_kelas }}
+                </option>
+              </select>
+
+              <select
+                id="filterStatus"
+                v-model="filterStatus"
+                class="h-9 rounded-lg border border-input bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[125px]"
+                title="Status Keaktifan"
+                @change="loadSiswa"
+              >
+                <option value="">Semua Status</option>
+                <option value="aktif">Status: Aktif</option>
+                <option value="nonaktif">Status: Nonaktif</option>
+                <option value="lulus">Status: Lulus</option>
+                <option value="pindah">Status: Pindah</option>
+              </select>
+            </div>
+
+            <!-- [KANAN]: Tombol Import CSV dan Tambah Santri -->
+            <div class="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                class="h-9 gap-1.5 text-xs"
+                @click="showImportModal = true"
+              >
+                <Upload class="size-3.5" />
+                <span>Import CSV</span>
+              </Button>
+              <Button
+                size="sm"
+                class="h-9 gap-1.5 text-xs"
+                @click="openAddModal"
+              >
+                <Plus class="size-3.5" />
+                <span>Tambah Santri</span>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Filter Jilid (Tanpa Label di Atasnya) -->
-      <div class="lg:col-span-3">
-        <select
-          id="filterKelas"
-          v-model="filterKelas"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Filter Jilid"
-          @change="loadSiswa"
-        >
-          <option value="">Semua Jilid</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            Jilid: {{ k.nama_kelas }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Filter Status (Tanpa Label di Atasnya) -->
-      <div class="lg:col-span-3">
-        <select
-          id="filterStatus"
-          v-model="filterStatus"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Status Keaktifan"
-          @change="loadSiswa"
-        >
-          <option value="">Semua Status</option>
-          <option value="aktif">Status: Aktif</option>
-          <option value="nonaktif">Status: Nonaktif</option>
-          <option value="lulus">Status: Lulus</option>
-          <option value="pindah">Status: Pindah</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Data Table Card -->
-    <Card class="overflow-hidden">
       <div class="overflow-x-auto">
         <Table>
           <TableHeader>
