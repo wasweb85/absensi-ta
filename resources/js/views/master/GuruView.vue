@@ -1,12 +1,16 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Halaman -->
+    <!-- Header Halaman Minimalis & Responsif -->
     <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="text-base sm:text-lg font-semibold tracking-tight text-foreground">
           Data Guru
         </h2>
-        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
+        <Badge variant="secondary" class="font-normal text-xs gap-1 py-0.5">
+          <Users class="size-3 text-primary" />
+          <span>{{ totalPengajarCount }} Pengajar</span>
+        </Badge>
+        <Badge variant="outline" class="font-normal text-xs text-muted-foreground py-0.5">
           {{ usersList.length }} Akun
         </Badge>
       </div>
@@ -15,60 +19,12 @@
       <Button
         v-if="canManageGuru"
         size="sm"
-        class="h-8 gap-1.5 text-xs"
+        class="h-8 gap-1.5 text-xs self-start sm:self-auto"
         @click="openAddModal"
       >
         <Plus class="size-3.5" />
         <span>Tambah Guru / Pengurus</span>
       </Button>
-    </div>
-
-    <!-- Summary Cards Ustadz/Ustadzah & Pengurus TPQ -->
-    <div class="grid grid-cols-3 gap-2 sm:gap-3">
-      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
-        <div class="min-w-0">
-          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Ustadz / Pengajar
-          </span>
-          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
-            {{ totalPengajarCount }}
-          </span>
-          <span class="hidden sm:block text-[10px] text-muted-foreground">Guru &amp; wali jilid aktif</span>
-        </div>
-        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-          <Users class="size-5" />
-        </div>
-      </Card>
-
-      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
-        <div class="min-w-0">
-          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Wali Jilid
-          </span>
-          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
-            {{ totalWaliKelasCount }} <span class="text-[10px] sm:text-xs font-normal text-muted-foreground">/ {{ kelasList.length }}</span>
-          </span>
-          <span class="hidden sm:block text-[10px] text-muted-foreground">Jilid dengan ustadz/ustadzah</span>
-        </div>
-        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-          <Users class="size-5" />
-        </div>
-      </Card>
-
-      <Card class="p-2.5 sm:p-3.5 flex items-center justify-between">
-        <div class="min-w-0">
-          <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Total Staf
-          </span>
-          <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground mt-0.5 block">
-            {{ usersList.length }}
-          </span>
-          <span class="hidden sm:block text-[10px] text-muted-foreground">Seluruh akun struktural &amp; guru</span>
-        </div>
-        <div class="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-          <Users class="size-5" />
-        </div>
-      </Card>
     </div>
 
     <!-- Toolbar Pencarian & Filter Jabatan (Clean & Profesional) -->
@@ -116,14 +72,14 @@
     </div>
 
     <!-- User Grid Cards -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
       <Card
         v-for="u in usersList"
         :key="u.id"
-        class="flex flex-col justify-between transition-all hover:shadow-xs"
+        class="flex flex-col justify-between transition-all hover:shadow-xs p-0 gap-0 overflow-hidden"
       >
-        <CardHeader class="pb-3">
-          <div class="flex items-center justify-between gap-2 mb-2">
+        <CardHeader class="p-3.5 pb-2.5 space-y-2">
+          <div class="flex items-center justify-between gap-2">
             <Badge
               :variant="getRoleBadgeVariant(u.role)"
               class="text-[10px] uppercase font-semibold tracking-wider"
@@ -159,25 +115,25 @@
             </span>
           </div>
 
-          <div class="flex items-center gap-3">
-            <Avatar class="size-10">
-              <AvatarFallback class="bg-primary/10 text-sm font-semibold text-primary">
+          <div class="flex items-center gap-2.5">
+            <Avatar class="size-9 shrink-0">
+              <AvatarFallback class="bg-primary/10 text-xs font-semibold text-primary">
                 {{ u.name.charAt(0).toUpperCase() }}
               </AvatarFallback>
             </Avatar>
             <div class="min-w-0 flex-1">
-              <h3 class="text-sm font-semibold text-foreground truncate">
+              <h3 class="text-xs sm:text-sm font-semibold text-foreground truncate">
                 {{ u.name }}
               </h3>
-              <p class="text-[11px] font-mono text-muted-foreground truncate">
+              <p class="text-[10.5px] font-mono text-muted-foreground truncate">
                 @{{ u.username }}
               </p>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent class="py-2 text-xs space-y-1.5 border-t">
-          <div class="flex items-center justify-between pt-2">
+        <CardContent class="px-3.5 py-2 text-xs space-y-1 border-t bg-muted/5">
+          <div class="flex items-center justify-between">
             <span class="text-muted-foreground text-[11px]">Email:</span>
             <span class="font-medium text-foreground text-[11px] truncate max-w-[170px]">
               {{ u.email || '—' }}
@@ -192,25 +148,25 @@
           </div>
         </CardContent>
 
-        <CardFooter v-if="canManageGuru" class="pt-3 border-t flex items-center justify-end gap-1.5">
+        <CardFooter v-if="canManageGuru" class="px-3.5 py-2 border-t flex items-center justify-end gap-1.5 bg-card">
           <Button
             variant="ghost"
             size="sm"
-            class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            class="h-7 sm:h-8 px-2 sm:px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             @click="openEditModal(u)"
           >
-            <Pencil class="size-3.5" />
+            <Pencil class="size-3" />
             <span>Edit Peran</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            class="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+            class="h-7 sm:h-8 px-2 sm:px-2.5 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
             :disabled="currentUser?.id === u.id"
             :title="currentUser?.id === u.id ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun'"
             @click="deleteUser(u)"
           >
-            <Trash2 class="size-3.5" />
+            <Trash2 class="size-3" />
             <span>Hapus</span>
           </Button>
         </CardFooter>
@@ -398,10 +354,6 @@ let searchDebounceTimer = null;
 
 const totalPengajarCount = computed(() => {
   return usersList.value.filter(u => u.role === 'guru' || u.id_kelas).length;
-});
-
-const totalWaliKelasCount = computed(() => {
-  return usersList.value.filter(u => !!u.id_kelas).length;
 });
 
 const searchQuery = ref('');
