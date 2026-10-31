@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -66,6 +68,10 @@ class UserController extends Controller
 
         if (! empty($validated['id_kelas'])) {
             $this->validateWaliCollision((int) $validated['id_kelas'], $validated['gender_binaan'], $validated['role']);
+        }
+
+        if (! $this->ensureGenderBinaanColumn()) {
+            unset($validated['gender_binaan']);
         }
 
         $user = User::create($validated);
@@ -135,6 +141,10 @@ class UserController extends Controller
 
         if (! empty($targetKelasId)) {
             $this->validateWaliCollision((int) $targetKelasId, $genderBinaan, $targetRole, $user->id);
+        }
+
+        if (! $this->ensureGenderBinaanColumn()) {
+            unset($validated['gender_binaan']);
         }
 
         $oldKelasId = $user->id_kelas;
@@ -260,5 +270,23 @@ class UserController extends Controller
         }
 
         $kelas->update(['wali_kelas' => $label]);
+    }
+
+    /**
+     * Memastikan kolom gender_binaan tersedia pada database (self-healing remote cloud)
+     */
+    protected function ensureGenderBinaanColumn(): bool
+    {
+        try {
+            if (! Schema::hasColumn('users', 'gender_binaan')) {
+                Schema::table('users', function (Blueprint $table) {
+                    $table->string('gender_binaan', 10)->default('all')->after('id_kelas');
+                });
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Pengaturan;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -127,6 +128,28 @@ class SettingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghubungi Google Apps Script: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Menjalankan migrasi database yang tertunda (khusus remote server/cloud)
+     */
+    public function runMigrations(): JsonResponse
+    {
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+            $output = Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Migrasi database berhasil dijalankan.',
+                'output' => trim($output),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menjalankan migrasi: '.$e->getMessage(),
             ], 500);
         }
     }

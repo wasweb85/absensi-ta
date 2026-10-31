@@ -91,35 +91,35 @@
     </div>
 
     <!-- KOP RESMI LAPORAN (Hanya tampil saat dicetak) -->
-    <div class="hidden print:block mb-2 text-black">
+    <div class="hidden print:block mb-1.5 text-black">
       <div class="flex items-center justify-between gap-3 pb-1">
         <!-- Logo Lembaga di Kiri -->
-        <div class="w-20 shrink-0 flex items-center justify-center">
+        <div class="w-24 shrink-0 flex items-center justify-center">
           <img
             :src="appLogo || '/LOGOTPQ.png'"
             alt="Logo Lembaga"
-            class="max-h-20 max-w-20 object-contain"
+            class="max-h-20 max-w-24 object-contain"
           />
         </div>
 
         <!-- Teks Kop Surat di Tengah -->
         <div class="flex-1 text-center px-1">
-          <h1 class="text-xl sm:text-2xl font-serif font-bold text-[#4a6b94] tracking-wider uppercase leading-tight">
+          <h1 class="text-2xl sm:text-[26px] font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
             YAYASAN NURUL JADID
           </h1>
-          <h2 class="text-sm sm:text-[15px] font-serif font-bold text-black tracking-wide uppercase leading-tight mt-0.5">
-            TAMAN PENDIDIKAN AL-QUR’AN NURUL MUN’IM
+          <h2 class="text-[15px] sm:text-base font-serif font-bold text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
+            TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
           </h2>
-          <h3 class="text-xs sm:text-[13px] font-serif font-bold text-black tracking-wide uppercase leading-tight">
+          <h3 class="text-[13px] sm:text-sm font-serif font-bold text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
             KARANGANYAR PAITON PROBOLINGGO
           </h3>
-          <p class="text-[10px] sm:text-[10.5px] font-serif italic text-[#b8860b] leading-tight mt-1">
+          <p class="text-[10px] sm:text-[11px] font-serif italic text-[#cca843] leading-tight mt-1">
             Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
           </p>
         </div>
 
         <!-- Spacer Kanan Penyeimbang -->
-        <div class="w-20 shrink-0"></div>
+        <div class="w-24 shrink-0"></div>
       </div>
 
       <!-- Garis Ganda Kop Surat Resmi -->
@@ -231,7 +231,7 @@
     </Card>
 
     <!-- Legend Indicator Cetak (Mepet ke tabel) -->
-    <div class="hidden print:flex items-center gap-4 text-[8px] text-black mt-1">
+    <div class="hidden print:flex items-center gap-3 text-[7.5px] text-black mt-0.5 pt-0.5">
       <span class="font-bold uppercase tracking-wider">Keterangan:</span>
       <span><strong>H:</strong> Hadir</span>
       <span><strong>T:</strong> Terlambat</span>
@@ -241,23 +241,23 @@
     </div>
 
     <!-- Blok Pengesahan Tanda Tangan Resmi (Cetak - Muat dalam 1 Lembar A4) -->
-    <div class="hidden print:flex justify-between items-start mt-3 pt-1 text-black text-[9.5px] break-inside-avoid">
+    <div class="hidden print:flex justify-between items-start mt-2 pt-0.5 text-black text-[9px] break-inside-avoid">
       <!-- Sisi Kiri: Mengetahui Kepala TPQ -->
-      <div class="text-center min-w-[180px]">
+      <div class="text-center min-w-[170px]">
         <p class="font-normal">Mengetahui,</p>
         <p class="font-semibold">Kepala TPQ</p>
-        <div class="h-14"></div>
+        <div class="h-10"></div>
         <p class="font-bold underline tracking-wide">( Ny. Shofiyah )</p>
-        <p class="text-[8.5px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
+        <p class="text-[8px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
       </div>
 
       <!-- Sisi Kanan: Wali Jilid / Ustadz Pengampu -->
-      <div class="text-center min-w-[180px]">
+      <div class="text-center min-w-[170px]">
         <p class="font-normal">{{ formattedCurrentDate }}</p>
         <p class="font-semibold">Wali Jilid / Ustadz Pengampu</p>
-        <div class="h-14"></div>
+        <div class="h-10"></div>
         <p class="font-bold underline tracking-wide">( {{ ustadzPengampuName }} )</p>
-        <p class="text-[8.5px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
+        <p class="text-[8px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
       </div>
     </div>
 
@@ -461,7 +461,7 @@ const exportCsv = () => {
   rows.push(['YAYASAN NURUL JADID']);
   rows.push(["TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM"]);
   rows.push(['KARANGANYAR PAITON PROBOLINGGO']);
-  rows.push(['Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 | Email: tpqnm.nurja@gmail.com']);
+  rows.push(['Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com']);
   rows.push([]);
   rows.push(['LAPORAN REKAPITULASI PRESENSI SANTRI']);
   rows.push([`Periode: ${bulanList[selectedBulan.value]} ${selectedTahun.value}`]);

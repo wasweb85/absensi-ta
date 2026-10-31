@@ -114,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [SettingController::class, 'updateSettings']);
             Route::post('/test-wa', [WhatsAppController::class, 'testKoneksi']);
             Route::post('/test-spreadsheet', [SettingController::class, 'testSpreadsheetWebhook']);
+            Route::post('/migrate', [SettingController::class, 'runMigrations']);
         });
     });
 

@@ -526,6 +526,42 @@
         </CardContent>
       </Card>
 
+      <!-- Card 7: Pemeliharaan Struktur Database (TiDB Cloud / Vercel) -->
+      <Card class="flex flex-col justify-between">
+        <CardHeader class="pb-3 border-b">
+          <div class="flex items-center gap-2">
+            <Database class="size-4 text-primary" />
+            <CardTitle class="text-sm font-semibold">7. Pemeliharaan Struktur Database</CardTitle>
+          </div>
+          <CardDescription class="text-xs">
+            Jalankan migrasi skema database terbaru untuk lingkungan Cloud (TiDB Cloud / Vercel).
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4 pt-4">
+          <p class="text-xs text-muted-foreground leading-relaxed">
+            Gunakan tombol ini jika terdapat pembaruan fitur baru atau kolom database yang belum tersinkronisasi di database server produksi.
+          </p>
+          <div class="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="h-9 gap-1.5 text-xs border-primary/30 hover:bg-primary/5"
+              :disabled="isMigrating"
+              @click="runMigration"
+            >
+              <LoaderCircle v-if="isMigrating" class="size-3.5 animate-spin text-primary" />
+              <Database v-else class="size-3.5 text-primary" />
+              <span>{{ isMigrating ? 'Menjalankan Migrasi...' : 'Sinkronkan Struktur Database (Migrate)' }}</span>
+            </Button>
+          </div>
+          <div v-if="migrationOutput" class="space-y-1">
+            <Label class="text-[10px] text-muted-foreground font-mono">Hasil Eksekusi:</Label>
+            <pre class="text-[10px] font-mono p-2 rounded bg-muted/50 border overflow-x-auto max-h-32 text-muted-foreground">{{ migrationOutput }}</pre>
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   </div>
 </template>
@@ -548,6 +584,7 @@ import {
   Smartphone,
   Upload,
   Trash2,
+  Database,
 } from '@lucide/vue';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -567,6 +604,8 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const isTestingWa = ref(false);
 const isTestingSpreadsheet = ref(false);
+const isMigrating = ref(false);
+const migrationOutput = ref('');
 const showScriptTemplate = ref(false);
 const scriptMode = ref('insert');
 const isScriptCopied = ref(false);
@@ -876,6 +915,22 @@ function copyAppsScriptCode() {
     setTimeout(() => {
       isScriptCopied.value = false;
     }, 3000);
+  }
+}
+
+async function runMigration() {
+  isMigrating.value = true;
+  migrationOutput.value = '';
+  try {
+    const res = await api.post('/pengaturan/migrate');
+    migrationOutput.value = res.data.output || 'Semua migrasi sudah up-to-date.';
+    toast.success(res.data.message || 'Migrasi database berhasil dijalankan.');
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message;
+    migrationOutput.value = msg;
+    toast.error('Gagal menjalankan migrasi: ' + msg);
+  } finally {
+    isMigrating.value = false;
   }
 }
 
