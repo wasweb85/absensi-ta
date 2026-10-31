@@ -7,6 +7,7 @@ use App\Http\Requests\ScanAbsensiRequest;
 use App\Models\Absensi;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
+use App\Models\User;
 use App\Services\AbsensiScannerService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -56,7 +57,21 @@ class AbsensiController extends Controller
         $idKelas = $request->input('id_kelas') ? (int) $request->input('id_kelas') : null;
         $tanggal = $request->input('tanggal');
 
-        $data = $this->scannerService->getMonitoring($idKelas, $tanggal);
+        $user = $request->user();
+        $userGenderBinaan = ($user && array_key_exists('gender_binaan', $user->getAttributes()))
+            ? $user->gender_binaan
+            : null;
+
+        $jenisKelamin = $request->input('jenis_kelamin');
+        if (! $request->filled('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+            $jenisKelamin = $userGenderBinaan;
+        }
+
+        if (! in_array($jenisKelamin, ['L', 'P'], true)) {
+            $jenisKelamin = null;
+        }
+
+        $data = $this->scannerService->getMonitoring($idKelas, $tanggal, $jenisKelamin);
 
         return response()->json([
             'success' => true,
@@ -79,7 +94,32 @@ class AbsensiController extends Controller
             $idKelas = $user->id_kelas ?: -1;
         }
 
-        $matrix = $this->scannerService->getMatrixReport($bulan, $tahun, $idKelas);
+        $userGenderBinaan = ($user && array_key_exists('gender_binaan', $user->getAttributes()))
+            ? $user->gender_binaan
+            : null;
+
+        $jenisKelamin = $request->input('jenis_kelamin');
+        if (! $request->filled('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+            $jenisKelamin = $userGenderBinaan;
+        }
+
+        if (! in_array($jenisKelamin, ['L', 'P'], true)) {
+            $jenisKelamin = null;
+        }
+
+        $matrix = $this->scannerService->getMatrixReport($bulan, $tahun, $idKelas, $jenisKelamin);
+
+        $waliInfo = null;
+        if ($idKelas && $idKelas !== -1) {
+            $teachers = User::where('id_kelas', $idKelas)->get();
+            $waliInfo = [
+                'wali_putra' => $teachers->firstWhere('gender_binaan', 'L')?->name,
+                'wali_putri' => $teachers->firstWhere('gender_binaan', 'P')?->name,
+                'wali_umum' => $teachers->firstWhere('gender_binaan', 'all')?->name,
+            ];
+        }
+
+        $matrix['wali_info'] = $waliInfo;
 
         return response()->json([
             'success' => true,

@@ -369,7 +369,7 @@ class AbsensiScannerService
     /**
      * Mengambil data pemantauan kehadiran realtime hari ini
      */
-    public function getMonitoring(?int $idKelas = null, ?string $targetDate = null): array
+    public function getMonitoring(?int $idKelas = null, ?string $targetDate = null, ?string $jenisKelamin = null): array
     {
         $date = $targetDate ?: Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
@@ -379,6 +379,10 @@ class AbsensiScannerService
 
         if ($idKelas) {
             $query->where('id_kelas', $idKelas);
+        }
+
+        if ($jenisKelamin) {
+            $query->where('jenis_kelamin', $jenisKelamin);
         }
 
         $siswaList = $query->orderBy('id_kelas')->orderBy('nama_lengkap')->get();
@@ -435,7 +439,7 @@ class AbsensiScannerService
     /**
      * Menghasilkan Rekap Matrix Absensi (Hari 1 s/d 31 dalam 1 bulan)
      */
-    public function getMatrixReport(int $bulan, int $tahun, ?int $idKelas = null): array
+    public function getMatrixReport(int $bulan, int $tahun, ?int $idKelas = null, ?string $jenisKelamin = null): array
     {
         $startDate = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
         $daysInMonth = $startDate->daysInMonth;
@@ -482,6 +486,10 @@ class AbsensiScannerService
 
         if ($idKelas) {
             $query->where('id_kelas', $idKelas);
+        }
+
+        if ($jenisKelamin) {
+            $query->where('jenis_kelamin', $jenisKelamin);
         }
 
         $siswaList = $query->orderBy('id_kelas')->orderBy('nama_lengkap')->get();
@@ -531,6 +539,7 @@ class AbsensiScannerService
                 'id_siswa' => $s->id,
                 'nisn' => $s->nisn,
                 'nama_lengkap' => $s->nama_lengkap,
+                'jenis_kelamin' => $s->jenis_kelamin,
                 'nama_kelas' => $s->kelas?->nama_kelas,
                 'daily' => $daily,
                 'summary' => [

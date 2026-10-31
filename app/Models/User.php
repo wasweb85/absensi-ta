@@ -18,6 +18,10 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $attributes = [
+        'gender_binaan' => 'all',
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
