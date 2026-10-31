@@ -53,6 +53,19 @@
             {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
           </option>
         </select>
+
+        <!-- Gender Filter Select -->
+        <select
+          id="selectGender"
+          v-model="selectedGender"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Kelompok Gender"
+          @change="loadMatrix"
+        >
+          <option value="">Semua Gender</option>
+          <option value="L">Santri Putra (L)</option>
+          <option value="P">Santri Putri (P)</option>
+        </select>
       </div>
 
       <!-- Action Buttons (Cetak & Export CSV) -->
@@ -311,29 +324,61 @@ const isLoading = ref(true);
 const selectedBulan = ref(new Date().getMonth() + 1);
 const selectedTahun = ref(new Date().getFullYear());
 const selectedKelas = ref(user.value?.id_kelas || '');
+const selectedGender = ref('');
+const waliInfo = ref(null);
 const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
 
 const currentKelasLabel = computed(() => {
+  let label = 'Semua Jilid';
   if (canFilterAllKelas.value) {
     if (selectedKelas.value) {
       const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
-      return found ? found.nama_kelas : 'Jilid';
+      label = found ? found.nama_kelas : 'Jilid';
     }
-    return 'Semua Jilid';
+  } else if (user.value?.nama_kelas) {
+    label = user.value.nama_kelas.toLowerCase().startsWith('jilid')
+      ? user.value.nama_kelas
+      : `Jilid ${user.value.nama_kelas}`;
   }
-  return user.value?.nama_kelas ? `Jilid ${user.value.nama_kelas}` : 'Semua Jilid';
+
+  if (selectedGender.value === 'L') {
+    return `${label} (PUTRA)`;
+  }
+  if (selectedGender.value === 'P') {
+    return `${label} (PUTRI)`;
+  }
+  return label;
 });
 
 const ustadzPengampuName = computed(() => {
+  if (selectedGender.value === 'L') {
+    return (
+      waliInfo.value?.wali_putra ||
+      (user.value?.gender_binaan === 'L' ? user.value.name : '............................................')
+    );
+  }
+  if (selectedGender.value === 'P') {
+    return (
+      waliInfo.value?.wali_putri ||
+      (user.value?.gender_binaan === 'P' ? user.value.name : '............................................')
+    );
+  }
+
+  if (waliInfo.value?.wali_umum) {
+    return waliInfo.value.wali_umum;
+  }
+
   if (!canFilterAllKelas.value) {
     return user.value?.name || '............................................';
   }
+
   if (selectedKelas.value) {
     const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
     if (found?.wali_kelas) return found.wali_kelas;
   }
+
   return '............................................';
 });
 
@@ -384,10 +429,15 @@ const loadMatrix = async () => {
       }
     }
 
+    if (selectedGender.value) {
+      params.jenis_kelamin = selectedGender.value;
+    }
+
     const res = await api.get('/absensi/matrix', { params });
     if (res.data.success) {
       matrixData.value = res.data.data.data;
       daysInMonth.value = res.data.data.days_in_month;
+      waliInfo.value = res.data.data.wali_info || null;
     }
   } catch (e) {
     toast.error('Gagal memuat rekap matrix absensi.');
@@ -478,7 +528,7 @@ const exportCsv = () => {
   rows.push(['H = Hadir', 'T = Terlambat', 'S = Sakit', 'I = Izin', 'A = Alpa']);
   rows.push([]);
   rows.push(['Mengetahui,', '', '', 'Wali Jilid / Pengampu,']);
-  rows.push(['Kepala TPQ', '', '', currentKelasLabel.value]);
+  rows.push(['Kepala TPQ', '', '', `Wali ${currentKelasLabel.value}`]);
   rows.push([]);
   rows.push([]);
   rows.push(['( Ny. Shofiyah )', '', '', `( ${ustadzPengampuName.value} )`]);
@@ -499,10 +549,11 @@ const exportCsv = () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  const filenamePrefix = !canFilterAllKelas.value && user.value?.nama_kelas
-    ? `Rekap_Presensi_${user.value.nama_kelas.replace(/\s+/g, '_')}`
-    : 'Rekap_Presensi_Santri';
-  link.setAttribute('download', `${filenamePrefix}_${selectedBulan.value}_${selectedTahun.value}.csv`);
+  const genderSuffix = selectedGender.value === 'L' ? '_Putra' : (selectedGender.value === 'P' ? '_Putri' : '');
+  const baseKelas = !canFilterAllKelas.value && user.value?.nama_kelas
+    ? user.value.nama_kelas.replace(/\s+/g, '_')
+    : (selectedKelas.value ? (kelasList.value.find(k => String(k.id) === String(selectedKelas.value))?.nama_kelas || 'Santri').replace(/\s+/g, '_') : 'Santri');
+  link.setAttribute('download', `Rekap_Presensi_${baseKelas}${genderSuffix}_${selectedBulan.value}_${selectedTahun.value}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -512,6 +563,9 @@ const exportCsv = () => {
 onMounted(async () => {
   if (!canFilterAllKelas.value) {
     selectedKelas.value = user.value?.id_kelas || '';
+  }
+  if (user.value?.role === 'guru' && user.value?.gender_binaan && user.value.gender_binaan !== 'all') {
+    selectedGender.value = user.value.gender_binaan;
   }
   await Promise.all([
     canFilterAllKelas.value ? loadKelas() : Promise.resolve(),

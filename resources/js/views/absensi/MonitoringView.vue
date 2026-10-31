@@ -16,7 +16,7 @@
     <!-- Toolbar Filter & Pencarian (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
       <!-- Date Filter -->
-      <div class="lg:col-span-3">
+      <div class="lg:col-span-2">
         <Input
           id="filterDate"
           v-model="filterDate"
@@ -43,8 +43,23 @@
         </select>
       </div>
 
+      <!-- Gender Filter Select -->
+      <div class="lg:col-span-2">
+        <select
+          id="filterGender"
+          v-model="selectedGender"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          title="Pilih Kelompok Gender"
+          @change="loadMonitoring"
+        >
+          <option value="">Semua Gender</option>
+          <option value="L">Putra (L)</option>
+          <option value="P">Putri (P)</option>
+        </select>
+      </div>
+
       <!-- Search Box -->
-      <div :class="canScanQr ? 'lg:col-span-4' : 'lg:col-span-6'">
+      <div :class="canScanQr ? 'lg:col-span-3' : 'lg:col-span-5'">
         <div class="relative">
           <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
@@ -298,6 +313,7 @@ const { user, canEditAbsensi, canScanQr } = useAuth();
 const loading = ref(true);
 const filterDate = ref(new Date().toISOString().split('T')[0]);
 const selectedKelas = ref(user.value?.id_kelas ? user.value.id_kelas : '');
+const selectedGender = ref('');
 const searchQuery = ref('');
 const kelasList = ref([]);
 const students = ref([]);
@@ -495,6 +511,9 @@ const loadMonitoring = async () => {
     if (selectedKelas.value) {
       params.id_kelas = selectedKelas.value;
     }
+    if (selectedGender.value) {
+      params.jenis_kelamin = selectedGender.value;
+    }
     const res = await api.get('/absensi/monitoring', { params });
     if (res.data.success) {
       stats.value = res.data.data.stats;
@@ -510,6 +529,9 @@ const loadMonitoring = async () => {
 onMounted(async () => {
   if (user.value?.id_kelas && !selectedKelas.value) {
     selectedKelas.value = user.value.id_kelas;
+  }
+  if (user.value?.role === 'guru' && user.value?.gender_binaan && user.value.gender_binaan !== 'all') {
+    selectedGender.value = user.value.gender_binaan;
   }
   await Promise.all([loadKelas(), loadMonitoring()]);
 });
