@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 print:space-y-0">
     <!-- Header Halaman -->
     <div class="flex items-center gap-2 pb-2 border-b print:hidden">
       <h2 class="text-lg font-semibold tracking-tight text-foreground">
@@ -78,31 +78,30 @@
     </div>
 
     <!-- KOP RESMI LAPORAN (Hanya tampil saat dicetak) -->
-    <div class="hidden print:block mb-3 text-black">
-      <div class="flex items-center justify-between gap-4 pb-2">
+    <div class="hidden print:block mb-2 text-black">
+      <div class="flex items-center justify-between gap-3 pb-1">
         <!-- Logo Lembaga di Kiri -->
         <div class="w-20 shrink-0 flex items-center justify-center">
           <img
-            v-if="appLogo"
-            :src="appLogo"
+            :src="appLogo || '/LOGOTPQ.png'"
             alt="Logo Lembaga"
             class="max-h-20 max-w-20 object-contain"
           />
-          <div v-else class="size-16 rounded border border-black flex items-center justify-center text-[10px] font-bold">
-            LOGO
-          </div>
         </div>
 
         <!-- Teks Kop Surat di Tengah -->
-        <div class="flex-1 text-center px-2">
-          <h1 class="text-base font-bold uppercase tracking-wide leading-tight">
-            {{ appName || 'TPQ & MADRASAH DINIYAH' }}
+        <div class="flex-1 text-center px-1">
+          <h1 class="text-xl sm:text-2xl font-serif font-bold text-[#4a6b94] tracking-wider uppercase leading-tight">
+            YAYASAN NURUL JADID
           </h1>
-          <p v-if="appAddress" class="text-[11px] text-neutral-800 mt-0.5 leading-snug">
-            {{ appAddress }}
-          </p>
-          <p v-if="appContact" class="text-[10px] text-neutral-700 leading-snug">
-            {{ appContact }}
+          <h2 class="text-sm sm:text-[15px] font-serif font-bold text-black tracking-wide uppercase leading-tight mt-0.5">
+            TAMAN PENDIDIKAN AL-QUR’AN NURUL MUN’IM
+          </h2>
+          <h3 class="text-xs sm:text-[13px] font-serif font-bold text-black tracking-wide uppercase leading-tight">
+            KARANGANYAR PAITON PROBOLINGGO
+          </h3>
+          <p class="text-[10px] sm:text-[10.5px] font-serif italic text-[#b8860b] leading-tight mt-1">
+            Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
           </p>
         </div>
 
@@ -111,36 +110,36 @@
       </div>
 
       <!-- Garis Ganda Kop Surat Resmi -->
-      <div class="border-t-2 border-black mb-0.5"></div>
-      <div class="border-t border-black mb-3"></div>
+      <div class="border-t-[2.5px] border-black mt-1"></div>
+      <div class="border-t border-black mt-[1.5px] mb-1.5"></div>
 
       <!-- Judul Dokumen & Periode Laporan -->
-      <div class="text-center my-2">
-        <h2 class="text-xs font-bold uppercase tracking-wider underline">
+      <div class="text-center my-1">
+        <h2 class="text-[11px] font-bold uppercase tracking-wider underline">
           LAPORAN REKAPITULASI PRESENSI SANTRI
         </h2>
-        <div class="flex justify-between items-center text-[10px] mt-1.5 px-0.5">
+        <div class="flex justify-between items-center text-[9px] mt-1 px-0.5 font-medium">
           <div>
             <span><strong>Periode:</strong> {{ bulanList[selectedBulan] }} {{ selectedTahun }}</span>
             <span class="mx-2">&bull;</span>
             <span><strong>Jilid:</strong> {{ currentKelasLabel }}</span>
           </div>
           <div>
-            <span><strong>Tahun Ajaran:</strong> {{ appTahunAjaran }}</span>
+            <span><strong>Tahun Ajaran:</strong> {{ appTahunAjaran || '2026/2027' }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Matrix Table Container -->
-    <Card class="overflow-hidden print:border-none print:shadow-none print:bg-transparent">
+    <Card class="overflow-hidden print:border-none print:shadow-none print:bg-transparent print:p-0 print:m-0">
       <div class="overflow-x-auto print:overflow-visible">
         <Table class="text-center text-[11px] print:text-[8.5px] print:w-full print:border-collapse">
           <TableHeader>
             <TableRow class="bg-muted/40 font-semibold print:bg-neutral-100 print:text-black">
-              <TableHead class="w-10 text-center sticky left-0 bg-muted/90 backdrop-blur-xs z-10 text-[10px] print:static print:bg-neutral-100 print:text-black print:w-6 print:p-1">No</TableHead>
-              <TableHead class="text-left sticky left-10 bg-muted/90 backdrop-blur-xs z-10 min-w-[160px] text-[10px] print:static print:bg-neutral-100 print:text-black print:min-w-0 print:p-1">Santri</TableHead>
-              <TableHead class="text-center text-[10px] print:text-[8.5px] print:p-1 print:text-black">Jilid</TableHead>
+              <TableHead class="w-10 text-center sticky left-0 bg-muted/90 backdrop-blur-xs z-10 text-[10px] print:static print:bg-neutral-100 print:text-black print:w-5 print:py-0.5 print:px-1 print:text-[8px]">No</TableHead>
+              <TableHead class="text-left sticky left-10 bg-muted/90 backdrop-blur-xs z-10 min-w-[160px] text-[10px] print:static print:bg-neutral-100 print:text-black print:min-w-0 print:py-0.5 print:px-1 print:text-[8.5px]">Santri</TableHead>
+              <TableHead class="text-center text-[10px] print:text-[8px] print:py-0.5 print:px-1 print:text-black">Jilid</TableHead>
               
               <!-- Days of Month -->
               <TableHead
@@ -218,8 +217,8 @@
       </div>
     </Card>
 
-    <!-- Legend Indicator Cetak -->
-    <div class="hidden print:flex items-center gap-4 text-[9px] text-black mt-2">
+    <!-- Legend Indicator Cetak (Mepet ke tabel) -->
+    <div class="hidden print:flex items-center gap-4 text-[8px] text-black mt-1">
       <span class="font-bold uppercase tracking-wider">Keterangan:</span>
       <span><strong>H:</strong> Hadir</span>
       <span><strong>T:</strong> Terlambat</span>
@@ -228,24 +227,24 @@
       <span><strong>A:</strong> Alpa</span>
     </div>
 
-    <!-- Blok Pengesahan Tanda Tangan Resmi (Cetak) -->
-    <div class="hidden print:flex justify-between items-start mt-8 pt-2 text-black text-xs break-inside-avoid">
+    <!-- Blok Pengesahan Tanda Tangan Resmi (Cetak - Muat dalam 1 Lembar A4) -->
+    <div class="hidden print:flex justify-between items-start mt-3 pt-1 text-black text-[9.5px] break-inside-avoid">
       <!-- Sisi Kiri: Mengetahui Kepala TPQ -->
-      <div class="text-center min-w-[200px]">
+      <div class="text-center min-w-[180px]">
         <p class="font-normal">Mengetahui,</p>
-        <p class="font-semibold">Kepala TPQ / Lembaga</p>
-        <div class="h-20"></div>
-        <p class="font-bold underline tracking-wide">( ............................................ )</p>
-        <p class="text-[10px] text-neutral-600 mt-0.5">NIP/NIY: ..........................</p>
+        <p class="font-semibold">Kepala TPQ</p>
+        <div class="h-14"></div>
+        <p class="font-bold underline tracking-wide">( Ny. Shofiyah )</p>
+        <p class="text-[8.5px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
       </div>
 
       <!-- Sisi Kanan: Wali Jilid / Ustadz Pengampu -->
-      <div class="text-center min-w-[200px]">
+      <div class="text-center min-w-[180px]">
         <p class="font-normal">{{ formattedCurrentDate }}</p>
         <p class="font-semibold">Wali Jilid / Ustadz Pengampu</p>
-        <div class="h-20"></div>
+        <div class="h-14"></div>
         <p class="font-bold underline tracking-wide">( {{ ustadzPengampuName }} )</p>
-        <p class="text-[10px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
+        <p class="text-[8.5px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
       </div>
     </div>
 
@@ -407,27 +406,102 @@ const exportCsv = () => {
     return;
   }
 
-  let csv = 'No,NISN,Nama Lengkap,Jilid,';
-  for (let d = 1; d <= daysInMonth.value; d++) {
-    csv += `Tgl ${d},`;
-  }
-  csv += 'Hadir,Terlambat,Sakit,Izin,Alpa,Persentase Kehadiran\n';
+  const rows = [];
+  // Kop Surat & Metadata Lembaga
+  rows.push(['YAYASAN NURUL JADID']);
+  rows.push(["TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM"]);
+  rows.push(['KARANGANYAR PAITON PROBOLINGGO']);
+  rows.push(['Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 | Email: tpqnm.nurja@gmail.com']);
+  rows.push([]);
+  rows.push(['LAPORAN REKAPITULASI PRESENSI SANTRI']);
+  rows.push([`Periode: ${bulanList[selectedBulan.value]} ${selectedTahun.value}`]);
+  rows.push([`Jilid: ${currentKelasLabel.value}`]);
+  rows.push([`Tahun Ajaran: ${appTahunAjaran.value || '2026/2027'}`]);
+  rows.push([`Tanggal Unduh: ${formattedCurrentDate.value}`]);
+  rows.push([]);
 
+  // Table Headers
+  const header = ['No', 'NISN', 'Nama Santri', 'Jilid'];
+  for (let d = 1; d <= daysInMonth.value; d++) {
+    header.push(`Tgl ${d}`);
+  }
+  header.push('Hadir (H)', 'Terlambat (T)', 'Sakit (S)', 'Izin (I)', 'Alpa (A)', 'Persentase (%)');
+  rows.push(header);
+
+  let totalH = 0;
+  let totalT = 0;
+  let totalS = 0;
+  let totalI = 0;
+  let totalA = 0;
+  let totalPersen = 0;
+
+  // Data Rows
   matrixData.value.forEach((row, idx) => {
-    csv += `"${idx + 1}","${row.nisn}","${row.nama_lengkap}","${row.nama_kelas || '-'}",`;
+    const r = [
+      idx + 1,
+      `'${row.nisn}`,
+      row.nama_lengkap,
+      row.nama_kelas || '-',
+    ];
     for (let d = 1; d <= daysInMonth.value; d++) {
-      csv += `"${row.daily[d] || '-'}",`;
+      r.push(row.daily[d] || '-');
     }
-    csv += `"${row.summary.hadir}","${row.summary.terlambat}","${row.summary.sakit}","${row.summary.izin}","${row.summary.alpa}","${row.summary.persentase}%"\n`;
+    r.push(
+      row.summary.hadir,
+      row.summary.terlambat,
+      row.summary.sakit,
+      row.summary.izin,
+      row.summary.alpa,
+      `${row.summary.persentase}%`
+    );
+    rows.push(r);
+
+    totalH += Number(row.summary.hadir) || 0;
+    totalT += Number(row.summary.terlambat) || 0;
+    totalS += Number(row.summary.sakit) || 0;
+    totalI += Number(row.summary.izin) || 0;
+    totalA += Number(row.summary.alpa) || 0;
+    totalPersen += Number(row.summary.persentase) || 0;
   });
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  // Total & Rata-rata
+  const avgPersen = matrixData.value.length > 0 ? (totalPersen / matrixData.value.length).toFixed(1) : 0;
+  const summaryRow = ['TOTAL / RATA-RATA', '', '', ''];
+  for (let d = 1; d <= daysInMonth.value; d++) {
+    summaryRow.push('');
+  }
+  summaryRow.push(totalH, totalT, totalS, totalI, totalA, `${avgPersen}%`);
+  rows.push(summaryRow);
+
+  rows.push([]);
+  rows.push(['KETERANGAN STATUS:']);
+  rows.push(['H = Hadir', 'T = Terlambat', 'S = Sakit', 'I = Izin', 'A = Alpa']);
+  rows.push([]);
+  rows.push(['Mengetahui,', '', '', 'Wali Jilid / Pengampu,']);
+  rows.push(['Kepala TPQ', '', '', currentKelasLabel.value]);
+  rows.push([]);
+  rows.push([]);
+  rows.push(['( Ny. Shofiyah )', '', '', `( ${ustadzPengampuName.value} )`]);
+
+  // Convert to CSV string with escaping
+  const csvContent = rows
+    .map(row => row.map(cell => {
+      const str = String(cell ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return `"${str}"`;
+    }).join(','))
+    .join('\r\n');
+
+  // Add BOM \uFEFF for proper UTF-8 Excel handling
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
   const filenamePrefix = !canFilterAllKelas.value && user.value?.nama_kelas
-    ? `Rekap_Matrix_${user.value.nama_kelas.replace(/\s+/g, '_')}`
-    : 'Rekap_Matrix_Absensi';
+    ? `Rekap_Presensi_${user.value.nama_kelas.replace(/\s+/g, '_')}`
+    : 'Rekap_Presensi_Santri';
   link.setAttribute('download', `${filenamePrefix}_${selectedBulan.value}_${selectedTahun.value}.csv`);
   document.body.appendChild(link);
   link.click();
@@ -450,7 +524,12 @@ onMounted(async () => {
 @media print {
   @page {
     size: landscape;
-    margin: 8mm 6mm 10mm 6mm;
+    margin: 6mm 5mm 6mm 5mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   :deep(table) {
@@ -462,6 +541,12 @@ onMounted(async () => {
   :deep(td) {
     border: 1px solid #111827 !important;
     color: #111827 !important;
+    line-height: 1.15 !important;
+  }
+
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 }
 </style>
