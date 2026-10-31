@@ -77,7 +77,7 @@
         </DropdownMenu>
       </header>
 
-      <main class="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 pt-1 sm:pt-4 pb-6 print:p-0 print:overflow-visible">
+      <main class="flex-1 overflow-y-auto px-4 pt-2.5 pb-6 sm:px-6 lg:px-8 print:p-0 print:overflow-visible">
         <router-view />
       </main>
     </div>
