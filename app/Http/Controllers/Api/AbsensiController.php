@@ -63,9 +63,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
-        // Guru dengan kelompok binaan khusus (putra/putri) selalu dikunci ke gender binaannya
+        // Default filter gender mengikuti kelompok binaan guru jika parameter tidak dikirimkan, namun tetap fleksibel jika guru memilih opsi lain
         $jenisKelamin = $request->input('jenis_kelamin');
-        if ($user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if (! $request->has('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 
@@ -100,9 +100,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
-        // Guru dengan kelompok binaan khusus (putra/putri) selalu dikunci ke gender binaannya
+        // Default filter gender mengikuti kelompok binaan guru jika parameter tidak dikirimkan, namun tetap fleksibel jika guru memilih opsi lain
         $jenisKelamin = $request->input('jenis_kelamin');
-        if ($user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if (! $request->has('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 

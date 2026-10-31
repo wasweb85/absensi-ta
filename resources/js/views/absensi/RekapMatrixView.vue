@@ -54,13 +54,12 @@
           </option>
         </select>
 
-        <!-- Gender Filter Select (terkunci otomatis untuk guru dengan kelompok binaan khusus) -->
+        <!-- Gender Filter Select (Otomatis terpilih sesuai kelompok binaan guru, tetap fleksibel dapat diubah) -->
         <select
           id="selectGender"
           v-model="selectedGender"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           title="Pilih Kelompok Gender"
-          :disabled="isGenderLocked"
           @change="loadMatrix"
         >
           <option value="">Semua Gender</option>
@@ -357,8 +356,6 @@ const currentKelasLabel = computed(() => {
   return label;
 });
 
-const isGenderLocked = computed(() => role.value === 'guru' && ['L', 'P'].includes(user.value?.gender_binaan));
-
 const EMPTY_SIGNATURE = '............................................';
 
 /**
@@ -426,6 +423,7 @@ const loadMatrix = async () => {
     const params = {
       bulan: selectedBulan.value,
       tahun: selectedTahun.value,
+      jenis_kelamin: selectedGender.value || '',
     };
 
     if (canFilterAllKelas.value) {
@@ -436,10 +434,6 @@ const loadMatrix = async () => {
       if (user.value?.id_kelas) {
         params.id_kelas = user.value.id_kelas;
       }
-    }
-
-    if (selectedGender.value) {
-      params.jenis_kelamin = selectedGender.value;
     }
 
     const res = await api.get('/absensi/matrix', { params });

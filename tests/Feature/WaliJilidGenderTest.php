@@ -182,7 +182,7 @@ class WaliJilidGenderTest extends TestCase
             ->assertJsonPath('data.wali_info.nama_kelas', 'Al-Quran');
     }
 
-    public function test_guru_with_specific_binaan_is_locked_to_that_gender(): void
+    public function test_guru_with_specific_binaan_defaults_to_their_binaan_but_remains_flexible_when_specified(): void
     {
         $kelas = Kelas::create(['nama_kelas' => 'JILID 3', 'warna_label' => '#2563eb']);
         $guruPutri = User::factory()->create([
@@ -199,10 +199,31 @@ class WaliJilidGenderTest extends TestCase
             'status' => 'aktif',
         ]);
 
-        $res = $this->actingAs($guruPutri, 'sanctum')->getJson('/api/absensi/matrix?jenis_kelamin=L&bulan=10&tahun=2026');
+        $santriPutri = Siswa::create([
+            'nisn' => '3002',
+            'nama_lengkap' => 'Aisyah Santri',
+            'jenis_kelamin' => 'P',
+            'id_kelas' => $kelas->id,
+            'status' => 'aktif',
+        ]);
 
-        $res->assertOk();
-        $this->assertFalse(collect($res->json('data.data'))->contains('id_siswa', $santriPutra->id));
+        // 1. Tanpa parameter jenis_kelamin: otomatis default ke binaan guru (Putri)
+        $resDefault = $this->actingAs($guruPutri, 'sanctum')->getJson('/api/absensi/matrix?bulan=10&tahun=2026');
+        $resDefault->assertOk();
+        $this->assertFalse(collect($resDefault->json('data.data'))->contains('id_siswa', $santriPutra->id));
+        $this->assertTrue(collect($resDefault->json('data.data'))->contains('id_siswa', $santriPutri->id));
+
+        // 2. Jika guru secara fleksibel memilih jenis_kelamin=L (Putra)
+        $resL = $this->actingAs($guruPutri, 'sanctum')->getJson('/api/absensi/matrix?jenis_kelamin=L&bulan=10&tahun=2026');
+        $resL->assertOk();
+        $this->assertTrue(collect($resL->json('data.data'))->contains('id_siswa', $santriPutra->id));
+        $this->assertFalse(collect($resL->json('data.data'))->contains('id_siswa', $santriPutri->id));
+
+        // 3. Jika guru memilih semua gender (jenis_kelamin kosong)
+        $resAll = $this->actingAs($guruPutri, 'sanctum')->getJson('/api/absensi/matrix?jenis_kelamin=&bulan=10&tahun=2026');
+        $resAll->assertOk();
+        $this->assertTrue(collect($resAll->json('data.data'))->contains('id_siswa', $santriPutra->id));
+        $this->assertTrue(collect($resAll->json('data.data'))->contains('id_siswa', $santriPutri->id));
     }
 
     public function test_profile_endpoint_returns_gender_binaan(): void

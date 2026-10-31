@@ -43,14 +43,13 @@
         </select>
       </div>
 
-      <!-- Gender Filter Select -->
+      <!-- Gender Filter Select (Otomatis terpilih sesuai kelompok binaan guru, tetap fleksibel dapat diubah) -->
       <div class="lg:col-span-2">
         <select
           id="filterGender"
           v-model="selectedGender"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           title="Pilih Kelompok Gender"
-          :disabled="isGenderLocked"
           @change="loadMonitoring"
         >
           <option value="">Semua Gender</option>
@@ -310,7 +309,6 @@ import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
 const { user, canEditAbsensi, canScanQr, fetchUser } = useAuth();
-const isGenderLocked = computed(() => user.value?.role === 'guru' && ['L', 'P'].includes(user.value?.gender_binaan));
 
 const loading = ref(true);
 const filterDate = ref(new Date().toISOString().split('T')[0]);
@@ -509,12 +507,12 @@ const loadKelas = async () => {
 const loadMonitoring = async () => {
   loading.value = true;
   try {
-    const params = { tanggal: filterDate.value };
+    const params = {
+      tanggal: filterDate.value,
+      jenis_kelamin: selectedGender.value || '',
+    };
     if (selectedKelas.value) {
       params.id_kelas = selectedKelas.value;
-    }
-    if (selectedGender.value) {
-      params.jenis_kelamin = selectedGender.value;
     }
     const res = await api.get('/absensi/monitoring', { params });
     if (res.data.success) {
