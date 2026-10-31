@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ScanAbsensiRequest;
 use App\Models\Absensi;
+use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\User;
@@ -62,8 +63,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
+        // Guru dengan kelompok binaan khusus (putra/putri) selalu dikunci ke gender binaannya
         $jenisKelamin = $request->input('jenis_kelamin');
-        if (! $request->filled('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if ($user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 
@@ -98,8 +100,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
+        // Guru dengan kelompok binaan khusus (putra/putri) selalu dikunci ke gender binaannya
         $jenisKelamin = $request->input('jenis_kelamin');
-        if (! $request->filled('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if ($user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 
@@ -111,11 +114,12 @@ class AbsensiController extends Controller
 
         $waliInfo = null;
         if ($idKelas && $idKelas !== -1) {
-            $teachers = User::where('id_kelas', $idKelas)->get();
+            $teachers = User::where('id_kelas', $idKelas)->where('role', 'guru')->get();
             $waliInfo = [
+                'nama_kelas' => Kelas::find($idKelas)?->nama_kelas,
                 'wali_putra' => $teachers->firstWhere('gender_binaan', 'L')?->name,
                 'wali_putri' => $teachers->firstWhere('gender_binaan', 'P')?->name,
-                'wali_umum' => $teachers->firstWhere('gender_binaan', 'all')?->name,
+                'wali_umum' => $teachers->first(fn (User $u) => in_array($u->gender_binaan, ['all', null, ''], true))?->name,
             ];
         }
 

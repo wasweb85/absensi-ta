@@ -102,10 +102,13 @@ export function useAuth() {
                 return user.value;
             }
         } catch (e) {
-            token.value = null;
-            user.value = null;
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
+            // Hanya hapus sesi jika token benar-benar tidak valid (bukan karena jaringan terputus)
+            if (e.response?.status === 401) {
+                token.value = null;
+                user.value = null;
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_user');
+            }
         }
         return null;
     };

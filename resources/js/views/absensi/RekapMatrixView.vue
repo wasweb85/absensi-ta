@@ -50,16 +50,17 @@
         >
           <option value="">Semua Jilid</option>
           <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
+            {{ k.nama_kelas }}
           </option>
         </select>
 
-        <!-- Gender Filter Select -->
+        <!-- Gender Filter Select (terkunci otomatis untuk guru dengan kelompok binaan khusus) -->
         <select
           id="selectGender"
           v-model="selectedGender"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
           title="Pilih Kelompok Gender"
+          :disabled="isGenderLocked"
           @change="loadMatrix"
         >
           <option value="">Semua Gender</option>
@@ -251,13 +252,19 @@
         <p class="text-[8px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
       </div>
 
-      <!-- Sisi Kanan: Wali Jilid / Ustadz Pengampu -->
-      <div class="text-center min-w-[170px]">
-        <p class="font-normal">{{ formattedCurrentDate }}</p>
-        <p class="font-semibold">Wali Jilid / Ustadz Pengampu</p>
-        <div class="h-10"></div>
-        <p class="font-bold underline tracking-wide">( {{ ustadzPengampuName }} )</p>
-        <p class="text-[8px] text-neutral-600 mt-0.5">Wali {{ currentKelasLabel }}</p>
+      <!-- Sisi Kanan: Wali Jilid (satu wali campur, atau wali putra & putri) -->
+      <div class="flex items-start gap-10">
+        <div
+          v-for="(wali, idx) in waliSignatories"
+          :key="idx"
+          class="text-center min-w-[170px]"
+        >
+          <p class="font-normal" :class="{ invisible: idx < waliSignatories.length - 1 }">{{ formattedCurrentDate }}</p>
+          <p class="font-semibold">{{ wali.jabatan }}</p>
+          <div class="h-10"></div>
+          <p class="font-bold underline tracking-wide">( {{ wali.nama }} )</p>
+          <p class="text-[8px] text-neutral-600 mt-0.5">{{ wali.keterangan }}</p>
+        </div>
       </div>
     </div>
 
@@ -315,7 +322,7 @@ import { useToast } from '@/composables/useToast';
 import { useAppConfig } from '@/composables/useAppConfig';
 
 const toast = useToast();
-const { user, role } = useAuth();
+const { user, role, fetchUser } = useAuth();
 const { appName, appLogo, appAddress, appContact, appTahunAjaran } = useAppConfig();
 
 const canFilterAllKelas = computed(() => ['admin', 'kepala', 'sekretaris'].includes(role.value));
@@ -335,12 +342,10 @@ const currentKelasLabel = computed(() => {
   if (canFilterAllKelas.value) {
     if (selectedKelas.value) {
       const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
-      label = found ? found.nama_kelas : 'Jilid';
+      label = found?.nama_kelas || waliInfo.value?.nama_kelas || 'Jilid';
     }
-  } else if (user.value?.nama_kelas) {
-    label = user.value.nama_kelas.toLowerCase().startsWith('jilid')
-      ? user.value.nama_kelas
-      : `Jilid ${user.value.nama_kelas}`;
+  } else {
+    label = waliInfo.value?.nama_kelas || user.value?.nama_kelas || 'Jilid';
   }
 
   if (selectedGender.value === 'L') {
@@ -352,34 +357,38 @@ const currentKelasLabel = computed(() => {
   return label;
 });
 
-const ustadzPengampuName = computed(() => {
+const isGenderLocked = computed(() => role.value === 'guru' && ['L', 'P'].includes(user.value?.gender_binaan));
+
+const EMPTY_SIGNATURE = '............................................';
+
+/**
+ * Daftar penandatangan wali jilid. Diambil hanya dari akun guru (bukan santri) pada jilid terpilih.
+ * - Filter Putra/Putri  -> wali sesuai gender (fallback ke wali campur)
+ * - Semua gender        -> wali campur, atau wali putra & putri berdampingan jika jilid dipisah
+ */
+const waliSignatories = computed(() => {
+  const info = waliInfo.value || {};
+  const kelasName = currentKelasLabel.value;
+
   if (selectedGender.value === 'L') {
-    return (
-      waliInfo.value?.wali_putra ||
-      (user.value?.gender_binaan === 'L' ? user.value.name : '............................................')
-    );
+    return [{ jabatan: 'Wali Jilid Putra', nama: info.wali_putra || info.wali_umum || EMPTY_SIGNATURE, keterangan: `Wali ${kelasName}` }];
   }
   if (selectedGender.value === 'P') {
-    return (
-      waliInfo.value?.wali_putri ||
-      (user.value?.gender_binaan === 'P' ? user.value.name : '............................................')
-    );
+    return [{ jabatan: 'Wali Jilid Putri', nama: info.wali_putri || info.wali_umum || EMPTY_SIGNATURE, keterangan: `Wali ${kelasName}` }];
   }
 
-  if (waliInfo.value?.wali_umum) {
-    return waliInfo.value.wali_umum;
+  if (info.wali_umum) {
+    return [{ jabatan: 'Wali Jilid', nama: info.wali_umum, keterangan: `Wali ${kelasName}` }];
   }
 
-  if (!canFilterAllKelas.value) {
-    return user.value?.name || '............................................';
+  if (info.wali_putra || info.wali_putri) {
+    return [
+      { jabatan: 'Wali Jilid Putra', nama: info.wali_putra || EMPTY_SIGNATURE, keterangan: `Wali ${kelasName} (Putra)` },
+      { jabatan: 'Wali Jilid Putri', nama: info.wali_putri || EMPTY_SIGNATURE, keterangan: `Wali ${kelasName} (Putri)` },
+    ];
   }
 
-  if (selectedKelas.value) {
-    const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
-    if (found?.wali_kelas) return found.wali_kelas;
-  }
-
-  return '............................................';
+  return [{ jabatan: 'Wali Jilid', nama: EMPTY_SIGNATURE, keterangan: `Wali ${kelasName}` }];
 });
 
 const formattedCurrentDate = computed(() => {
@@ -527,11 +536,14 @@ const exportCsv = () => {
   rows.push(['KETERANGAN STATUS:']);
   rows.push(['H = Hadir', 'T = Terlambat', 'S = Sakit', 'I = Izin', 'A = Alpa']);
   rows.push([]);
-  rows.push(['Mengetahui,', '', '', 'Wali Jilid / Pengampu,']);
-  rows.push(['Kepala TPQ', '', '', `Wali ${currentKelasLabel.value}`]);
+  const walis = waliSignatories.value;
+  const waliCols = (pick) => walis.flatMap((w) => [pick(w), '']);
+  rows.push(['Mengetahui,', '', '', ...walis.flatMap((w, i) => [i === walis.length - 1 ? formattedCurrentDate.value : '', ''])]);
+  rows.push(['Kepala TPQ', '', '', ...waliCols((w) => w.jabatan)]);
   rows.push([]);
   rows.push([]);
-  rows.push(['( Ny. Shofiyah )', '', '', `( ${ustadzPengampuName.value} )`]);
+  rows.push(['( Ny. Shofiyah )', '', '', ...waliCols((w) => `( ${w.nama} )`)]);
+  rows.push(["Kepala TPQ Nurul Mun'im", '', '', ...waliCols((w) => w.keterangan)]);
 
   // Convert to CSV string with escaping
   const csvContent = rows
@@ -564,8 +576,11 @@ onMounted(async () => {
   if (!canFilterAllKelas.value) {
     selectedKelas.value = user.value?.id_kelas || '';
   }
-  if (user.value?.role === 'guru' && user.value?.gender_binaan && user.value.gender_binaan !== 'all') {
-    selectedGender.value = user.value.gender_binaan;
+  if (role.value === 'guru') {
+    // Ambil profil terbaru agar perubahan kelompok binaan oleh admin langsung berlaku
+    await fetchUser();
+    const binaan = user.value?.gender_binaan;
+    selectedGender.value = ['L', 'P'].includes(binaan) ? binaan : '';
   }
   await Promise.all([
     canFilterAllKelas.value ? loadKelas() : Promise.resolve(),

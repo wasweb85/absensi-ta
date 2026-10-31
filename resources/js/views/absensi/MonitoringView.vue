@@ -38,7 +38,7 @@
         >
           <option value="">Semua Jilid</option>
           <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ k.nama_kelas }} ({{ k.wali_kelas || 'Wali -' }})
+            {{ k.nama_kelas }}
           </option>
         </select>
       </div>
@@ -48,8 +48,9 @@
         <select
           id="filterGender"
           v-model="selectedGender"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
           title="Pilih Kelompok Gender"
+          :disabled="isGenderLocked"
           @change="loadMonitoring"
         >
           <option value="">Semua Gender</option>
@@ -308,7 +309,8 @@ import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 
 const toast = useToast();
-const { user, canEditAbsensi, canScanQr } = useAuth();
+const { user, canEditAbsensi, canScanQr, fetchUser } = useAuth();
+const isGenderLocked = computed(() => user.value?.role === 'guru' && ['L', 'P'].includes(user.value?.gender_binaan));
 
 const loading = ref(true);
 const filterDate = ref(new Date().toISOString().split('T')[0]);
@@ -530,8 +532,11 @@ onMounted(async () => {
   if (user.value?.id_kelas && !selectedKelas.value) {
     selectedKelas.value = user.value.id_kelas;
   }
-  if (user.value?.role === 'guru' && user.value?.gender_binaan && user.value.gender_binaan !== 'all') {
-    selectedGender.value = user.value.gender_binaan;
+  if (user.value?.role === 'guru') {
+    // Ambil profil terbaru agar perubahan kelompok binaan oleh admin langsung berlaku
+    await fetchUser();
+    const binaan = user.value?.gender_binaan;
+    selectedGender.value = ['L', 'P'].includes(binaan) ? binaan : '';
   }
   await Promise.all([loadKelas(), loadMonitoring()]);
 });

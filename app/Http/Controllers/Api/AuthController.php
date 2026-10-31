@@ -50,6 +50,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'id_kelas' => $user->id_kelas,
                 'nama_kelas' => $user->kelas?->nama_kelas,
+                'gender_binaan' => $user->gender_binaan ?? 'all',
                 'nisn' => $user->nisn,
             ],
         ]);
@@ -71,6 +72,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'id_kelas' => $user->id_kelas,
                 'nama_kelas' => $user->kelas?->nama_kelas,
+                'gender_binaan' => $user->gender_binaan ?? 'all',
                 'nisn' => $user->nisn,
                 'siswa' => $user->siswa,
             ],

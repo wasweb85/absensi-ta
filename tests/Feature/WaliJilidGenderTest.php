@@ -155,4 +155,80 @@ class WaliJilidGenderTest extends TestCase
         $this->assertTrue($matrixStudents->contains('id_siswa', $santriPutri->id));
         $this->assertFalse($matrixStudents->contains('id_siswa', $santriPutra->id));
     }
+
+    public function test_matrix_wali_info_ignores_santri_accounts_in_same_jilid(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kelas = Kelas::create(['nama_kelas' => 'Al-Quran', 'warna_label' => '#2563eb']);
+
+        // Akun santri lama (role siswa) yang terdaftar di jilid yang sama, default gender_binaan = all
+        User::factory()->create([
+            'name' => 'Mahadma Muhammad',
+            'role' => 'siswa',
+            'id_kelas' => $kelas->id,
+        ]);
+
+        User::factory()->create([
+            'name' => 'Ustadzah Dinil',
+            'role' => 'guru',
+            'id_kelas' => $kelas->id,
+            'gender_binaan' => 'all',
+        ]);
+
+        $res = $this->actingAs($admin, 'sanctum')->getJson("/api/absensi/matrix?id_kelas={$kelas->id}&bulan=10&tahun=2026");
+
+        $res->assertOk()
+            ->assertJsonPath('data.wali_info.wali_umum', 'Ustadzah Dinil')
+            ->assertJsonPath('data.wali_info.nama_kelas', 'Al-Quran');
+    }
+
+    public function test_guru_with_specific_binaan_is_locked_to_that_gender(): void
+    {
+        $kelas = Kelas::create(['nama_kelas' => 'JILID 3', 'warna_label' => '#2563eb']);
+        $guruPutri = User::factory()->create([
+            'role' => 'guru',
+            'id_kelas' => $kelas->id,
+            'gender_binaan' => 'P',
+        ]);
+
+        $santriPutra = Siswa::create([
+            'nisn' => '3001',
+            'nama_lengkap' => 'Budi Santri',
+            'jenis_kelamin' => 'L',
+            'id_kelas' => $kelas->id,
+            'status' => 'aktif',
+        ]);
+
+        $res = $this->actingAs($guruPutri, 'sanctum')->getJson('/api/absensi/matrix?jenis_kelamin=L&bulan=10&tahun=2026');
+
+        $res->assertOk();
+        $this->assertFalse(collect($res->json('data.data'))->contains('id_siswa', $santriPutra->id));
+    }
+
+    public function test_profile_endpoint_returns_gender_binaan(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru', 'gender_binaan' => 'P']);
+
+        $this->actingAs($guru, 'sanctum')
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('user.gender_binaan', 'P');
+    }
+
+    public function test_kelas_index_shows_dual_wali_label_from_guru_data(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kelas = Kelas::create(['nama_kelas' => 'JILID 3', 'warna_label' => '#2563eb', 'wali_kelas' => 'Nama Lama']);
+
+        User::factory()->create(['name' => 'Ustadz Fairus', 'role' => 'guru', 'id_kelas' => $kelas->id, 'gender_binaan' => 'L']);
+        User::factory()->create(['name' => 'Ustadzah Siti', 'role' => 'guru', 'id_kelas' => $kelas->id, 'gender_binaan' => 'P']);
+
+        $res = $this->actingAs($admin, 'sanctum')->getJson('/api/kelas');
+
+        $res->assertOk();
+        $this->assertSame(
+            'Ustadz Fairus (Putra) & Ustadzah Siti (Putri)',
+            collect($res->json('data'))->firstWhere('id', $kelas->id)['wali_kelas']
+        );
+    }
 }

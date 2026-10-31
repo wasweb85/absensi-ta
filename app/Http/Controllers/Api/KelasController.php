@@ -14,13 +14,17 @@ class KelasController extends Controller
     {
         $kelas = Kelas::with(['guru' => function ($q) {
             $q->select('id', 'name', 'username', 'email', 'role', 'id_kelas');
-        }])->withCount('siswa')->orderBy('urutan')->get();
+        }, 'waliGuru'])->withCount('siswa')->orderBy('urutan')->get();
 
-        // Pastikan atribut wali_kelas konsisten dengan relasi guru tanpa memicu query UPDATE di GET request
+        // Label wali jilid diturunkan dari data guru (putra/putri/campur) tanpa memicu query UPDATE di GET request
         foreach ($kelas as $item) {
-            if ($item->guru && $item->wali_kelas !== $item->guru->name) {
+            $label = Kelas::buildWaliLabel($item->waliGuru);
+            if ($label !== null) {
+                $item->wali_kelas = $label;
+            } elseif ($item->guru) {
                 $item->wali_kelas = $item->guru->name;
             }
+            $item->unsetRelation('waliGuru');
         }
 
         return response()->json([

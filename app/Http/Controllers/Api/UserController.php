@@ -250,26 +250,7 @@ class UserController extends Controller
             return;
         }
 
-        $waliAll = $teachers->first(fn ($u) => $u->gender_binaan === 'all' || empty($u->gender_binaan));
-        if ($waliAll) {
-            $kelas->update(['wali_kelas' => $waliAll->name]);
-
-            return;
-        }
-
-        $putra = $teachers->firstWhere('gender_binaan', 'L');
-        $putri = $teachers->firstWhere('gender_binaan', 'P');
-
-        $label = null;
-        if ($putra && $putri) {
-            $label = "{$putra->name} (Putra) & {$putri->name} (Putri)";
-        } elseif ($putra) {
-            $label = "{$putra->name} (Putra)";
-        } elseif ($putri) {
-            $label = "{$putri->name} (Putri)";
-        }
-
-        $kelas->update(['wali_kelas' => $label]);
+        $kelas->update(['wali_kelas' => Kelas::buildWaliLabel($teachers)]);
     }
 
     /**

@@ -66,9 +66,9 @@
         </CardHeader>
 
         <CardContent class="py-2 text-xs space-y-1.5 border-t">
-          <div class="flex items-center justify-between pt-2">
-            <span class="text-muted-foreground text-[11px]">Wali Jilid:</span>
-            <span class="font-medium text-foreground text-[11px] truncate max-w-[170px]">
+          <div class="flex items-start justify-between gap-3 pt-2">
+            <span class="text-muted-foreground text-[11px] shrink-0">Wali Jilid:</span>
+            <span class="font-medium text-foreground text-[11px] text-right">
               {{ k.wali_kelas || '-' }}
             </span>
           </div>
@@ -113,7 +113,7 @@
             {{ isEditing ? 'Edit Data Jilid' : 'Tambah Jilid Baru' }}
           </DialogTitle>
           <DialogDescription class="text-xs">
-            Lengkapi nama tingkatan jilid, nomor urutan, dan identitas wali jilid.
+            Lengkapi nama tingkatan jilid dan nomor urutan. Wali jilid diatur dari menu Data Guru.
           </DialogDescription>
         </DialogHeader>
 
@@ -143,14 +143,13 @@
           </div>
 
           <div class="space-y-1.5">
-            <Label for="waliKelas" class="text-xs font-medium">Nama Wali Jilid / Guru</Label>
-            <Input
-              id="waliKelas"
-              v-model="form.wali_kelas"
-              type="text"
-              placeholder="Contoh: Ustadzah Fatimah"
-              class="h-9 text-xs"
-            />
+            <Label class="text-xs font-medium">Wali Jilid</Label>
+            <p class="flex min-h-9 items-center rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              {{ currentWaliLabel || 'Belum ada wali — atur melalui menu Data Guru' }}
+            </p>
+            <p class="text-[10px] text-muted-foreground">
+              Wali jilid (putra, putri, atau campur) ditentukan otomatis dari penugasan di menu Data Guru.
+            </p>
           </div>
 
           <div class="space-y-1.5">
@@ -252,11 +251,11 @@ const presetColors = ['#f44336', '#e91e63', '#f2a93b', '#2196f3', '#4caf50', '#9
 
 const form = ref({
   nama_kelas: '',
-  wali_kelas: '',
   no_hp_wali: '',
   warna_label: '#059669',
   urutan: 1,
 });
+const currentWaliLabel = ref('');
 
 async function loadKelas() {
   isLoading.value = true;
@@ -276,11 +275,11 @@ function openAddModal() {
   editingId.value = null;
   form.value = {
     nama_kelas: '',
-    wali_kelas: '',
     no_hp_wali: '',
     warna_label: '#059669',
     urutan: kelasList.value.length + 1,
   };
+  currentWaliLabel.value = '';
   showModal.value = true;
 }
 
@@ -289,11 +288,11 @@ function openEditModal(k) {
   editingId.value = k.id;
   form.value = {
     nama_kelas: k.nama_kelas,
-    wali_kelas: k.wali_kelas || '',
     no_hp_wali: k.no_hp_wali || '',
     warna_label: k.warna_label || '#059669',
     urutan: k.urutan || 1,
   };
+  currentWaliLabel.value = k.wali_kelas || '';
   showModal.value = true;
 }
 
