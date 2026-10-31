@@ -131,15 +131,31 @@
               {{ getRoleLabel(u.role) }}
             </Badge>
 
-            <Badge
-              v-if="u.kelas"
-              variant="outline"
-              class="text-[10px] font-medium"
-            >
-              Wali {{ u.kelas.nama_kelas }}
-            </Badge>
+            <template v-if="u.nama_kelas || u.kelas?.nama_kelas">
+              <Badge
+                v-if="u.gender_binaan === 'L'"
+                variant="outline"
+                class="text-[10px] font-medium border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
+              >
+                {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putra)
+              </Badge>
+              <Badge
+                v-else-if="u.gender_binaan === 'P'"
+                variant="outline"
+                class="text-[10px] font-medium border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+              >
+                {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putri)
+              </Badge>
+              <Badge
+                v-else
+                variant="outline"
+                class="text-[10px] font-medium"
+              >
+                {{ u.nama_kelas || u.kelas?.nama_kelas }}
+              </Badge>
+            </template>
             <span v-else class="text-[10px] text-muted-foreground">
-              Tidak Mengajar
+              -
             </span>
           </div>
 
@@ -299,6 +315,19 @@
             </div>
           </div>
 
+          <div v-if="form.id_kelas && !isRoleNonTeaching" class="space-y-1.5">
+            <Label for="userGenderBinaan" class="text-xs font-medium">Kelompok Binaan</Label>
+            <select
+              id="userGenderBinaan"
+              v-model="form.gender_binaan"
+              class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="all">Semua Santri / Campur (Jilid 1 & 2)</option>
+              <option value="L">Khusus Santri Putra (Ustadz)</option>
+              <option value="P">Khusus Santri Putri (Ustadzah)</option>
+            </select>
+          </div>
+
           <div v-if="isRoleNonTeaching" class="p-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-[11px] text-indigo-700 dark:text-indigo-400">
             Jabatan <strong>{{ getRoleLabel(form.role) }}</strong> tidak memegang jilid mengajar langsung.
           </div>
@@ -389,6 +418,7 @@ const form = ref({
   password: '',
   role: 'guru',
   id_kelas: null,
+  gender_binaan: 'all',
 });
 
 const isRoleNonTeaching = computed(() => {
@@ -398,6 +428,7 @@ const isRoleNonTeaching = computed(() => {
 function handleRoleChange() {
   if (isRoleNonTeaching.value) {
     form.value.id_kelas = null;
+    form.value.gender_binaan = 'all';
   }
 }
 
@@ -444,7 +475,10 @@ async function loadUsers() {
         search: searchQuery.value || undefined,
       }
     });
-    usersList.value = res.data.data || [];
+    usersList.value = (res.data.data || []).map(u => ({
+      ...u,
+      nama_kelas: u.nama_kelas || u.kelas?.nama_kelas || null,
+    }));
   } catch (err) {
     toast.error('Gagal memuat daftar guru dan pengurus.');
   } finally {
@@ -469,9 +503,12 @@ function openAddModal() {
     password: '',
     role: 'guru',
     id_kelas: null,
+    gender_binaan: 'all',
   };
   showModal.value = true;
 }
+
+const openCreateModal = openAddModal;
 
 function openEditModal(u) {
   isEditing.value = true;
@@ -483,6 +520,7 @@ function openEditModal(u) {
     password: '',
     role: u.role,
     id_kelas: u.id_kelas || null,
+    gender_binaan: u.gender_binaan || 'all',
   };
   showModal.value = true;
 }
@@ -491,6 +529,15 @@ function closeModal() {
   showModal.value = false;
   isEditing.value = false;
   editingId.value = null;
+  form.value = {
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'guru',
+    id_kelas: null,
+    gender_binaan: 'all',
+  };
 }
 
 async function saveUser() {
