@@ -100,7 +100,7 @@
               }"
             >
               <!-- HTML5 QR Container -->
-              <div id="reader" class="w-full h-full max-w-md mx-auto"></div>
+              <div id="reader" class="w-full min-h-[300px] max-w-md mx-auto"></div>
 
               <!-- Viewfinder Laser & Corners when active -->
               <div v-if="cameraActive && !cameraLoading" class="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -135,7 +135,7 @@
                   size="sm"
                   class="mt-4 gap-2 text-xs"
                   :disabled="cameraLoading"
-                  @click="startCamera"
+                  @click="startCamera()"
                 >
                   <Camera class="size-3.5" />
                   <span>Nyalakan Kamera Sekarang</span>
@@ -166,7 +166,7 @@
                     variant="outline"
                     size="sm"
                     class="h-7 text-xs border-destructive/40 hover:bg-destructive/10"
-                    @click="startCamera"
+                    @click="startCamera()"
                   >
                     Coba Sambungkan Lagi
                   </Button>
@@ -520,10 +520,51 @@ const handleCameraScan = (decodedText) => {
   executeScan(code, 'qr_kamera');
 };
 
+let isStartingCamera = false;
+
+const refreshCameraDevices = async () => {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const allDevices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = allDevices
+      .filter((d) => d.kind === 'videoinput' && d.deviceId)
+      .map((d, idx) => ({
+        id: d.deviceId,
+        label: d.label || `Kamera ${idx + 1}`,
+      }));
+    if (videoDevices.length > 0) {
+      cameras.value = videoDevices;
+    }
+  } catch (e) {
+    console.warn('Gagal membaca daftar perangkat kamera:', e);
+  }
+};
+
 const cleanHtml5QrCode = async () => {
+  let hadActiveStream = false;
+
+  const readerEl = document.getElementById('reader');
+  if (readerEl) {
+    const videos = readerEl.querySelectorAll('video');
+    videos.forEach((v) => {
+      if (v.srcObject) {
+        try {
+          const tracks = v.srcObject.getTracks();
+          tracks.forEach((t) => {
+            t.enabled = false;
+            t.stop();
+          });
+          v.srcObject = null;
+          hadActiveStream = true;
+        } catch (e) {}
+      }
+    });
+  }
+
   if (html5QrCode) {
     try {
       if (html5QrCode.isScanning) {
+        hadActiveStream = true;
         await html5QrCode.stop();
       }
       html5QrCode.clear();
@@ -533,163 +574,192 @@ const cleanHtml5QrCode = async () => {
     html5QrCode = null;
   }
 
-  const readerEl = document.getElementById('reader');
   if (readerEl) {
     readerEl.innerHTML = '';
+  }
+
+  // Beri jeda agar driver hardware kamera pada HP Android/iOS benar-benar melepaskan lock
+  if (hadActiveStream) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
   }
 };
 
 const startCamera = async (forceMode = null) => {
+  if (isStartingCamera) return;
+  isStartingCamera = true;
+
   cameraError.value = '';
   cameraLoading.value = true;
   cameraActive.value = true;
 
-  if (forceMode) {
-    selectedCameraMode.value = forceMode;
-  }
-
-  await nextTick();
-  await cleanHtml5QrCode();
-
-  // Ambil daftar kamera jika belum pernah diambil
   try {
-    const devices = await Html5Qrcode.getCameras();
-    if (devices && devices.length > 0) {
-      cameras.value = devices;
-    }
-  } catch (e) {
-    console.warn('Gagal deteksi kamera awal:', e);
-  }
-
-  const mode = selectedCameraMode.value || 'environment';
-  const strategies = [];
-
-  const isSpecificDevice = mode !== 'environment' && mode !== 'user';
-  if (isSpecificDevice) {
-    strategies.push({ name: 'specific_device', camera: mode });
-  } else if (mode === 'environment') {
-    // 1. Prioritas utama: facingMode 'environment' (kamera belakang)
-    strategies.push({ name: 'facingMode_environment', camera: { facingMode: 'environment' } });
-
-    // 2. Coba cari device yang labelnya menandakan kamera belakang
-    const backCam = cameras.value.find(c => {
-      const l = (c.label || '').toLowerCase();
-      return l.includes('back') || l.includes('rear') || l.includes('environment') || l.includes('belakang') || l.includes('0, facing back');
-    });
-    if (backCam) {
-      strategies.push({ name: 'device_back', camera: backCam.id });
+    // Pastikan forceMode hanya dipakai jika benar-benar bertipe string (bukan PointerEvent dari @click)
+    if (typeof forceMode === 'string' && forceMode.length > 0) {
+      selectedCameraMode.value = forceMode;
+    } else if (typeof selectedCameraMode.value !== 'string' || !selectedCameraMode.value) {
+      selectedCameraMode.value = 'environment';
     }
 
-    // 3. Fallback jika di PC/Laptop yang tidak punya kamera belakang
-    if (cameras.value.length > 0) {
-      strategies.push({ name: 'device_fallback', camera: cameras.value[0].id });
-    }
-    strategies.push({ name: 'facingMode_user_fallback', camera: { facingMode: 'user' } });
-  } else {
-    // mode === 'user' (kamera depan)
-    strategies.push({ name: 'facingMode_user', camera: { facingMode: 'user' } });
+    await nextTick();
+    await cleanHtml5QrCode();
 
-    const frontCam = cameras.value.find(c => {
-      const l = (c.label || '').toLowerCase();
-      return l.includes('front') || l.includes('user') || l.includes('depan') || l.includes('facing front');
-    });
-    if (frontCam) {
-      strategies.push({ name: 'device_front', camera: frontCam.id });
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      throw new Error('HTTPS_REQUIRED');
     }
 
-    if (cameras.value.length > 0) {
-      strategies.push({ name: 'device_fallback', camera: cameras.value[0].id });
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('MEDIA_DEVICES_UNSUPPORTED');
     }
-  }
 
-  // PENTING: JANGAN cantumkan videoConstraints di qrConfig agar html5-qrcode
-  // tidak mengabaikan konfigurasi camera/facingMode yang diberikan!
-  const qrConfig = {
-    fps: 15,
-    disableFlip: false,
-  };
+    // Baca daftar perangkat secara pasif (tanpa membuka stream kamera terlebih dahulu!)
+    await refreshCameraDevices();
 
-  let success = false;
-  let lastErr = null;
+    const mode = selectedCameraMode.value || 'environment';
+    const strategies = [];
 
-  for (const strat of strategies) {
-    try {
-      await cleanHtml5QrCode();
+    const isSpecificDevice = mode !== 'environment' && mode !== 'user';
+    if (isSpecificDevice) {
+      strategies.push({ name: 'specific_device_exact', camera: { deviceId: { exact: mode } } });
+      strategies.push({ name: 'specific_device_id', camera: mode });
+      strategies.push({ name: 'fallback_environment', camera: { facingMode: 'environment' } });
+      strategies.push({ name: 'fallback_user', camera: { facingMode: 'user' } });
+    } else if (mode === 'environment') {
+      // 1. Prioritas utama: langsung buka facingMode 'environment' tanpa getCameras() agar tidak bentrok lock hardware
+      strategies.push({ name: 'facingMode_environment', camera: { facingMode: 'environment' } });
 
-      const scanner = new Html5Qrcode('reader', {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
+      // 2. Jika ada daftar kamera terdeteksi, cari kamera belakang
+      const backCam = cameras.value.find((c) => {
+        const l = (c.label || '').toLowerCase();
+        return l.includes('back') || l.includes('rear') || l.includes('environment') || l.includes('belakang') || l.includes('0, facing back');
       });
+      if (backCam) {
+        strategies.push({ name: 'device_back', camera: backCam.id });
+      }
 
-      await scanner.start(
-        strat.camera,
-        qrConfig,
-        handleCameraScan,
-        () => {}
-      );
+      // 3. Fallback ke kamera depan atau kamera pertama yang tersedia
+      strategies.push({ name: 'facingMode_user_fallback', camera: { facingMode: 'user' } });
+      if (cameras.value.length > 0) {
+        strategies.push({ name: 'device_first_fallback', camera: cameras.value[cameras.value.length - 1].id });
+      }
+    } else {
+      // mode === 'user' (kamera depan)
+      strategies.push({ name: 'facingMode_user', camera: { facingMode: 'user' } });
 
-      html5QrCode = scanner;
-      success = true;
-      cameraActive.value = true;
+      const frontCam = cameras.value.find((c) => {
+        const l = (c.label || '').toLowerCase();
+        return l.includes('front') || l.includes('user') || l.includes('depan') || l.includes('facing front');
+      });
+      if (frontCam) {
+        strategies.push({ name: 'device_front', camera: frontCam.id });
+      }
 
-      // Coba aktifkan continuous autofocus jika didukung
-      try {
-        const capabilities = scanner.getRunningTrackCapabilities();
-        if (capabilities && capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-          await scanner.applyVideoConstraints({
-            advanced: [{ focusMode: 'continuous' }]
-          });
-        }
-      } catch (focusErr) {}
-
-      // Perbarui daftar perangkat setelah izin kamera diberikan
-      try {
-        const updatedDevices = await Html5Qrcode.getCameras();
-        if (updatedDevices && updatedDevices.length > 0) {
-          cameras.value = updatedDevices;
-        }
-      } catch (e) {}
-
-      // Sinkronkan facingMode aktual jika terdeteksi
-      try {
-        const settings = scanner.getRunningTrackSettings();
-        if (settings && settings.facingMode) {
-          if (settings.facingMode === 'environment' || settings.facingMode === 'user') {
-            selectedCameraMode.value = settings.facingMode;
-          }
-        }
-      } catch (e) {}
-
-      break;
-    } catch (err) {
-      lastErr = err;
-      console.warn(`Percobaan kamera [${strat.name}] gagal:`, err);
+      strategies.push({ name: 'facingMode_environment_fallback', camera: { facingMode: 'environment' } });
+      if (cameras.value.length > 0) {
+        strategies.push({ name: 'device_first_fallback', camera: cameras.value[0].id });
+      }
     }
-  }
 
-  if (!success) {
+    const qrConfig = {
+      fps: 15,
+      disableFlip: false,
+    };
+
+    let success = false;
+    let lastErr = null;
+
+    for (let i = 0; i < strategies.length; i++) {
+      const strat = strategies[i];
+      try {
+        if (i > 0) {
+          await cleanHtml5QrCode();
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+
+        const scanner = new Html5Qrcode('reader', {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
+        });
+
+        await scanner.start(
+          strat.camera,
+          qrConfig,
+          handleCameraScan,
+          () => {}
+        );
+
+        html5QrCode = scanner;
+        success = true;
+        cameraActive.value = true;
+
+        // Coba aktifkan continuous autofocus jika didukung oleh lensa kamera
+        try {
+          const capabilities = scanner.getRunningTrackCapabilities();
+          if (capabilities && capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+            await scanner.applyVideoConstraints({
+              advanced: [{ focusMode: 'continuous' }],
+            });
+          }
+        } catch (focusErr) {}
+
+        // Perbarui daftar kamera secara pasif (tanpa memanggil Html5Qrcode.getCameras() yang membuka stream ganda!)
+        await refreshCameraDevices();
+
+        break;
+      } catch (err) {
+        lastErr = err;
+        console.warn(`Percobaan kamera [${strat.name}] gagal:`, err);
+
+        // Jika gagal karena izin kamera ditolak oleh pengguna, jangan ulangi strategi lain
+        const errText = String(err?.message || err?.name || err || '');
+        if (errText.includes('NotAllowedError') || errText.includes('Permission denied') || errText.includes('Permission dismissed')) {
+          break;
+        }
+      }
+    }
+
+    if (!success) {
+      await cleanHtml5QrCode();
+      cameraActive.value = false;
+
+      const errStr = String(lastErr?.message || lastErr?.name || lastErr || '');
+      let errMsg = 'Kamera gagal diaktifkan.';
+
+      if (errStr.includes('HTTPS_REQUIRED')) {
+        errMsg = 'Akses kamera mewajibkan koneksi aman (HTTPS). Pastikan membuka website melalui https://';
+      } else if (errStr.includes('MEDIA_DEVICES_UNSUPPORTED')) {
+        errMsg = 'Browser ini tidak mendukung akses kamera. Silakan buka menggunakan Google Chrome atau Safari.';
+      } else if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied') || errStr.includes('Permission dismissed')) {
+        errMsg = 'Izin kamera ditolak atau diblokir. Klik ikon gembok/pengaturan di samping alamat website (URL) di atas, lalu ubah izin Kamera menjadi "Izinkan" (Allow).';
+      } else if (errStr.includes('NotFoundError') || errStr.includes('DevicesNotFoundError')) {
+        errMsg = 'Perangkat kamera tidak ditemukan pada ponsel atau komputer ini.';
+      } else if (errStr.includes('NotReadableError') || errStr.includes('Could not start video source') || errStr.includes('TrackStartError')) {
+        errMsg = 'Kamera sedang sibuk atau digunakan oleh aplikasi lain. Tutup aplikasi kamera/WhatsApp lain, lalu tekan tombol Coba Sambungkan Lagi.';
+      } else if (errStr.includes('OverconstrainedError')) {
+        errMsg = 'Mode kamera yang dipilih tidak didukung oleh perangkat ini. Silakan ganti pilihan kamera depan/belakang.';
+      }
+
+      cameraError.value = errMsg;
+      toast.error(errMsg);
+    }
+  } catch (outerErr) {
     await cleanHtml5QrCode();
     cameraActive.value = false;
-    let errMsg = 'Kamera tidak dapat diakses.';
-    if (lastErr) {
-      if (lastErr.name === 'NotAllowedError') {
-        errMsg = 'Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser Anda.';
-      } else if (lastErr.name === 'NotFoundError') {
-        errMsg = 'Perangkat kamera tidak ditemukan pada komputer/ponsel ini.';
-      } else if (lastErr.name === 'NotReadableError') {
-        errMsg = 'Kamera sedang digunakan oleh aplikasi lain. Tutup aplikasi tersebut dan coba lagi.';
-      } else {
-        errMsg = lastErr.message || 'Kamera gagal diaktifkan.';
-      }
+    const outerStr = String(outerErr?.message || outerErr || '');
+    let errMsg = 'Kamera gagal diaktifkan.';
+    if (outerStr.includes('HTTPS_REQUIRED')) {
+      errMsg = 'Akses kamera mewajibkan koneksi aman (HTTPS). Pastikan membuka website melalui https://';
+    } else if (outerStr.includes('MEDIA_DEVICES_UNSUPPORTED')) {
+      errMsg = 'Browser ini tidak mendukung akses kamera. Silakan gunakan Google Chrome atau Safari.';
     }
     cameraError.value = errMsg;
     toast.error(errMsg);
+  } finally {
+    cameraLoading.value = false;
+    isStartingCamera = false;
   }
-
-  cameraLoading.value = false;
 };
 
 const stopCamera = async () => {
