@@ -11,6 +11,7 @@ use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class WhatsAppController extends Controller
 {
@@ -146,7 +147,7 @@ class WhatsAppController extends Controller
     }
 
     /**
-     * Cek token Fonnte
+     * Cek status koneksi dan token Fonnte ke server Fonnte (tanpa mengirim chat ke siapa pun)
      */
     public function testKoneksi(Request $request): JsonResponse
     {
@@ -155,14 +156,41 @@ class WhatsAppController extends Controller
         if (empty($token)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token Fonnte kosong.',
+                'message' => 'Token Fonnte belum diisi. Silakan masukkan token dari dashboard fonnte.com.',
             ], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Token terkonfigurasi. Silakan uji coba kirim ke nomor ponsel.',
-        ]);
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => $token,
+            ])->timeout(8)->post('https://api.fonnte.com/device');
+
+            $data = $response->json();
+
+            if ($response->successful() && ! empty($data['status'])) {
+                $device = $data['device'] ?? 'Terhubung';
+                $name = $data['name'] ?? 'Akun WhatsApp Lembaga';
+                $deviceStatus = $data['device_status'] ?? 'connect';
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Koneksi gateway Fonnte aktif! Perangkat: {$name} ({$device}) [Status: {$deviceStatus}]. Catatan: Tidak ada pesan yang dikirim ke nomor mana pun.",
+                    'data' => $data,
+                ]);
+            }
+
+            $reason = $data['reason'] ?? $data['message'] ?? 'Token Fonnte tidak valid atau perangkat WhatsApp belum terhubung/disconnect.';
+
+            return response()->json([
+                'success' => false,
+                'message' => "Koneksi Fonnte gagal: {$reason}",
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghubungi server Fonnte (koneksi timeout / jaringan offline).',
+            ], 500);
+        }
     }
 
     /**
