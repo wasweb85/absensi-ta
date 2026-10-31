@@ -191,20 +191,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($siswaData as $santri) {
-            $siswaModel = Siswa::updateOrCreate(['nisn' => $santri['nisn']], $santri);
-
-            // Buat akun login untuk siswa (password default = nisn)
-            User::updateOrCreate(
-                ['username' => $santri['nisn']],
-                [
-                    'name' => $santri['nama_lengkap'],
-                    'email' => $santri['nisn'].'@santri.sekolah.id',
-                    'password' => Hash::make($santri['nisn']),
-                    'role' => 'siswa',
-                    'id_kelas' => $santri['id_kelas'],
-                    'nisn' => $santri['nisn'],
-                ]
-            );
+            Siswa::updateOrCreate(['nisn' => $santri['nisn']], $santri);
         }
 
         // 4. Seed Pengaturan Default

@@ -121,10 +121,9 @@ class GoogleSheetSyncTest extends TestCase
             'nama_kelas' => 'JILID 2',
         ]);
 
-        // Cek akun user login santri otomatis terbuat
-        $this->assertDatabaseHas('users', [
+        // Santri tidak dibuatkan akun login user
+        $this->assertDatabaseMissing('users', [
             'username' => '1002',
-            'role' => 'siswa',
         ]);
 
         // Cek URL tersimpan di pengaturan

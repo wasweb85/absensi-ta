@@ -32,7 +32,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'username' => ['Kredensial login (Username / NISN atau Password) tidak sesuai.'],
+                'username' => ['Kredensial login (Username atau Password) tidak sesuai.'],
             ]);
         }
 

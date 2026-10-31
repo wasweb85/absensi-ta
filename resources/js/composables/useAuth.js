@@ -15,7 +15,6 @@ export function useAuth() {
     const isSekretaris = computed(() => role.value === 'sekretaris');
     const isBendahara = computed(() => role.value === 'bendahara');
     const isGuru = computed(() => role.value === 'guru');
-    const isSiswa = computed(() => role.value === 'siswa');
 
     // Matriks Wewenang Baru (RBAC Standar Lembaga Pendidikan)
     const canScanQr = computed(() => ['admin', 'sekretaris', 'guru'].includes(role.value));
@@ -51,7 +50,6 @@ export function useAuth() {
             case 'sekretaris': return 'Sekretaris';
             case 'bendahara': return 'Bendahara';
             case 'guru': return 'Pengajar';
-            case 'siswa': return 'Santri';
             default: return 'Pengguna';
         }
     });
@@ -124,7 +122,6 @@ export function useAuth() {
         isSekretaris,
         isBendahara,
         isGuru,
-        isSiswa,
         canViewSantri,
         canManageSantri,
         canPrintQr,

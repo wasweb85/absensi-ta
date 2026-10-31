@@ -13,11 +13,11 @@ use Illuminate\Validation\Rule;
 class UserController extends Controller
 {
     /**
-     * Menampilkan daftar staf, guru, dan pengurus TPQ (selain siswa)
+     * Menampilkan daftar staf, guru, dan pengurus TPQ
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::with('kelas')->where('role', '!=', 'siswa');
+        $query = User::with('kelas')->whereIn('role', ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru']);
 
         if ($request->filled('role')) {
             $query->where('role', $request->input('role'));

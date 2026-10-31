@@ -8,12 +8,10 @@ use App\Http\Requests\UpdateSiswaRequest;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
-use App\Models\User;
 use App\Services\GoogleSheetSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class SiswaController extends Controller
 {
@@ -57,24 +55,7 @@ class SiswaController extends Controller
     {
         $validated = $request->validated();
 
-        $siswa = DB::transaction(function () use ($validated) {
-            $siswa = Siswa::create($validated);
-
-            // Auto-create akun login siswa
-            User::updateOrCreate(
-                ['username' => $siswa->nisn],
-                [
-                    'name' => $siswa->nama_lengkap,
-                    'email' => $siswa->nisn.'@santri.sekolah.id',
-                    'password' => Hash::make($siswa->nisn),
-                    'role' => 'siswa',
-                    'id_kelas' => $siswa->id_kelas,
-                    'nisn' => $siswa->nisn,
-                ]
-            );
-
-            return $siswa;
-        });
+        $siswa = Siswa::create($validated);
 
         return response()->json([
             'success' => true,
@@ -107,21 +88,7 @@ class SiswaController extends Controller
         $siswa = Siswa::findOrFail($id);
         $validated = $request->validated();
 
-        DB::transaction(function () use ($siswa, $validated) {
-            $oldNisn = $siswa->nisn;
-            $siswa->update($validated);
-
-            // Sync user login data jika NISN / Nama berubah
-            $user = User::where('nisn', $oldNisn)->first();
-            if ($user) {
-                $user->update([
-                    'name' => $siswa->nama_lengkap,
-                    'username' => $siswa->nisn,
-                    'nisn' => $siswa->nisn,
-                    'id_kelas' => $siswa->id_kelas,
-                ]);
-            }
-        });
+        $siswa->update($validated);
 
         return response()->json([
             'success' => true,
@@ -133,11 +100,7 @@ class SiswaController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $siswa = Siswa::findOrFail($id);
-
-        DB::transaction(function () use ($siswa) {
-            User::where('nisn', $siswa->nisn)->delete();
-            $siswa->delete();
-        });
+        $siswa->delete();
 
         return response()->json([
             'success' => true,
@@ -166,16 +129,6 @@ class SiswaController extends Controller
             });
 
             $items = $request->input('items');
-            $batchNisns = collect($items)
-                ->map(fn ($item) => trim((string) ($item['nisn'] ?? '')))
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
-
-            $existingUsers = $batchNisns !== []
-                ? User::whereIn('username', $batchNisns)->orWhereIn('nisn', $batchNisns)->get()->keyBy(fn ($u) => $u->nisn ?: $u->username)
-                : collect();
 
             foreach ($items as $idx => $item) {
                 $rawKelas = strtoupper(trim($item['kelas'] ?? ''));
@@ -190,7 +143,7 @@ class SiswaController extends Controller
                 $nisn = trim((string) $item['nisn']);
                 $jk = strtoupper(trim($item['jenis_kelamin'] ?? 'L')) === 'P' ? 'P' : 'L';
 
-                $siswa = Siswa::updateOrCreate(
+                Siswa::updateOrCreate(
                     ['nisn' => $nisn],
                     [
                         'nama_lengkap' => trim($item['nama_lengkap']),
@@ -202,26 +155,6 @@ class SiswaController extends Controller
                         'status' => 'aktif',
                     ]
                 );
-
-                $user = $existingUsers->get($nisn);
-                if ($user) {
-                    $user->update([
-                        'name' => $siswa->nama_lengkap,
-                        'id_kelas' => $kelas->id,
-                        'nisn' => $nisn,
-                    ]);
-                } else {
-                    $newUser = User::create([
-                        'name' => $siswa->nama_lengkap,
-                        'username' => $nisn,
-                        'email' => $nisn.'@santri.sekolah.id',
-                        'password' => Hash::make($nisn),
-                        'role' => 'siswa',
-                        'id_kelas' => $kelas->id,
-                        'nisn' => $nisn,
-                    ]);
-                    $existingUsers->put($nisn, $newUser);
-                }
 
                 $imported++;
             }

@@ -13,7 +13,7 @@
       <Card>
         <CardHeader>
           <CardTitle>Masuk ke Sistem</CardTitle>
-          <CardDescription>Gunakan username atau NISN dan kata sandi Anda.</CardDescription>
+          <CardDescription>Gunakan username dan kata sandi Anda.</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -28,14 +28,14 @@
 
           <form class="space-y-4" @submit.prevent="handleSubmit">
             <div class="space-y-2">
-              <Label for="username">Username / NISN</Label>
+              <Label for="username">Username</Label>
               <Input
                 id="username"
                 v-model="username"
                 type="text"
                 required
                 autocomplete="username"
-                placeholder="Masukkan username atau NISN"
+                placeholder="Masukkan username Anda"
                 class="h-10"
               />
             </div>
@@ -74,23 +74,6 @@
           </form>
         </CardContent>
       </Card>
-
-      <!-- Demo Quick Fill Buttons (Sangat berguna untuk presentasi dan pengujian skripsi) -->
-      <div class="mt-6">
-        <p class="mb-2 text-center text-xs text-muted-foreground">Akses Cepat Pengujian Role (Demo 1-Klik)</p>
-        <div class="grid grid-cols-3 gap-2">
-          <Button
-            v-for="account in demoAccounts"
-            :key="account.username"
-            type="button"
-            variant="outline"
-            size="sm"
-            @click="fillCredentials(account.username, account.password)"
-          >
-            {{ account.label }}
-          </Button>
-        </div>
-      </div>
 
       <!-- Tombol Install PWA di Halaman Login -->
       <div v-if="isInstallable && !isInstalled" class="mt-4 text-center">
@@ -135,20 +118,6 @@ onMounted(() => {
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
-
-const demoAccounts = [
-  { label: 'Admin', username: 'admin', password: 'admin123' },
-  { label: 'Kepala TPQ', username: 'kepala', password: 'kepala123' },
-  { label: 'Sekretaris', username: 'sekretaris', password: 'sekretaris123' },
-  { label: 'Bendahara', username: 'bendahara', password: 'bendahara123' },
-  { label: 'Pengajar', username: 'guru', password: 'guru123' },
-  { label: 'Santri', username: '1001', password: '1001' },
-];
-
-const fillCredentials = (u, p) => {
-  username.value = u;
-  password.value = p;
-};
 
 const handleSubmit = async () => {
   if (!username.value || !password.value) {

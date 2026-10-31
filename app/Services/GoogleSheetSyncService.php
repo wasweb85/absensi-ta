@@ -4,10 +4,8 @@ namespace App\Services;
 
 use App\Models\Kelas;
 use App\Models\Siswa;
-use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
 class GoogleSheetSyncService
@@ -351,10 +349,6 @@ class GoogleSheetSyncService
             ? Siswa::whereIn('nisn', $batchNisns)->get()->keyBy('nisn')
             : collect();
 
-        $existingUserMap = $batchNisns !== []
-            ? User::whereIn('nisn', $batchNisns)->orWhereIn('username', $batchNisns)->get()->keyBy(fn ($u) => $u->nisn ?: $u->username)
-            : collect();
-
         foreach ($rows as $item) {
             $rowNum = (string) ($item['_row'] ?? '?');
             $nisn = trim((string) ($item['nisn'] ?? ''));
@@ -456,7 +450,7 @@ class GoogleSheetSyncService
             try {
                 DB::transaction(function () use (
                     $nisn, $nama, $jk, $kelas, $normalizedPhone, $namaOrtu, $alamat, $status,
-                    &$created, &$updated, $existingSiswaMap, $existingUserMap
+                    &$created, &$updated, $existingSiswaMap
                 ) {
                     $existing = $existingSiswaMap->get($nisn);
 
@@ -484,27 +478,6 @@ class GoogleSheetSyncService
                         ]);
                         $existingSiswaMap->put($nisn, $newSiswa);
                         $created++;
-                    }
-
-                    // Sinkronkan atau buat akun User login santri
-                    $user = $existingUserMap->get($nisn);
-                    if ($user) {
-                        $user->update([
-                            'name' => $nama,
-                            'id_kelas' => $kelas->id,
-                            'nisn' => $nisn,
-                        ]);
-                    } else {
-                        $newUser = User::create([
-                            'name' => $nama,
-                            'username' => $nisn,
-                            'email' => $nisn.'@santri.sekolah.id',
-                            'password' => Hash::make($nisn),
-                            'role' => 'siswa',
-                            'id_kelas' => $kelas->id,
-                            'nisn' => $nisn,
-                        ]);
-                        $existingUserMap->put($nisn, $newUser);
                     }
                 });
 
