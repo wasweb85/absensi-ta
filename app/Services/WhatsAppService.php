@@ -42,11 +42,25 @@ class WhatsAppService
     }
 
     /**
+     * Mendapatkan nama instansi resmi dengan fallback ke TPQ Nurul Mun'im
+     */
+    public function getNamaInstansi(): string
+    {
+        $val = Pengaturan::getValue('nama_instansi');
+
+        if (empty($val) || in_array(strtoupper(trim($val)), ['E ABSENSI', 'E-ABSENSI', 'SISTEM TERPADU ABSENSI SANTRI', 'SISTEM TERPADU PRESENSI & NOTIFIKASI WHATSAPP SANTRI', 'TPQ & LEMBAGA'])) {
+            return "TPQ Nurul Mun'im";
+        }
+
+        return $val;
+    }
+
+    /**
      * Template pesan notifikasi presensi kehadiran santri (Masuk / Pulang)
      */
     public function buildPesanPresensi(string $namaSantri, string $status, string $waktu, string $tanggal): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = $this->getNamaInstansi();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
@@ -63,7 +77,7 @@ class WhatsAppService
      */
     public function buildPesanPengumuman(string $judul, string $isi): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = $this->getNamaInstansi();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."📢 *PENGUMUMAN - {$namaInstansi}*\n"
@@ -78,7 +92,7 @@ class WhatsAppService
     public function buildPesanJapriOrtu(string $namaSantri, float $nominalTunggakan, string $bulanTahun): string
     {
         $nominalFormat = number_format($nominalTunggakan, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
+        $namaInstansi = $this->getNamaInstansi();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
@@ -94,7 +108,7 @@ class WhatsAppService
     public function buildPesanJapriAkumulasi(string $namaSantri, float $totalNominal, int $totalBulan, string $daftarBulanStr): string
     {
         $nominalFormat = number_format($totalNominal, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
+        $namaInstansi = $this->getNamaInstansi();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
@@ -110,7 +124,7 @@ class WhatsAppService
     public function buildPesanGrupJilid(string $namaKelas, float $nominalSpp, string $bulanTahun, string $jatuhTempo = '10'): string
     {
         $nominalFormat = number_format($nominalSpp, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
+        $namaInstansi = $this->getNamaInstansi();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Pengumuman untuk seluruh Wali Santri *{$namaKelas}* - *{$namaInstansi}*:\n\n"
@@ -125,7 +139,7 @@ class WhatsAppService
      */
     public function buildPesanWaliJilid(string $namaKelas, string $waliKelas, int $totalSantri, array $santriMenunggakList, string $bulanTahun): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
+        $namaInstansi = $this->getNamaInstansi();
         $totalMenunggak = count($santriMenunggakList);
         $totalLunas = max(0, $totalSantri - $totalMenunggak);
         $persentase = ($totalSantri > 0) ? round(($totalLunas / $totalSantri) * 100, 1) : 0;

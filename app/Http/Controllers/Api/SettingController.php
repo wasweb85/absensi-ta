@@ -15,7 +15,11 @@ class SettingController extends Controller
 {
     public function getSettings(): JsonResponse
     {
-        $settings = Pengaturan::all()->pluck('value', 'key');
+        $settings = Pengaturan::all()->pluck('value', 'key')->toArray();
+
+        if (empty($settings['nama_instansi']) || in_array(strtoupper(trim($settings['nama_instansi'])), ['E ABSENSI', 'E-ABSENSI', 'SISTEM TERPADU ABSENSI SANTRI', 'SISTEM TERPADU PRESENSI & NOTIFIKASI WHATSAPP SANTRI', 'TPQ & LEMBAGA'])) {
+            $settings['nama_instansi'] = "TPQ Nurul Mun'im";
+        }
 
         return response()->json([
             'success' => true,
@@ -33,12 +37,17 @@ class SettingController extends Controller
             'logo_lembaga',
         ];
 
-        $settings = Pengaturan::whereIn('key', $publicKeys)->pluck('value', 'key');
+        $settings = Pengaturan::whereIn('key', $publicKeys)->pluck('value', 'key')->toArray();
+
+        $namaInstansi = $settings['nama_instansi'] ?? "TPQ Nurul Mun'im";
+        if (empty($namaInstansi) || in_array(strtoupper(trim($namaInstansi)), ['E ABSENSI', 'E-ABSENSI', 'SISTEM TERPADU ABSENSI SANTRI', 'SISTEM TERPADU PRESENSI & NOTIFIKASI WHATSAPP SANTRI', 'TPQ & LEMBAGA'])) {
+            $namaInstansi = "TPQ Nurul Mun'im";
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'nama_instansi' => $settings['nama_instansi'] ?? 'TPQ & Madrasah Diniyah',
+                'nama_instansi' => $namaInstansi,
                 'tahun_ajaran_aktif' => $settings['tahun_ajaran_aktif'] ?? '2026/2027',
                 'alamat_instansi' => $settings['alamat_instansi'] ?? '',
                 'kontak_instansi' => $settings['kontak_instansi'] ?? '',

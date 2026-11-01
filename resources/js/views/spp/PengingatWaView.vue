@@ -289,6 +289,12 @@ async function loadKelas() {
   }
 }
 
+const sanitizeWaText = (text) => {
+  if (!text) return '';
+  return text.replace(/\*(?:E\s*ABSENSI|E-ABSENSI|Sistem Terpadu[^*]*)\*/gi, "*TPQ Nurul Mun'im*")
+             .replace(/kami dari[^*]*\*TPQ/gi, "Kami dari pihak *TPQ");
+};
+
 async function fetchGrupPreview() {
   if (!grupKelasId.value) {
     grupMessage.value = '';
@@ -305,7 +311,7 @@ async function fetchGrupPreview() {
         tahun: grupTahun.value,
       }
     });
-    grupMessage.value = res.data.message || '';
+    grupMessage.value = sanitizeWaText(res.data.message || '');
   } catch (err) {
     toast.error('Gagal membuat preview himbauan grup.');
   } finally {
@@ -331,7 +337,7 @@ async function fetchWaliPreview() {
         tahun: waliTahun.value,
       }
     });
-    waliMessage.value = res.data.message || '';
+    waliMessage.value = sanitizeWaText(res.data.message || '');
     waliTargetPhone.value = res.data.target_phone || '';
     waliWaMeLink.value = res.data.wa_me_link || '';
   } catch (err) {

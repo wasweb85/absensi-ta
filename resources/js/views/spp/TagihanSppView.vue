@@ -1451,7 +1451,10 @@ const openJapriModal = async (santri) => {
     });
 
     if (res.data.success) {
-      japriMessage.value = res.data.message || '';
+      let rawMsg = res.data.message || '';
+      rawMsg = rawMsg.replace(/\*(?:E\s*ABSENSI|E-ABSENSI|Sistem Terpadu[^*]*)\*/gi, "*TPQ Nurul Mun'im*")
+                     .replace(/kami dari[^*]*\*TPQ/gi, "Kami dari pihak *TPQ");
+      japriMessage.value = rawMsg;
       if (!japriPhone.value && res.data.target_phone) {
         japriPhone.value = res.data.target_phone;
       }
