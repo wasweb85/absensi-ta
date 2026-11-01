@@ -1,177 +1,188 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Halaman Minimalis & Responsif -->
-    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-base sm:text-lg font-semibold tracking-tight text-foreground">
-          Data Guru
-        </h2>
-        <Badge variant="secondary" class="font-normal text-xs gap-1 py-0.5">
-          <Users class="size-3 text-primary" />
-          <span>{{ totalPengajarCount }} Pengajar</span>
-        </Badge>
-        <Badge variant="outline" class="font-normal text-xs text-muted-foreground py-0.5">
-          {{ usersList.length }} Akun
-        </Badge>
-      </div>
-
-      <!-- Action Button (Khusus Admin) -->
-      <Button
-        v-if="canManageGuru"
-        size="sm"
-        class="h-8 gap-1.5 text-xs self-start sm:self-auto"
-        @click="openAddModal"
-      >
-        <Plus class="size-3.5" />
-        <span>Tambah Guru / Pengurus</span>
-      </Button>
-    </div>
-
-    <!-- Toolbar Pencarian & Filter Jabatan (Clean & Profesional) -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="relative flex-1 max-w-md">
-        <Search class="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          id="searchUser"
-          v-model="searchQuery"
-          type="text"
-          placeholder="Cari nama atau username..."
-          class="h-9 pl-9 text-xs bg-card"
-          @input="onSearchInput"
-        />
-      </div>
-
-      <div class="flex items-center gap-2">
-        <select
-          id="filterRole"
-          v-model="filterRole"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          @change="loadUsers"
-        >
-          <option value="">Semua Jabatan</option>
-          <option value="kepala">Jabatan: Kepala TPQ</option>
-          <option value="sekretaris">Jabatan: Sekretaris</option>
-          <option value="bendahara">Jabatan: Bendahara</option>
-          <option value="guru">Jabatan: Pengajar / Guru</option>
-          <option value="admin">Jabatan: Administrator</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="isLoading" class="p-12 text-center text-muted-foreground">
-      <LoaderCircle class="size-8 mx-auto animate-spin mb-2 text-primary" />
-      <p class="text-xs font-medium">Memuat data guru dan pengurus...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="usersList.length === 0" class="p-16 text-center text-muted-foreground border rounded-xl bg-card">
-      <Users class="size-10 mx-auto mb-2 text-muted-foreground/40" />
-      <p class="text-xs font-semibold text-foreground">Tidak ditemukan data guru atau pengurus.</p>
-      <p class="text-[11px] text-muted-foreground mt-0.5">Coba ubah kata kunci pencarian atau filter peran.</p>
-    </div>
-
-    <!-- User Grid Cards -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-      <Card
-        v-for="u in usersList"
-        :key="u.id"
-        class="flex flex-col justify-between transition-all hover:shadow-xs p-0 gap-0 overflow-hidden"
-      >
-        <CardHeader class="p-3.5 pb-2.5 space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <Badge
-              :variant="getRoleBadgeVariant(u.role)"
-              class="text-[10px] uppercase font-semibold tracking-wider"
-            >
-              {{ getRoleLabel(u.role) }}
+    <!-- Kontainer Tunggal Terpadu (Judul, Tombol Tambah, Pencarian, dan Tabel Menyatu) -->
+    <Card class="overflow-hidden py-0 gap-0">
+      <!-- Toolbar Atas di Dalam Kontainer Card -->
+      <div class="px-3 pt-1.5 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
+        <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Tombol Tambah Guru [Kanan] -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h2 class="text-sm sm:text-lg font-semibold tracking-tight text-foreground">
+              Data Guru
+            </h2>
+            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
+              {{ usersList.length }} Akun
             </Badge>
-
-            <template v-if="u.nama_kelas || u.kelas?.nama_kelas">
-              <Badge
-                v-if="u.gender_binaan === 'L'"
-                variant="outline"
-                class="text-[10px] font-medium border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
-              >
-                {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putra)
-              </Badge>
-              <Badge
-                v-else-if="u.gender_binaan === 'P'"
-                variant="outline"
-                class="text-[10px] font-medium border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-              >
-                {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putri)
-              </Badge>
-              <Badge
-                v-else
-                variant="outline"
-                class="text-[10px] font-medium"
-              >
-                {{ u.nama_kelas || u.kelas?.nama_kelas }}
-              </Badge>
-            </template>
-            <span v-else class="text-[10px] text-muted-foreground">
-              -
-            </span>
           </div>
 
-          <div class="flex items-center gap-2.5">
-            <Avatar class="size-9 shrink-0">
-              <AvatarFallback class="bg-primary/10 text-xs font-semibold text-primary">
-                {{ u.name.charAt(0).toUpperCase() }}
-              </AvatarFallback>
-            </Avatar>
-            <div class="min-w-0 flex-1">
-              <h3 class="text-xs sm:text-sm font-semibold text-foreground truncate">
-                {{ u.name }}
-              </h3>
-              <p class="text-[10.5px] font-mono text-muted-foreground truncate">
-                @{{ u.username }}
-              </p>
-            </div>
+          <!-- Tombol Aksi Tambah Guru (Di Mobile Responsif) -->
+          <div v-if="canManageGuru" class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Button
+              size="sm"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Tambah Guru / Pengurus"
+              @click="openAddModal"
+            >
+              <Plus class="size-3.5" />
+              <span class="hidden sm:inline">Tambah Guru / Pengurus</span>
+              <span class="sm:hidden">Tambah</span>
+            </Button>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent class="px-3.5 py-2 text-xs space-y-1 border-t bg-muted/5">
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground text-[11px]">Email:</span>
-            <span class="font-medium text-foreground text-[11px] truncate max-w-[170px]">
-              {{ u.email || '—' }}
-            </span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground text-[11px]">Status Akun:</span>
-            <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 dark:text-emerald-400 gap-1">
-              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Aktif
-            </span>
-          </div>
-        </CardContent>
+        <!-- Baris 2: Kolom Pencarian (Penuh & Bersih, tanpa filter jabatan) -->
+        <div class="relative w-full">
+          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            id="searchUser"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Cari nama guru, username, atau email..."
+            class="h-9 pl-9 text-xs bg-background w-full"
+            @input="onSearchInput"
+          />
+        </div>
+      </div>
 
-        <CardFooter v-if="canManageGuru" class="px-3.5 py-2 border-t flex items-center justify-end gap-1.5 bg-card">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-7 sm:h-8 px-2 sm:px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            @click="openEditModal(u)"
-          >
-            <Pencil class="size-3" />
-            <span>Edit Peran</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-7 sm:h-8 px-2 sm:px-2.5 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-            :disabled="currentUser?.id === u.id"
-            :title="currentUser?.id === u.id ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun'"
-            @click="deleteUser(u)"
-          >
-            <Trash2 class="size-3" />
-            <span>Hapus</span>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+      <!-- Tabel Terpadu Data Guru -->
+      <div class="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow class="bg-muted/30">
+              <TableHead class="w-12 text-center text-[10px] uppercase">No</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[150px]">Guru / Pengurus</TableHead>
+              <TableHead class="text-[10px] uppercase text-center min-w-[110px]">Jabatan</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[130px]">Penugasan Jilid</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[140px]">Email</TableHead>
+              <TableHead class="text-[10px] uppercase text-center min-w-[80px]">Status</TableHead>
+              <TableHead v-if="canManageGuru" class="text-[10px] uppercase text-center w-20 min-w-[80px]">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-if="isLoading">
+              <TableCell :colspan="canManageGuru ? 7 : 6" class="h-36 text-center text-muted-foreground text-xs">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <LoaderCircle class="size-6 animate-spin text-primary" />
+                  <span>Memuat data guru dan pengurus...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <TableRow v-else-if="usersList.length === 0">
+              <TableCell :colspan="canManageGuru ? 7 : 6" class="h-32 text-center text-muted-foreground text-xs">
+                Tidak ditemukan data guru atau pengurus.
+              </TableCell>
+            </TableRow>
+
+            <TableRow
+              v-else
+              v-for="(u, idx) in usersList"
+              :key="u.id"
+              class="transition-colors hover:bg-muted/40"
+            >
+              <TableCell class="text-center font-mono text-xs text-muted-foreground">
+                {{ idx + 1 }}
+              </TableCell>
+
+              <!-- Nama & Username Guru -->
+              <TableCell>
+                <div class="flex items-center gap-2.5">
+                  <Avatar class="size-7 shrink-0">
+                    <AvatarFallback class="text-[10px] bg-primary/10 text-primary font-semibold">
+                      {{ u.name.charAt(0).toUpperCase() }}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div class="min-w-0">
+                    <p class="font-medium text-foreground text-xs leading-tight truncate">
+                      {{ u.name }}
+                    </p>
+                    <p class="text-[10.5px] font-mono text-muted-foreground truncate">
+                      @{{ u.username }}
+                    </p>
+                  </div>
+                </div>
+              </TableCell>
+
+              <!-- Jabatan / Role -->
+              <TableCell class="text-center whitespace-nowrap">
+                <Badge
+                  :variant="getRoleBadgeVariant(u.role)"
+                  class="text-[10px] uppercase font-semibold tracking-wider"
+                >
+                  {{ getRoleLabel(u.role) }}
+                </Badge>
+              </TableCell>
+
+              <!-- Jilid Binaan -->
+              <TableCell class="whitespace-nowrap">
+                <template v-if="u.nama_kelas || u.kelas?.nama_kelas">
+                  <Badge
+                    v-if="u.gender_binaan === 'L'"
+                    variant="outline"
+                    class="text-[10.5px] font-medium border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
+                  >
+                    {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putra)
+                  </Badge>
+                  <Badge
+                    v-else-if="u.gender_binaan === 'P'"
+                    variant="outline"
+                    class="text-[10.5px] font-medium border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                  >
+                    {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putri)
+                  </Badge>
+                  <Badge
+                    v-else
+                    variant="outline"
+                    class="text-[10.5px] font-medium"
+                  >
+                    {{ u.nama_kelas || u.kelas?.nama_kelas }}
+                  </Badge>
+                </template>
+                <span v-else class="text-xs text-muted-foreground">—</span>
+              </TableCell>
+
+              <!-- Email -->
+              <TableCell class="text-xs text-muted-foreground whitespace-nowrap">
+                {{ u.email || '—' }}
+              </TableCell>
+
+              <!-- Status -->
+              <TableCell class="text-center whitespace-nowrap">
+                <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 dark:text-emerald-400 gap-1">
+                  <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Aktif
+                </span>
+              </TableCell>
+
+              <!-- Aksi -->
+              <TableCell v-if="canManageGuru" class="text-center whitespace-nowrap">
+                <div class="inline-flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-8 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                    title="Edit Peran"
+                    @click="openEditModal(u)"
+                  >
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-8 text-destructive hover:bg-destructive/10"
+                    :disabled="currentUser?.id === u.id"
+                    :title="currentUser?.id === u.id ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun'"
+                    @click="deleteUser(u)"
+                  >
+                    <Trash2 class="size-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
 
     <!-- Dialog Form (Tambah / Edit Guru & Pengurus) -->
     <Dialog :open="showModal" @update:open="(val) => { if (!val) closeModal(); }">
@@ -325,7 +336,15 @@ import {
   Trash2,
   LoaderCircle,
 } from '@lucide/vue';
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -357,7 +376,6 @@ const totalPengajarCount = computed(() => {
 });
 
 const searchQuery = ref('');
-const filterRole = ref('');
 
 const showModal = ref(false);
 const isEditing = ref(false);
@@ -423,7 +441,6 @@ async function loadUsers() {
   try {
     const res = await api.get('/users', {
       params: {
-        role: filterRole.value || undefined,
         search: searchQuery.value || undefined,
       }
     });
