@@ -1,90 +1,100 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Halaman -->
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">
-          Monitoring
-        </h2>
-        <Badge variant="outline" class="font-normal text-xs text-muted-foreground gap-1.5">
-          <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Live Monitoring</span>
-        </Badge>
-      </div>
-    </div>
+    <!-- Kontainer Tunggal Terpadu (Toolbar & Tabel Menyatu Sesuai Model Data Santri) -->
+    <Card class="overflow-hidden py-0 gap-0">
+      <!-- Toolbar Atas di Dalam Kontainer Card -->
+      <div class="p-3 sm:p-4 border-b border-border bg-card space-y-2.5 sm:space-y-3">
+        <!-- Baris 1: Judul Halaman [Kiri] sejajar dengan Tombol Buka Scanner [Kanan] -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
+              Monitoring Presensi
+            </h2>
+            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground gap-1.5 px-2 py-0.5">
+              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live &bull; {{ filteredStudents.length }} Santri</span>
+            </Badge>
+          </div>
 
-    <!-- Toolbar Filter & Pencarian (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
-      <!-- Date Filter -->
-      <div class="lg:col-span-2">
-        <Input
-          id="filterDate"
-          v-model="filterDate"
-          type="date"
-          class="h-9 text-xs bg-card cursor-pointer"
-          title="Pilih Tanggal Presensi"
-          @change="loadMonitoring"
-        />
-      </div>
+          <!-- Tombol Buka Scanner (Sejajar di Kanan Judul pada Mobile & Desktop) -->
+          <Button
+            v-if="canScanQr"
+            as-child
+            size="sm"
+            class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs shrink-0"
+            title="Buka Scanner QR"
+          >
+            <router-link to="/absensi/scanner">
+              <ScanLine class="size-3.5" />
+              <span class="hidden sm:inline">Buka Scanner</span>
+              <span class="sm:hidden">Scanner</span>
+            </router-link>
+          </Button>
+        </div>
 
-      <!-- Jilid Dropdown Filter -->
-      <div class="lg:col-span-3">
-        <select
-          id="filterKelas"
-          v-model="selectedKelas"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Jilid"
-          @change="loadMonitoring"
-        >
-          <option value="">Semua Jilid</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ getCleanNamaKelas(k.nama_kelas) }}
-          </option>
-        </select>
-      </div>
+        <!-- Baris Filter & Pencarian:
+             - Di Mobile: Baris atas Tanggal sejajar dengan Jilid, Baris bawah Gender sejajar dengan Pencarian (Pencarian lebih lebar)
+             - Di Desktop (md:): Satu baris rapi proporsional
+        -->
+        <div class="flex flex-col md:flex-row md:items-center gap-2 sm:gap-2.5">
+          <!-- Grup Tanggal & Jilid (Mobile: Sejajar 50:50, Desktop: natural) -->
+          <div class="grid grid-cols-2 md:flex md:items-center gap-2 sm:gap-2.5 shrink-0">
+            <!-- Pilihan Tanggal -->
+            <Input
+              id="filterDate"
+              v-model="filterDate"
+              type="date"
+              class="h-8 sm:h-9 text-xs bg-background cursor-pointer w-full md:w-36"
+              title="Pilih Tanggal Presensi"
+              @change="loadMonitoring"
+            />
 
-      <!-- Gender Filter Select (Otomatis terpilih sesuai kelompok binaan guru, tetap fleksibel dapat diubah) -->
-      <div class="lg:col-span-2">
-        <select
-          id="filterGender"
-          v-model="selectedGender"
-          class="h-9 w-full rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Kelompok Gender"
-          @change="loadMonitoring"
-        >
-          <option value="">Semua Gender</option>
-          <option value="L">Putra (L)</option>
-          <option value="P">Putri (P)</option>
-        </select>
-      </div>
+            <!-- Pilihan Jilid -->
+            <select
+              id="filterKelas"
+              v-model="selectedKelas"
+              class="h-8 sm:h-9 w-full md:w-36 lg:w-40 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Jilid"
+              @change="loadMonitoring"
+            >
+              <option value="">Semua Jilid</option>
+              <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                {{ getCleanNamaKelas(k.nama_kelas) }}
+              </option>
+            </select>
+          </div>
 
-      <!-- Search Box -->
-      <div :class="canScanQr ? 'lg:col-span-3' : 'lg:col-span-5'">
-        <div class="relative">
-          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            id="searchSantri"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari nama santri atau NISN..."
-            class="h-9 pl-9 text-xs bg-card"
-          />
+          <!-- Grup Gender & Pencarian (Mobile: Sejajar berdampingan & Pencarian lebih lebar, Desktop: flex-1 max-w-sm) -->
+          <div class="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
+            <!-- Pilihan Gender -->
+            <select
+              id="filterGender"
+              v-model="selectedGender"
+              class="h-8 sm:h-9 w-[115px] sm:w-[130px] md:w-32 shrink-0 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Kelompok Gender"
+              @change="loadMonitoring"
+            >
+              <option value="">Semua Gender</option>
+              <option value="L">Putra (L)</option>
+              <option value="P">Putri (P)</option>
+            </select>
+
+            <!-- Kolom Pencarian (Lebih lebar dari kolom gender) -->
+            <div class="relative flex-1 min-w-0 md:max-w-xs lg:max-w-sm">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="searchSantri"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Cari santri atau NISN..."
+                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Buka Scanner Button -->
-      <div v-if="canScanQr" class="lg:col-span-2">
-        <Button as-child size="sm" class="h-9 w-full gap-1.5 text-xs">
-          <router-link to="/absensi/scanner">
-            <ScanLine class="size-3.5" />
-            <span>Buka Scanner</span>
-          </router-link>
-        </Button>
-      </div>
-    </div>
-
-    <!-- Live Data Table -->
-    <Card class="overflow-hidden">
+      <!-- Live Data Table -->
       <div class="overflow-x-auto">
         <Table class="w-full">
           <TableHeader>
