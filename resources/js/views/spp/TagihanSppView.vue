@@ -1,21 +1,19 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
+  <div class="space-y-3.5 sm:space-y-4 animate-fadeIn">
     
-    <!-- Header: Proporsional & Bersih (Tombol Sinkronkan & Generate Dihapus, Otomatis Tersinkron) -->
-    <div class="flex items-center justify-between gap-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card border border-border shadow-xs print:hidden">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-          <CreditCard class="size-4" />
-        </div>
-        <div>
-          <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-foreground">
-            Data Tagihan &amp; Tunggakan SPP
-          </h2>
-          <p class="text-[11px] sm:text-xs text-muted-foreground">
-            Monitoring kewajiban &amp; rekapitulasi tunggakan semester santri
-          </p>
-        </div>
-      </div>
+    <!-- Header: Proporsional Tanpa Card dan Tanpa Penjelasan (Sesuai Halaman Input Pembayaran) -->
+    <div class="flex items-center justify-between gap-2.5 print:hidden">
+      <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-foreground">
+        Data Tagihan SPP
+      </h2>
+      <router-link
+        to="/spp/input-cepat"
+        class="h-8 px-2.5 sm:px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition flex items-center gap-1.5 shadow-2xs shrink-0"
+      >
+        <Wallet class="size-3.5 text-emerald-600 dark:text-emerald-400" />
+        <span class="hidden sm:inline">Input Pembayaran &rarr;</span>
+        <span class="sm:hidden">Bayar &rarr;</span>
+      </router-link>
     </div>
 
     <!-- Navigation Tabs -->
@@ -31,13 +29,6 @@
       >
         <AlertTriangle class="size-3.5 text-rose-500" />
         <span>Rekap Santri Menunggak</span>
-        <Badge
-          v-if="rekapSummary.total_santri_menunggak > 0"
-          variant="destructive"
-          class="text-[10px] px-1.5 py-0 font-bold"
-        >
-          {{ rekapSummary.total_santri_menunggak }} Santri
-        </Badge>
       </button>
 
       <button
@@ -55,66 +46,42 @@
     </div>
 
     <!-- TAB 1: REKAP SANTRI MENUNGGAK (AKUMULASI SEMESTER BERJALAN) -->
-    <div v-if="activeTab === 'rekap'" class="space-y-4 print:hidden">
-      <!-- 3 Summary Cards: Proporsional Grid Kanan-Kiri di Mobile & Desktop -->
-      <div class="grid grid-cols-3 gap-1.5 sm:gap-3">
+    <div v-if="activeTab === 'rekap'" class="space-y-3.5 sm:space-y-4 print:hidden">
+      <!-- 2 Summary Cards: Santri Menunggak & Total Tunggakan Sejajar di Mobile & Desktop -->
+      <div class="grid grid-cols-2 gap-2 sm:gap-3">
         <!-- Card 1: Total Santri Menunggak -->
-        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
-          <div class="flex items-center justify-between gap-1">
-            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+        <Card class="p-2.5 sm:p-3.5 flex items-center justify-between gap-2 overflow-hidden">
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
               Santri Menunggak
             </p>
-            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-              <Users class="size-3 sm:size-3.5" />
-            </div>
-          </div>
-          <div class="min-w-0 mt-1 sm:mt-1.5">
-            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-rose-600 dark:text-rose-400 truncate">
+            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
               {{ rekapSummary.total_santri_menunggak }} <span class="text-[10px] sm:text-xs font-semibold">Santri</span>
             </h4>
-            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
+            <p class="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
               Memiliki sisa tagihan aktif
             </p>
+          </div>
+          <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <Users class="size-3.5 sm:size-4" />
           </div>
         </Card>
 
         <!-- Card 2: Total Nominal Tunggakan Riil -->
-        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
-          <div class="flex items-center justify-between gap-1">
-            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+        <Card class="p-2.5 sm:p-3.5 flex items-center justify-between gap-2 overflow-hidden">
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
               Total Tunggakan Riil
             </p>
-            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Wallet class="size-3 sm:size-3.5" />
-            </div>
-          </div>
-          <div class="min-w-0 mt-1 sm:mt-1.5">
-            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-foreground truncate">
+            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-foreground mt-0.5 truncate">
               Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
             </h4>
-            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
+            <p class="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
               Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}
             </p>
           </div>
-        </Card>
-
-        <!-- Card 3: Rata-rata Durasi -->
-        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
-          <div class="flex items-center justify-between gap-1">
-            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
-              Rata-rata Durasi
-            </p>
-            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Clock class="size-3.5 sm:size-4" />
-            </div>
-          </div>
-          <div class="min-w-0 mt-1 sm:mt-1.5">
-            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-emerald-600 dark:text-emerald-400 truncate">
-              {{ rekapSummary.rata_rata_bulan }} <span class="text-[10px] sm:text-xs font-semibold">Bulan</span>
-            </h4>
-            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
-              Rata-rata bulan nunggak per santri
-            </p>
+          <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Wallet class="size-3.5 sm:size-4" />
           </div>
         </Card>
       </div>
@@ -122,50 +89,15 @@
       <!-- Kontainer Tunggal Terpadu Rekap Santri Menunggak (Filter & Tabel Menyatu Sesuai Model Data Santri) -->
       <Card class="overflow-hidden py-0 gap-0">
         <!-- Toolbar Atas di Dalam Kontainer Card -->
-        <div class="px-3 pt-2 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
-          <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Pilihan Cut-Off [Kanan] -->
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
-                Rekap Santri Menunggak
-              </h2>
-              <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
-                {{ rekapSantriList.length }} Santri
-              </Badge>
-            </div>
-
-            <!-- Kontrol Batas Cut-Off Sejajar di Kanan -->
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <span class="text-xs text-muted-foreground hidden md:inline">Batas Cut-Off:</span>
-              <select
-                v-model.number="rekapCutOffBulan"
-                @change="loadRekapTunggakan"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
-                title="Bulan Cut-Off"
-              >
-                <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
-              </select>
-              <select
-                v-model.number="rekapCutOffTahun"
-                @change="loadRekapTunggakan"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
-                title="Tahun Cut-Off"
-              >
-                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Baris 2: Filter Jilid & Kolom Pencarian -->
-          <!-- Di Mobile: Filter Jilid di atas (order-1), Kolom Pencarian di bawah (order-2) -->
-          <!-- Di Desktop: Kolom Pencarian di kiri (md:order-1), Filter Jilid di kanan (md:order-2) -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-2.5">
-            <!-- Filter Jilid / Kelas -->
-            <div class="order-1 md:order-2 flex items-center gap-2">
+        <div class="p-2.5 sm:p-3.5 border-b border-border bg-card space-y-2 sm:space-y-2.5">
+          <!-- Baris 1: Filter Jilid & Batas Cut-Off Sejajar di Mobile & Desktop -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <!-- Filter Jilid -->
+            <div class="flex items-center gap-1.5 flex-1">
               <select
                 id="filterKelasRekap"
                 v-model="rekapKelasId"
-                class="h-8 sm:h-9 flex-1 md:flex-none rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[130px] sm:min-w-[140px]"
+                class="w-full sm:w-auto h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[130px]"
                 title="Filter Jilid"
                 @change="loadRekapTunggakan"
               >
@@ -176,18 +108,51 @@
               </select>
             </div>
 
-            <!-- Kolom Pencarian (Di Desktop di kiri, di mobile di bawah) -->
-            <div class="order-2 md:order-1 relative flex-1 min-w-[200px] max-w-md">
-              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                id="searchRekap"
-                v-model="rekapSearch"
-                type="text"
-                placeholder="Cari nama santri atau NISN..."
-                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
-                @input="onRekapSearch"
-              />
+            <!-- Batas Cut-Off -->
+            <div class="grid grid-cols-2 sm:flex sm:items-center gap-1.5 shrink-0">
+              <div class="flex items-center gap-1">
+                <span class="text-xs text-muted-foreground hidden sm:inline whitespace-nowrap">Cut-Off:</span>
+                <select
+                  v-model.number="rekapCutOffBulan"
+                  @change="loadRekapTunggakan"
+                  class="w-full sm:w-auto h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
+                  title="Bulan Cut-Off"
+                >
+                  <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
+                </select>
+              </div>
+
+              <select
+                v-model.number="rekapCutOffTahun"
+                @change="loadRekapTunggakan"
+                class="w-full sm:w-24 h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
+                title="Tahun Cut-Off"
+              >
+                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
+              </select>
             </div>
+          </div>
+
+          <!-- Baris 2: Kolom Pencarian Full Width -->
+          <div class="relative w-full">
+            <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="searchRekap"
+              v-model="rekapSearch"
+              type="text"
+              placeholder="Cari nama santri atau NISN..."
+              class="h-8 sm:h-9 pl-9 pr-7 text-xs bg-background w-full"
+              @input="onRekapSearch"
+            />
+            <button
+              v-if="rekapSearch"
+              type="button"
+              @click="rekapSearch = ''; onRekapSearch()"
+              class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-muted-foreground hover:text-foreground text-sm"
+              title="Hapus Pencarian"
+            >
+              &times;
+            </button>
           </div>
         </div>
 
@@ -247,9 +212,9 @@
               >
                 <TableCell class="text-center font-mono text-xs text-muted-foreground">{{ idx + 1 }}</TableCell>
 
-                <!-- Santri (Nama panjang otomatis wrap ke 2 baris, tidak memanjang ke samping) -->
-                <TableCell class="max-w-[130px] sm:max-w-[180px] md:max-w-xs">
-                  <div class="font-medium text-foreground line-clamp-2 leading-snug break-words" :title="s.nama_lengkap">
+                <!-- Santri (Nama panjang otomatis turun ke baris ke-2 tanpa terpotong/tertutup) -->
+                <TableCell class="min-w-[140px] sm:min-w-[180px] max-w-[220px]">
+                  <div class="font-medium text-foreground whitespace-normal break-words leading-tight">
                     {{ s.nama_lengkap }}
                   </div>
                   <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px] mt-0.5 truncate">
@@ -456,8 +421,8 @@
                 <TableCell class="text-center font-mono text-xs text-muted-foreground">
                   {{ (currentPage - 1) * 50 + (index + 1) }}
                 </TableCell>
-                <TableCell class="font-medium text-foreground max-w-[130px] sm:max-w-[180px] md:max-w-xs">
-                  <div class="line-clamp-2 leading-snug break-words" :title="t.siswa?.nama_lengkap">
+                <TableCell class="font-medium text-foreground min-w-[140px] sm:min-w-[180px] max-w-[220px]">
+                  <div class="whitespace-normal break-words leading-tight">
                     {{ t.siswa?.nama_lengkap || '-' }}
                   </div>
                   <div class="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">NISN: {{ t.siswa?.nisn || '-' }}</div>

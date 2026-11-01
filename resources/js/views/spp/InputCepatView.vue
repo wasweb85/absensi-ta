@@ -211,9 +211,9 @@
                   class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer disabled:opacity-30"
                 />
               </td>
-              <td class="p-3 max-w-[140px] sm:max-w-[200px] md:max-w-xs">
+              <td class="p-3 min-w-[140px] sm:min-w-[180px] max-w-[220px]">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <p class="font-bold text-zinc-900 dark:text-white line-clamp-2 leading-snug break-words" :title="item.nama_lengkap">
+                  <p class="font-bold text-zinc-900 dark:text-white whitespace-normal break-words leading-tight">
                     {{ item.nama_lengkap }}
                   </p>
                   <span
