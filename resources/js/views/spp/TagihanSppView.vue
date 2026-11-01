@@ -2,60 +2,64 @@
   <div class="space-y-6 animate-fadeIn">
     
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm print:hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl sm:rounded-2xl bg-card border border-border shadow-xs print:hidden">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <BaseIcon name="tagihan" class="w-5 h-5" />
+        <h2 class="text-base sm:text-xl font-bold text-foreground flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <CreditCard class="size-4" />
           </div>
-          <span>Data Tagihan & Tunggakan SPP</span>
+          <span>Data Tagihan &amp; Tunggakan SPP</span>
         </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Monitoring status kewajiban SPP seluruh santri per periode bulan dan rekapitulasi akumulasi tunggakan semester
+        <p class="text-xs text-muted-foreground mt-0.5">
+          Monitoring status kewajiban SPP seluruh santri per periode dan rekapitulasi akumulasi tunggakan semester
         </p>
       </div>
 
       <!-- Actions: Sinkronkan Semester & Generate Tagihan -->
       <div v-if="canManageSpp" class="flex flex-wrap items-center gap-2">
-        <button
-          @click="executeSinkronkanSemester"
+        <Button
+          variant="outline"
+          size="sm"
           :disabled="isSyncingSemester"
-          class="px-3.5 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          class="h-8 sm:h-9 text-xs gap-1.5 border-emerald-300 dark:border-emerald-700/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
           title="Sinkronkan seluruh tagihan santri aktif untuk tahun ajaran aktif (Juli 2026 - Juni 2027)"
+          @click="executeSinkronkanSemester"
         >
-          <BaseIcon name="refresh" :class="['w-4 h-4', isSyncingSemester ? 'animate-spin' : '']" />
+          <RefreshCw :class="['size-3.5', isSyncingSemester ? 'animate-spin' : '']" />
           <span>{{ isSyncingSemester ? 'Menyinkronkan...' : 'Sinkronkan Tahun Ajaran' }}</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
+          size="sm"
+          class="h-8 sm:h-9 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
           @click="showGenerateModal = true"
-          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
         >
-          <BaseIcon name="zap" class="w-4 h-4" />
+          <Zap class="size-3.5" />
           <span>Generate Tagihan Bulanan</span>
-        </button>
+        </Button>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex border-b border-zinc-200 dark:border-zinc-800 space-x-2 print:hidden">
+    <div class="flex border-b border-border space-x-2 print:hidden">
       <button
         @click="switchTab('rekap')"
         :class="[
           activeTab === 'rekap'
             ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
-            : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium'
+            : 'text-muted-foreground hover:text-foreground font-medium'
         ]"
-        class="pb-3 px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+        class="pb-2.5 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
       >
-        <BaseIcon name="alert" class="w-4 h-4 text-rose-500" />
+        <AlertTriangle class="size-3.5 text-rose-500" />
         <span>Rekap Santri Menunggak</span>
-        <span
+        <Badge
           v-if="rekapSummary.total_santri_menunggak > 0"
-          class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
+          variant="destructive"
+          class="text-[10px] px-1.5 py-0 font-bold"
         >
           {{ rekapSummary.total_santri_menunggak }} Santri
-        </span>
+        </Badge>
       </button>
 
       <button
@@ -63,11 +67,11 @@
         :class="[
           activeTab === 'semua'
             ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
-            : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium'
+            : 'text-muted-foreground hover:text-foreground font-medium'
         ]"
-        class="pb-3 px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+        class="pb-2.5 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
       >
-        <BaseIcon name="tagihan" class="w-4 h-4" />
+        <CreditCard class="size-3.5" />
         <span>Semua Tagihan (Per Bulan)</span>
       </button>
     </div>
@@ -75,318 +79,403 @@
     <!-- TAB 1: REKAP SANTRI MENUNGGAK (AKUMULASI SEMESTER BERJALAN) -->
     <div v-if="activeTab === 'rekap'" class="space-y-4 print:hidden">
       <!-- 3 Summary Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <!-- Card 1: Total Santri Menunggak -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-            <BaseIcon name="user" class="w-5 h-5" />
+        <Card class="p-3.5 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <Users class="size-5" />
           </div>
-          <div>
-            <p class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Santri Menunggak</p>
-            <h4 class="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
+          <div class="min-w-0">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Santri Menunggak</p>
+            <h4 class="text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
               {{ rekapSummary.total_santri_menunggak }} Santri
             </h4>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Memiliki sisa tagihan aktif</p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Memiliki sisa tagihan aktif</p>
           </div>
-        </div>
+        </Card>
 
         <!-- Card 2: Total Nominal Tunggakan (Juli s/d Cut-off) -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <BaseIcon name="wallet" class="w-5 h-5" />
+        <Card class="p-3.5 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Wallet class="size-5" />
           </div>
-          <div>
-            <p class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total Tunggakan Riil</p>
-            <h4 class="text-xl font-black text-zinc-900 dark:text-white mt-0.5">
+          <div class="min-w-0">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Tunggakan Riil</p>
+            <h4 class="text-lg sm:text-xl font-bold text-foreground mt-0.5">
               Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
             </h4>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}</p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}</p>
           </div>
-        </div>
+        </Card>
 
         <!-- Card 3: Rata-rata Bulan Tunggakan -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <BaseIcon name="clock" class="w-5 h-5" />
+        <Card class="p-3.5 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Clock class="size-5" />
           </div>
-          <div>
-            <p class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Rata-rata Durasi</p>
-            <h4 class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+          <div class="min-w-0">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Rata-rata Durasi</p>
+            <h4 class="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
               {{ rekapSummary.rata_rata_bulan }} Bulan
             </h4>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Rata-rata bulan nunggak per santri</p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Rata-rata bulan nunggak per santri</p>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <!-- Filter Bar Rekap -->
-      <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between text-xs">
-        <div class="flex items-center gap-2.5 w-full md:w-auto flex-1">
-          <!-- Search -->
-          <div class="relative w-full sm:w-72">
-            <BaseIcon name="search" class="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
-            <input
-              v-model="rekapSearch"
-              @input="onRekapSearch"
-              type="text"
-              placeholder="Cari nama atau NISN santri..."
-              class="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            />
+      <!-- Kontainer Tunggal Terpadu Rekap Santri Menunggak (Filter & Tabel Menyatu Sesuai Model Data Santri) -->
+      <Card class="overflow-hidden py-0 gap-0">
+        <!-- Toolbar Atas di Dalam Kontainer Card -->
+        <div class="px-3 pt-2 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
+          <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Pilihan Cut-Off [Kanan] -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
+                Rekap Santri Menunggak
+              </h2>
+              <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
+                {{ rekapSantriList.length }} Santri
+              </Badge>
+            </div>
+
+            <!-- Kontrol Batas Cut-Off Sejajar di Kanan -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <span class="text-xs text-muted-foreground hidden md:inline">Batas Cut-Off:</span>
+              <select
+                v-model.number="rekapCutOffBulan"
+                @change="loadRekapTunggakan"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
+                title="Bulan Cut-Off"
+              >
+                <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
+              </select>
+              <select
+                v-model.number="rekapCutOffTahun"
+                @change="loadRekapTunggakan"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer font-medium"
+                title="Tahun Cut-Off"
+              >
+                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
+              </select>
+            </div>
           </div>
 
-          <!-- Filter Kelas -->
-          <select
-            v-model="rekapKelasId"
-            @change="loadRekapTunggakan"
-            class="px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-700 dark:text-zinc-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
-          >
-            <option value="">Semua Jilid / Kelas</option>
-            <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-          </select>
-        </div>
+          <!-- Baris 2: Filter Jilid & Kolom Pencarian -->
+          <!-- Di Mobile: Filter Jilid di atas (order-1), Kolom Pencarian di bawah (order-2) -->
+          <!-- Di Desktop: Kolom Pencarian di kiri (md:order-1), Filter Jilid di kanan (md:order-2) -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-2.5">
+            <!-- Filter Jilid / Kelas -->
+            <div class="order-1 md:order-2 flex items-center gap-2">
+              <select
+                id="filterKelasRekap"
+                v-model="rekapKelasId"
+                class="h-8 sm:h-9 flex-1 md:flex-none rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[130px] sm:min-w-[140px]"
+                title="Filter Jilid"
+                @change="loadRekapTunggakan"
+              >
+                <option value="">Semua Jilid</option>
+                <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                  {{ getCleanNamaKelas(k.nama_kelas) }}
+                </option>
+              </select>
+            </div>
 
-        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-          <span class="text-zinc-400 text-[11px]">Batas Hitung Cut-Off:</span>
-          <select
-            v-model.number="rekapCutOffBulan"
-            @change="loadRekapTunggakan"
-            class="px-2.5 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-700 dark:text-zinc-200 font-semibold"
-          >
-            <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
-          </select>
-          <select
-            v-model.number="rekapCutOffTahun"
-            @change="loadRekapTunggakan"
-            class="px-2.5 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-700 dark:text-zinc-200 font-semibold"
-          >
-            <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Tabel Rekap Santri Menunggak -->
-      <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
-        <div v-if="isLoadingRekap" class="p-12 text-center space-y-3">
-          <BaseIcon name="refresh" class="w-8 h-8 mx-auto animate-spin text-emerald-600" />
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">Mengkalkulasi rekapitulasi santri menunggak...</p>
-        </div>
-
-        <div v-else-if="rekapSantriList.length === 0" class="p-12 text-center space-y-3">
-          <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center mx-auto">
-            <BaseIcon name="check" class="w-6 h-6" />
+            <!-- Kolom Pencarian (Di Desktop di kiri, di mobile di bawah) -->
+            <div class="order-2 md:order-1 relative flex-1 min-w-[200px] max-w-md">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="searchRekap"
+                v-model="rekapSearch"
+                type="text"
+                placeholder="Cari nama santri atau NISN..."
+                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+                @input="onRekapSearch"
+              />
+            </div>
           </div>
-          <h4 class="text-sm font-bold text-zinc-800 dark:text-zinc-200">Alhamdulillah, Tidak Ada Tunggakan</h4>
-          <p class="text-xs text-zinc-500 max-w-sm mx-auto">
-            Seluruh santri aktif telah melunasi kewajiban SPP sampai dengan periode {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}.
-          </p>
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-500 font-bold border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase">
-              <tr>
-                <th class="py-3.5 px-4 w-12">No</th>
-                <th class="py-3.5 px-4">Santri</th>
-                <th class="py-3.5 px-4">Jilid / Kelas</th>
-                <th class="py-3.5 px-4 text-center">Durasi Nunggak</th>
-                <th class="py-3.5 px-4">Rincian Bulan Belum Lunas</th>
-                <th class="py-3.5 px-4 text-right">Total Tunggakan</th>
-                <th class="py-3.5 px-4 text-center">Aksi Cepat</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200/60 dark:divide-zinc-800">
-              <tr
+        <!-- Tabel Rekap Santri Menunggak -->
+        <div class="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow class="bg-muted/30">
+                <TableHead class="w-12 text-center text-[10px] uppercase font-semibold">No</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Santri</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Jilid</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold text-center whitespace-nowrap">Durasi Nunggak</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Rincian Bulan Belum Lunas</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold text-right whitespace-nowrap">Total Tunggakan</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold text-center whitespace-nowrap">Aksi Cepat</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <!-- 1. Sedang Memuat -->
+              <TableRow v-if="isLoadingRekap">
+                <TableCell colspan="7" class="h-36 text-center text-muted-foreground text-xs">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <LoaderCircle class="size-6 animate-spin text-primary" />
+                    <span>Mengkalkulasi rekapitulasi santri menunggak...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <!-- 2. Empty State saat Pencarian atau Filter Jilid Aktif -->
+              <TableRow v-else-if="rekapSantriList.length === 0 && (rekapSearch || rekapKelasId)">
+                <TableCell colspan="7" class="h-32 text-center text-muted-foreground text-xs">
+                  Tidak ada data santri yang ditemukan.
+                </TableCell>
+              </TableRow>
+
+              <!-- 3. Kondisi Alhamdulillah (Jika Tanpa Filter Pencarian dan Memang Tidak Ada Tunggakan) -->
+              <TableRow v-else-if="rekapSantriList.length === 0">
+                <TableCell colspan="7" class="h-44 text-center">
+                  <div class="flex flex-col items-center justify-center py-6 space-y-2">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                      <CheckCircle2 class="size-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h4 class="text-sm font-bold text-foreground">Alhamdulillah, Tidak Ada Tunggakan</h4>
+                    <p class="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Seluruh santri aktif telah melunasi kewajiban SPP sampai dengan periode {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}.
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <!-- 4. Baris Data Rekap Santri Menunggak -->
+              <TableRow
+                v-else
                 v-for="(s, idx) in rekapSantriList"
                 :key="s.id_siswa"
-                class="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition"
+                class="transition-colors hover:bg-muted/40"
               >
-                <td class="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">{{ idx + 1 }}</td>
+                <TableCell class="text-center font-mono text-xs text-muted-foreground">{{ idx + 1 }}</TableCell>
 
                 <!-- Santri -->
-                <td class="py-3.5 px-4">
-                  <div class="font-bold text-zinc-900 dark:text-white">{{ s.nama_lengkap }}</div>
-                  <div class="flex items-center gap-1.5 text-zinc-400 font-mono text-[11px] mt-0.5">
+                <TableCell>
+                  <div class="font-medium text-foreground">{{ s.nama_lengkap }}</div>
+                  <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px] mt-0.5">
                     <span>NISN: {{ s.nisn }}</span>
                     <span v-if="s.no_hp_ortu">&bull;</span>
                     <a
                       v-if="s.no_hp_ortu"
-                      :href="'https://wa.me/' + s.no_hp_ortu"
+                      :href="'https://wa.me/' + cleanPhone(s.no_hp_ortu)"
                       target="_blank"
                       class="text-emerald-600 hover:underline inline-flex items-center gap-0.5"
                       title="Buka WA Ortu"
                     >
                       <span>{{ s.no_hp_ortu }}</span>
-                      <BaseIcon name="external-link" class="w-3 h-3" />
+                      <ExternalLink class="size-3" />
                     </a>
                   </div>
-                </td>
+                </TableCell>
 
                 <!-- Kelas -->
-                <td class="py-3.5 px-4 whitespace-nowrap">
-                  <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
-                    {{ s.nama_kelas }}
-                  </span>
-                </td>
+                <TableCell class="whitespace-nowrap">
+                  <Badge variant="outline" class="font-medium text-[11px]">
+                    {{ getCleanNamaKelas(s.nama_kelas) }}
+                  </Badge>
+                </TableCell>
 
                 <!-- Durasi Nunggak Badge -->
-                <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                  <span
-                    class="px-2.5 py-1 rounded-full text-[11px] font-extrabold"
-                    :class="s.total_bulan >= 3 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300'"
+                <TableCell class="text-center whitespace-nowrap">
+                  <Badge
+                    :variant="s.total_bulan >= 3 ? 'destructive' : 'secondary'"
+                    class="font-bold text-[11px]"
                   >
                     {{ s.total_bulan }} Bulan
-                  </span>
-                </td>
+                  </Badge>
+                </TableCell>
 
                 <!-- Rincian Bulan -->
-                <td class="py-3.5 px-4 max-w-xs">
+                <TableCell class="max-w-xs">
                   <div class="flex flex-wrap gap-1">
                     <span
                       v-for="b in s.daftar_bulan"
                       :key="b.id_tagihan"
-                      class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700"
+                      class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted text-muted-foreground border border-border"
                     >
                       {{ b.nama_bulan }}
                     </span>
                   </div>
-                </td>
+                </TableCell>
 
                 <!-- Total Tunggakan -->
-                <td class="py-3.5 px-4 text-right font-mono font-black text-rose-600 dark:text-rose-400 text-sm whitespace-nowrap">
+                <TableCell class="text-right font-mono font-bold text-rose-600 dark:text-rose-400 text-sm whitespace-nowrap">
                   Rp {{ formatRupiah(s.total_tunggakan) }}
-                </td>
+                </TableCell>
 
                 <!-- Aksi Cepat -->
-                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                <TableCell class="text-center whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5">
-                    <button
-                      type="button"
-                      @click="openBayarModal(s)"
-                      class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition flex items-center gap-1 shadow-xs cursor-pointer"
+                    <Button
+                      size="sm"
+                      class="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
                       title="Bayar SPP Santri"
+                      @click="openBayarModal(s)"
                     >
-                      <BaseIcon name="wallet" class="w-3.5 h-3.5" />
+                      <Wallet class="size-3.5" />
                       <span>Bayar</span>
-                    </button>
+                    </Button>
 
-                    <button
-                      type="button"
-                      @click="openJapriModal(s)"
-                      class="p-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 transition cursor-pointer"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="h-7 px-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                       title="Kirim Japri Pengingat WA"
+                      @click="openJapriModal(s)"
                     >
-                      <BaseIcon name="whatsapp" class="w-4 h-4" />
-                    </button>
+                      <BaseIcon name="whatsapp" class="size-3.5" />
+                    </Button>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
     </div>
 
     <!-- TAB 2: SEMUA TAGIHAN (PER BULAN) -->
     <div v-else class="space-y-4 print:hidden">
-      <!-- Filters Row -->
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs">
-        <div>
-          <label class="block text-[11px] font-bold text-zinc-500 mb-1">Bulan</label>
-          <select
-            v-model="filters.bulan"
-            @change="loadTagihan(1)"
-            class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-          >
-            <option value="">Semua Bulan</option>
-            <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
-          </select>
+      <!-- Kontainer Tunggal Terpadu Semua Tagihan -->
+      <Card class="overflow-hidden py-0 gap-0">
+        <!-- Toolbar Atas di Dalam Kontainer Card -->
+        <div class="px-3 pt-2 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
+          <!-- Baris 1: Judul & Badge Tagihan -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
+                Semua Tagihan (Per Bulan)
+              </h2>
+              <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
+                {{ tagihanTotalCount || tagihanList.length }} Tagihan
+              </Badge>
+            </div>
+          </div>
+
+          <!-- Baris 2: Filter & Kolom Pencarian -->
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-2.5">
+            <!-- Filter Dropdowns (Bulan, Tahun, Jilid, Status) -->
+            <div class="order-1 lg:order-2 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+              <select
+                v-model="filters.bulan"
+                @change="loadTagihan(1)"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                title="Filter Bulan"
+              >
+                <option value="">Semua Bulan</option>
+                <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
+              </select>
+
+              <select
+                v-model="filters.tahun"
+                @change="loadTagihan(1)"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                title="Filter Tahun"
+              >
+                <option value="">Semua Tahun</option>
+                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
+              </select>
+
+              <select
+                v-model="filters.id_kelas"
+                @change="loadTagihan(1)"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[110px]"
+                title="Filter Jilid"
+              >
+                <option value="">Semua Jilid</option>
+                <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                  {{ getCleanNamaKelas(k.nama_kelas) }}
+                </option>
+              </select>
+
+              <select
+                v-model="filters.status"
+                @change="loadTagihan(1)"
+                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                title="Status Pembayaran"
+              >
+                <option value="">Semua Status</option>
+                <option value="belum_lunas">Belum Lunas</option>
+                <option value="lunas">Lunas</option>
+                <option value="kurang_bayar">Kurang Bayar</option>
+              </select>
+            </div>
+
+            <!-- Kolom Pencarian -->
+            <div class="order-2 lg:order-1 relative flex-1 min-w-[200px] max-w-sm">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="searchTagihan"
+                v-model="filters.search"
+                type="text"
+                placeholder="Cari santri atau NISN..."
+                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+                @input="onTagihanSearch"
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-[11px] font-bold text-zinc-500 mb-1">Tahun</label>
-          <select
-            v-model="filters.tahun"
-            @change="loadTagihan(1)"
-            class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-          >
-            <option value="">Semua Tahun</option>
-            <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold text-zinc-500 mb-1">Kelas / Jilid</label>
-          <select
-            v-model="filters.id_kelas"
-            @change="loadTagihan(1)"
-            class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-          >
-            <option value="">Semua Kelas</option>
-            <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold text-zinc-500 mb-1">Status Pembayaran</label>
-          <select
-            v-model="filters.status"
-            @change="loadTagihan(1)"
-            class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-          >
-            <option value="">Semua Status</option>
-            <option value="belum_lunas">Belum Lunas</option>
-            <option value="lunas">Lunas</option>
-            <option value="kurang_bayar">Kurang Bayar</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Table Semua Tagihan -->
-      <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+        <!-- Tabel Semua Tagihan -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-500 font-bold border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase">
-              <tr>
-                <th class="py-3 px-4">No</th>
-                <th class="py-3 px-4">Santri</th>
-                <th class="py-3 px-4">Jilid / Kelas</th>
-                <th class="py-3 px-4">Periode Tagihan</th>
-                <th class="py-3 px-4">Nominal Tagihan</th>
-                <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4">Jatuh Tempo</th>
-                <th class="py-3 px-4 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200/60 dark:divide-zinc-800">
-              <tr v-if="tagihanList.length === 0">
-                <td colspan="8" class="py-8 text-center text-zinc-400">
-                  Tidak ada data tagihan yang sesuai filter.
-                </td>
-              </tr>
-              <tr
+          <Table>
+            <TableHeader>
+              <TableRow class="bg-muted/30">
+                <TableHead class="w-12 text-center text-[10px] uppercase font-semibold">No</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Santri</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Jilid</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Periode Tagihan</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Nominal Tagihan</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Status</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold">Jatuh Tempo</TableHead>
+                <TableHead class="text-[10px] uppercase font-semibold text-center">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-if="isLoadingTagihan">
+                <TableCell colspan="8" class="h-36 text-center text-muted-foreground text-xs">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <LoaderCircle class="size-6 animate-spin text-primary" />
+                    <span>Memuat data tagihan...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+
+              <TableRow v-else-if="tagihanList.length === 0">
+                <TableCell colspan="8" class="h-32 text-center text-muted-foreground text-xs">
+                  {{ filters.search ? 'Tidak ada data tagihan yang sesuai dengan pencarian.' : 'Tidak ada data tagihan yang sesuai filter.' }}
+                </TableCell>
+              </TableRow>
+
+              <TableRow
+                v-else
                 v-for="(t, index) in tagihanList"
                 :key="t.id"
-                class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition"
+                class="transition-colors hover:bg-muted/40"
               >
-                <td class="py-3 px-4 text-zinc-400 font-mono text-[11px]">
-                  {{ (currentPage - 1) * 15 + (index + 1) }}
-                </td>
-                <td class="py-3 px-4 font-bold text-zinc-900 dark:text-white">
-                  {{ t.siswa?.nama_lengkap || '-' }}
-                  <span class="block text-[10px] text-zinc-400 font-normal">NISN: {{ t.siswa?.nisn || '-' }}</span>
-                </td>
-                <td class="py-3 px-4 text-zinc-600 dark:text-zinc-300">
-                  {{ t.siswa?.kelas?.nama_kelas || '-' }}
-                </td>
-                <td class="py-3 px-4 font-semibold text-zinc-700 dark:text-zinc-200">
+                <TableCell class="text-center font-mono text-xs text-muted-foreground">
+                  {{ (currentPage - 1) * 50 + (index + 1) }}
+                </TableCell>
+                <TableCell class="font-medium text-foreground">
+                  <div>{{ t.siswa?.nama_lengkap || '-' }}</div>
+                  <div class="text-[11px] text-muted-foreground font-mono mt-0.5">NISN: {{ t.siswa?.nisn || '-' }}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" class="font-medium text-[11px]">
+                    {{ getCleanNamaKelas(t.siswa?.kelas?.nama_kelas) || '-' }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="font-semibold text-foreground text-xs">
                   {{ bulanList[t.bulan] }} {{ t.tahun }}
-                </td>
-                <td class="py-3 px-4 font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                </TableCell>
+                <TableCell class="font-mono font-bold text-foreground text-xs">
                   Rp {{ formatRupiah(t.nominal_tagihan) }}
-                </td>
-                <td class="py-3 px-4">
+                </TableCell>
+                <TableCell>
                   <span
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase inline-block"
                     :class="{
                       'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300': t.status === 'lunas',
                       'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300': t.status === 'belum_lunas',
@@ -395,53 +484,57 @@
                   >
                     {{ t.status.replace('_', ' ') }}
                   </span>
-                </td>
-                <td class="py-3 px-4 text-zinc-400 font-mono text-[11px]">
+                </TableCell>
+                <TableCell class="text-muted-foreground font-mono text-xs">
                   {{ t.jatuh_tempo || '-' }}
-                </td>
-                <td class="py-3 px-4 text-center">
-                  <button
+                </TableCell>
+                <TableCell class="text-center">
+                  <Button
                     v-if="canManageSpp && t.status !== 'lunas'"
-                    type="button"
+                    size="sm"
+                    class="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                     @click="openBayarModalFromTagihan(t)"
-                    class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold transition cursor-pointer"
                   >
                     Bayar &rarr;
-                  </button>
-                  <span v-else-if="t.status !== 'lunas'" class="text-rose-500 font-semibold text-[11px]">
+                  </Button>
+                  <span v-else-if="t.status !== 'lunas'" class="text-rose-500 font-semibold text-xs">
                     Belum Lunas
                   </span>
                   <span v-else class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                    <BaseIcon name="check" class="w-3.5 h-3.5" />
+                    <Check class="size-3.5" />
                     <span>Lunas</span>
                   </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs">
-          <span class="text-zinc-400">Halaman {{ currentPage }} dari {{ totalPages }}</span>
+        <div v-if="totalPages > 1" class="px-4 py-3 border-t border-border bg-card flex items-center justify-between text-xs">
+          <span class="text-muted-foreground">Halaman {{ currentPage }} dari {{ totalPages }}</span>
           <div class="flex items-center gap-1.5">
-            <button
-              @click="loadTagihan(currentPage - 1)"
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 text-xs"
               :disabled="currentPage <= 1"
-              class="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 cursor-pointer"
+              @click="loadTagihan(currentPage - 1)"
             >
               Sebelumnya
-            </button>
-            <button
-              @click="loadTagihan(currentPage + 1)"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 text-xs"
               :disabled="currentPage >= totalPages"
-              class="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 cursor-pointer"
+              @click="loadTagihan(currentPage + 1)"
             >
               Berikutnya
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
 
     <!-- Modal Generate Tagihan Massal -->
@@ -533,7 +626,7 @@
             @click="closeJapriModal"
             class="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
           >
-            <BaseIcon name="x" class="w-4 h-4" />
+            <X class="w-4 h-4" />
           </button>
         </div>
 
@@ -580,13 +673,13 @@
               Draft Pesan WhatsApp (Dapat Diedit)
             </label>
             <span v-if="isLoadingJapriPreview" class="text-[10px] text-emerald-600 flex items-center gap-1">
-              <BaseIcon name="refresh" class="w-3 h-3 animate-spin" />
+              <RefreshCw class="w-3 h-3 animate-spin" />
               Menyiapkan draft...
             </span>
           </div>
 
           <div v-if="isLoadingJapriPreview" class="p-8 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-            <BaseIcon name="refresh" class="w-6 h-6 mx-auto mb-1 animate-spin text-emerald-600" />
+            <RefreshCw class="w-6 h-6 mx-auto mb-1 animate-spin text-emerald-600" />
             <p class="text-[11px]">Membuat rincian pesan tunggakan santri...</p>
           </div>
 
@@ -609,7 +702,7 @@
               class="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
               title="Salin isi pesan ke clipboard"
             >
-              <BaseIcon name="copy" class="w-3.5 h-3.5" />
+              <Copy class="w-3.5 h-3.5" />
               <span>Salin Teks</span>
             </button>
             <button
@@ -638,8 +731,8 @@
               :disabled="!japriMessage || !japriPhone || isSendingJapri"
               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <BaseIcon v-if="isSendingJapri" name="refresh" class="w-3.5 h-3.5 animate-spin" />
-              <BaseIcon v-else name="send" class="w-3.5 h-3.5" />
+              <RefreshCw v-if="isSendingJapri" class="w-3.5 h-3.5 animate-spin" />
+              <Send v-else class="w-3.5 h-3.5" />
               <span>Kirim Gateway (Fonnte)</span>
             </button>
           </div>
@@ -665,7 +758,7 @@
             <!-- Receipt Header -->
             <div class="text-center border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-3">
               <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center print:hidden">
-                <BaseIcon name="check" class="w-6 h-6 text-emerald-600" />
+                <Check class="w-6 h-6 text-emerald-600" />
               </div>
               <h4 class="text-base font-extrabold uppercase tracking-wide">KUITANSI PEMBAYARAN SPP</h4>
               <p class="text-[11px] text-zinc-500 font-mono mt-0.5">No: {{ bayarSuccessResult.nomor_kuitansi }}</p>
@@ -734,7 +827,7 @@
                 class="px-3 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                 title="Cetak Kuitansi Resmi"
               >
-                <BaseIcon name="printer" class="w-3.5 h-3.5" />
+                <Printer class="w-3.5 h-3.5" />
                 <span>Cetak Kuitansi</span>
               </button>
               <button
@@ -753,7 +846,7 @@
               @click="closeBayarModal"
               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition cursor-pointer shadow-md shadow-emerald-600/20"
             >
-              Selesai & Tutup
+              Selesai &amp; Tutup
             </button>
           </div>
         </div>
@@ -764,7 +857,7 @@
           <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
             <div class="flex items-center gap-2.5">
               <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <BaseIcon name="wallet" class="w-5 h-5" />
+                <Wallet class="w-5 h-5" />
               </div>
               <div>
                 <h3 class="text-sm font-bold text-zinc-900 dark:text-white">Pembayaran SPP Santri</h3>
@@ -776,7 +869,7 @@
               @click="closeBayarModal"
               class="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             >
-              <BaseIcon name="x" class="w-4 h-4" />
+              <X class="w-4 h-4" />
             </button>
           </div>
 
@@ -822,13 +915,13 @@
 
             <!-- Loading Bills -->
             <div v-if="isLoadingBayarBills" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-              <BaseIcon name="refresh" class="w-5 h-5 mx-auto mb-1 animate-spin text-emerald-600" />
+              <RefreshCw class="w-5 h-5 mx-auto mb-1 animate-spin text-emerald-600" />
               <p class="text-[11px]">Memuat daftar tagihan santri...</p>
             </div>
 
             <!-- Empty Bills -->
             <div v-else-if="bayarTagihanList.length === 0" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-              <BaseIcon name="check" class="w-6 h-6 mx-auto mb-1 text-emerald-500" />
+              <CheckCircle2 class="w-6 h-6 mx-auto mb-1 text-emerald-500" />
               <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Santri tidak memiliki tunggakan tagihan aktif.</p>
             </div>
 
@@ -928,8 +1021,8 @@
               :disabled="selectedTagihanIds.length === 0 || isSubmittingBayar"
               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <BaseIcon v-if="isSubmittingBayar" name="refresh" class="w-3.5 h-3.5 animate-spin" />
-              <BaseIcon v-else name="wallet" class="w-3.5 h-3.5" />
+              <RefreshCw v-if="isSubmittingBayar" class="w-3.5 h-3.5 animate-spin" />
+              <Wallet v-else class="w-3.5 h-3.5" />
               <span>
                 {{ isSubmittingBayar ? 'Memproses...' : `Bayar Sekarang (${selectedTagihanIds.length} Bulan • Rp ${formatRupiah(totalNominalBayarModal)})` }}
               </span>
@@ -949,6 +1042,29 @@ import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
 import { useAuth } from '../../composables/useAuth';
 import BaseIcon from '../../components/BaseIcon.vue';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Search,
+  LoaderCircle,
+  CheckCircle2,
+  Check,
+  RefreshCw,
+  Zap,
+  CreditCard,
+  Wallet,
+  Users,
+  Clock,
+  AlertTriangle,
+  X,
+  ExternalLink,
+  Copy,
+  Printer,
+  Send,
+} from '@lucide/vue';
 
 const route = useRoute();
 const toast = useToast();
@@ -957,16 +1073,20 @@ const { canManageSpp } = useAuth();
 const activeTab = ref(route.query.tab === 'semua' ? 'semua' : 'rekap');
 
 // Data Tab Semua Tagihan
+const isLoadingTagihan = ref(false);
 const tagihanList = ref([]);
+const tagihanTotalCount = ref(0);
 const kelasList = ref([]);
 const currentPage = ref(1);
 const totalPages = ref(1);
+let tagihanSearchTimer = null;
 
 const filters = ref({
   bulan: new Date().getMonth() + 1,
   tahun: new Date().getFullYear(),
   id_kelas: '',
   status: '',
+  search: '',
 });
 
 // Data Tab Rekap Santri Menunggak
@@ -995,6 +1115,20 @@ const genForm = ref({
   bulan: new Date().getMonth() + 1,
   tahun: new Date().getFullYear(),
 });
+
+const getCleanNamaKelas = (nama) => {
+  if (!nama) return '';
+  return nama.replace(/\s*\([^)]*\)/g, '').trim();
+};
+
+const cleanPhone = (phone) => {
+  if (!phone) return '';
+  let clean = phone.replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+  return clean;
+};
 
 const executeSinkronkanSemester = async () => {
   isSyncingSemester.value = true;
@@ -1046,21 +1180,36 @@ const loadKelas = async () => {
 };
 
 const loadTagihan = async (page = 1) => {
+  isLoadingTagihan.value = true;
   currentPage.value = page;
   try {
     const params = {
       page: page,
-      ...filters.value,
+      bulan: filters.value.bulan || undefined,
+      tahun: filters.value.tahun || undefined,
+      id_kelas: filters.value.id_kelas || undefined,
+      status: filters.value.status || undefined,
+      search: filters.value.search || undefined,
     };
     const res = await api.get('/spp/tagihan', { params });
     if (res.data.success) {
-      tagihanList.value = res.data.data.data;
-      totalPages.value = res.data.data.last_page;
+      tagihanList.value = res.data.data.data || [];
+      totalPages.value = res.data.data.last_page || 1;
+      tagihanTotalCount.value = res.data.data.total || 0;
     }
   } catch (e) {
     toast.error('Gagal memuat data tagihan SPP.');
+  } finally {
+    isLoadingTagihan.value = false;
   }
 };
+
+function onTagihanSearch() {
+  clearTimeout(tagihanSearchTimer);
+  tagihanSearchTimer = setTimeout(() => {
+    loadTagihan(1);
+  }, 350);
+}
 
 const loadRekapTunggakan = async () => {
   isLoadingRekap.value = true;
