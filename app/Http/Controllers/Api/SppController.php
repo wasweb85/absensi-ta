@@ -284,11 +284,12 @@ class SppController extends Controller
         $idKelas = $request->input('id_kelas');
         $items = $request->input('items');
         $petugasId = $request->user()->id;
+        $namaPetugas = $request->user()->name;
 
         $sukses = 0;
         $kuitansiList = [];
 
-        DB::transaction(function () use ($items, $bulan, $tahun, $idKelas, $petugasId, &$sukses, &$kuitansiList) {
+        DB::transaction(function () use ($items, $bulan, $tahun, $idKelas, $petugasId, $namaPetugas, &$sukses, &$kuitansiList) {
             if ($idKelas) {
                 $allSiswaKelas = Siswa::where('id_kelas', $idKelas)->where('status', 'aktif')->get();
                 foreach ($allSiswaKelas as $s) {
@@ -312,7 +313,9 @@ class SppController extends Controller
                     'catatan' => 'Input Cepat SPP',
                 ], $petugasId);
 
-                $kuitansiList[] = $res['kuitansi'];
+                $kw = $res['kuitansi'];
+                $kw['petugas'] = $namaPetugas;
+                $kuitansiList[] = $kw;
                 $sukses++;
             }
         });
