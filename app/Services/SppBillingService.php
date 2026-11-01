@@ -189,6 +189,17 @@ class SppBillingService
         $cutOffBulan = $cutOffBulan ?: (int) Carbon::now('Asia/Jakarta')->month;
         $cutOffTahun = $cutOffTahun ?: (int) Carbon::now('Asia/Jakarta')->year;
 
+        // Pastikan tagihan sampai periode cut-off yang diminta tersedia di database
+        $cutOffExists = TagihanSpp::where('tahun', $cutOffTahun)
+            ->where('bulan', $cutOffBulan)
+            ->exists();
+
+        if (! $cutOffExists) {
+            $toTahun = max(2027, $cutOffTahun);
+            $toBulan = ($toTahun === 2027) ? max(6, $cutOffBulan) : $cutOffBulan;
+            $this->sinkronkanTagihanSemester(7, 2026, $toBulan, $toTahun);
+        }
+
         [$startBulan, $startTahun] = self::getSemesterStart();
 
         $tagihanUnpaid = TagihanSpp::with(['pembayaran' => function ($q) {
@@ -577,15 +588,15 @@ class SppBillingService
     }
 
     /**
-     * Menyinkronkan tagihan seluruh santri aktif untuk semester berjalan (mulai Juli 2026 s/d Desember 2026 atau sesuai rentang).
+     * Menyinkronkan tagihan seluruh santri aktif untuk tahun ajaran aktif (Juli 2026 s/d Juni 2027 atau sesuai rentang).
      *
      * @return array{created: int, existing: int, total_santri: int}
      */
     public function sinkronkanTagihanSemester(
         int $fromBulan = 7,
         int $fromTahun = 2026,
-        int $toBulan = 12,
-        int $toTahun = 2026
+        int $toBulan = 6,
+        int $toTahun = 2027
     ): array {
         self::ensureSppSchemaExists();
 
@@ -680,9 +691,15 @@ class SppBillingService
         $cutOffBulan = $cutOffBulan ?: (int) Carbon::now('Asia/Jakarta')->month;
         $cutOffTahun = $cutOffTahun ?: (int) Carbon::now('Asia/Jakarta')->year;
 
-        // Jika tagihan_spp masih kosong (misal database baru), otomatis sinkronkan semester berjalan
-        if (TagihanSpp::count() === 0) {
-            $this->sinkronkanTagihanSemester(7, 2026, max(12, $cutOffBulan), $cutOffTahun);
+        // Pastikan tagihan sampai periode cut-off yang diminta tersedia di database
+        $cutOffExists = TagihanSpp::where('tahun', $cutOffTahun)
+            ->where('bulan', $cutOffBulan)
+            ->exists();
+
+        if (! $cutOffExists) {
+            $toTahun = max(2027, $cutOffTahun);
+            $toBulan = ($toTahun === 2027) ? max(6, $cutOffBulan) : $cutOffBulan;
+            $this->sinkronkanTagihanSemester(7, 2026, $toBulan, $toTahun);
         }
 
         [$startBulan, $startTahun] = self::getSemesterStart();

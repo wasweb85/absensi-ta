@@ -60,8 +60,18 @@ class SppController extends Controller
      */
     public function tagihanList(Request $request): JsonResponse
     {
-        if (TagihanSpp::count() === 0) {
-            $this->billingService->sinkronkanTagihanSemester(7, 2026, 12, 2026);
+        $bulan = $request->filled('bulan') ? (int) $request->input('bulan') : null;
+        $tahun = $request->filled('tahun') ? (int) $request->input('tahun') : null;
+
+        if ($bulan && $tahun) {
+            $exists = TagihanSpp::where('bulan', $bulan)->where('tahun', $tahun)->exists();
+            if (! $exists) {
+                $toTahun = max(2027, $tahun);
+                $toBulan = ($toTahun === 2027) ? max(6, $bulan) : $bulan;
+                $this->billingService->sinkronkanTagihanSemester(7, 2026, $toBulan, $toTahun);
+            }
+        } elseif (TagihanSpp::count() === 0) {
+            $this->billingService->sinkronkanTagihanSemester(7, 2026, 6, 2027);
         }
 
         $query = TagihanSpp::with(['siswa.kelas']);
@@ -118,18 +128,21 @@ class SppController extends Controller
         $mode = $request->input('mode', 'single');
         $tahun = (int) $request->input('tahun');
 
-        $bulanList = match ($mode) {
-            'semester_1' => [7, 8, 9, 10, 11, 12],
-            'semester_2' => [1, 2, 3, 4, 5, 6],
-            'full_year' => [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
-            default => [(int) $request->input('bulan', Carbon::now('Asia/Jakarta')->month)],
+        $periods = match ($mode) {
+            'semester_1' => array_map(fn ($m) => ['bulan' => $m, 'tahun' => $tahun], [7, 8, 9, 10, 11, 12]),
+            'semester_2' => array_map(fn ($m) => ['bulan' => $m, 'tahun' => ($tahun === 2026 ? 2027 : $tahun)], [1, 2, 3, 4, 5, 6]),
+            'full_year' => array_merge(
+                array_map(fn ($m) => ['bulan' => $m, 'tahun' => $tahun], [7, 8, 9, 10, 11, 12]),
+                array_map(fn ($m) => ['bulan' => $m, 'tahun' => ($tahun === 2026 ? 2027 : $tahun + 1)], [1, 2, 3, 4, 5, 6])
+            ),
+            default => [['bulan' => (int) $request->input('bulan', Carbon::now('Asia/Jakarta')->month), 'tahun' => $tahun]],
         };
 
         $totalCreated = 0;
         $totalSkipped = 0;
 
-        foreach ($bulanList as $bln) {
-            $result = $this->billingService->generateTagihanBulanan($bln, $tahun);
+        foreach ($periods as $p) {
+            $result = $this->billingService->generateTagihanBulanan($p['bulan'], $p['tahun']);
             $totalCreated += $result['created'];
             $totalSkipped += $result['skipped'];
         }
@@ -145,20 +158,20 @@ class SppController extends Controller
     }
 
     /**
-     * Sinkronkan tagihan SPP untuk semester berjalan (Juli s/d Desember 2026)
+     * Sinkronkan tagihan SPP untuk tahun ajaran aktif (Juli 2026 s/d Juni 2027)
      */
     public function sinkronkanSemester(Request $request): JsonResponse
     {
         $fromBulan = (int) $request->input('from_bulan', 7);
         $fromTahun = (int) $request->input('from_tahun', 2026);
-        $toBulan = (int) $request->input('to_bulan', 12);
-        $toTahun = (int) $request->input('to_tahun', 2026);
+        $toBulan = (int) $request->input('to_bulan', 6);
+        $toTahun = (int) $request->input('to_tahun', 2027);
 
         $result = $this->billingService->sinkronkanTagihanSemester($fromBulan, $fromTahun, $toBulan, $toTahun);
 
         return response()->json([
             'success' => true,
-            'message' => "Sinkronisasi tagihan semester berhasil: {$result['created']} tagihan baru dibuat untuk {$result['total_santri']} santri aktif.",
+            'message' => "Sinkronisasi tagihan berhasil: {$result['created']} tagihan baru dibuat untuk {$result['total_santri']} santri aktif.",
             'data' => $result,
         ]);
     }
@@ -166,10 +179,13 @@ class SppController extends Controller
     /**
      * Mengambil daftar tunggakan seorang santri
      */
-    public function tunggakanSantri(int $idSiswa): JsonResponse
+    public function tunggakanSantri(int $idSiswa, Request $request): JsonResponse
     {
         $siswa = Siswa::with('kelas')->findOrFail($idSiswa);
-        $tunggakan = $this->billingService->hitungTunggakanSantri($idSiswa);
+        $cutOffBulan = $request->filled('bulan') ? (int) $request->input('bulan') : 6;
+        $cutOffTahun = $request->filled('tahun') ? (int) $request->input('tahun') : 2027;
+
+        $tunggakan = $this->billingService->hitungTunggakanSantri($idSiswa, $cutOffBulan, $cutOffTahun);
 
         return response()->json([
             'success' => true,

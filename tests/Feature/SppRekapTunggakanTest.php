@@ -226,4 +226,54 @@ class SppRekapTunggakanTest extends TestCase
 
         $this->assertDatabaseCount('tagihan_spp', 12);
     }
+
+    public function test_santri_paid_until_december_2026_shows_arrears_in_2027(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        // Siswa 1 lunas seluruh bulan 7-12 di tahun 2026
+        foreach ([7, 8, 9, 10, 11, 12] as $bln) {
+            TagihanSpp::create([
+                'id_siswa' => $this->siswa1->id,
+                'bulan' => $bln,
+                'tahun' => 2026,
+                'tahun_ajaran' => '2026/2027',
+                'nominal_tagihan' => 50000,
+                'status' => 'lunas',
+            ]);
+        }
+
+        // Siswa 2 juga lunas seluruh bulan 7-12 di tahun 2026
+        foreach ([7, 8, 9, 10, 11, 12] as $bln) {
+            TagihanSpp::create([
+                'id_siswa' => $this->siswa2->id,
+                'bulan' => $bln,
+                'tahun' => 2026,
+                'tahun_ajaran' => '2026/2027',
+                'nominal_tagihan' => 50000,
+                'status' => 'lunas',
+            ]);
+        }
+
+        // Jika cut-off Desember 2026, maka tidak ada tunggakan
+        $service = app(SppBillingService::class);
+        $rekapDes = $service->getRekapTunggakanSantri(null, 12, 2026);
+        $this->assertEquals(0, $rekapDes['summary']['total_santri_menunggak']);
+
+        // Ketika cut-off Januari 2027, sistem otomatis menyinkronkan 2027 dan menampilkan 1 bulan tunggakan
+        $rekapJan = $service->getRekapTunggakanSantri(null, 1, 2027);
+        $this->assertEquals(2, $rekapJan['summary']['total_santri_menunggak']);
+        $this->assertEquals(100000, $rekapJan['summary']['total_nominal_tunggakan']);
+        $this->assertEquals(1, $rekapJan['santri'][0]['total_bulan']);
+        $this->assertEquals(50000, $rekapJan['santri'][0]['total_tunggakan']);
+        $this->assertEquals(['Januari'], array_column($rekapJan['santri'][0]['daftar_bulan'], 'nama_bulan'));
+
+        // Ketika cut-off Februari 2027, menampilkan 2 bulan tunggakan (Januari & Februari)
+        $rekapFeb = $service->getRekapTunggakanSantri(null, 2, 2027);
+        $this->assertEquals(2, $rekapFeb['summary']['total_santri_menunggak']);
+        $this->assertEquals(200000, $rekapFeb['summary']['total_nominal_tunggakan']);
+        $this->assertEquals(2, $rekapFeb['santri'][0]['total_bulan']);
+        $this->assertEquals(100000, $rekapFeb['santri'][0]['total_tunggakan']);
+        $this->assertEquals(['Januari', 'Februari'], array_column($rekapFeb['santri'][0]['daftar_bulan'], 'nama_bulan'));
+    }
 }

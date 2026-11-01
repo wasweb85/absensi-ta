@@ -21,10 +21,10 @@
           @click="executeSinkronkanSemester"
           :disabled="isSyncingSemester"
           class="px-3.5 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-          title="Sinkronkan seluruh tagihan santri aktif dari awal semester (Juli 2026)"
+          title="Sinkronkan seluruh tagihan santri aktif untuk tahun ajaran aktif (Juli 2026 - Juni 2027)"
         >
           <BaseIcon name="refresh" :class="['w-4 h-4', isSyncingSemester ? 'animate-spin' : '']" />
-          <span>{{ isSyncingSemester ? 'Menyinkronkan...' : 'Sinkronkan Semester' }}</span>
+          <span>{{ isSyncingSemester ? 'Menyinkronkan...' : 'Sinkronkan Tahun Ajaran' }}</span>
         </button>
 
         <button
@@ -100,7 +100,7 @@
             <h4 class="text-xl font-black text-zinc-900 dark:text-white mt-0.5">
               Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
             </h4>
-            <p class="text-[10px] text-zinc-400 mt-0.5">Periode Juli s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}</p>
+            <p class="text-[10px] text-zinc-400 mt-0.5">Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}</p>
           </div>
         </div>
 
@@ -1002,15 +1002,15 @@ const executeSinkronkanSemester = async () => {
     const res = await api.post('/spp/sinkronkan-semester', {
       from_bulan: 7,
       from_tahun: 2026,
-      to_bulan: 12,
-      to_tahun: 2026,
+      to_bulan: 6,
+      to_tahun: 2027,
     });
     if (res.data.success) {
-      toast.success(res.data.message || 'Sinkronisasi tagihan semester berhasil!');
+      toast.success(res.data.message || 'Sinkronisasi tagihan tahun ajaran berhasil!');
       loadRekapTunggakan();
       loadTagihan(currentPage.value);
     } else {
-      toast.error(res.data.message || 'Gagal menyinkronkan tagihan semester.');
+      toast.error(res.data.message || 'Gagal menyinkronkan tagihan tahun ajaran.');
     }
   } catch (err) {
     toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyinkronkan tagihan.');
@@ -1109,7 +1109,7 @@ const totalNominalBayarModal = computed(() => {
     .reduce((sum, b) => sum + (Number(b.sisa) || Number(b.nominal_tagihan) || 0), 0);
 });
 
-const openBayarModal = (santri) => {
+const openBayarModal = async (santri) => {
   selectedBayarSantri.value = {
     id_siswa: santri.id_siswa,
     nama_lengkap: santri.nama_lengkap,
@@ -1122,8 +1122,27 @@ const openBayarModal = (santri) => {
   bayarMetode.value = 'Tunai';
   bayarCatatan.value = '';
   bayarSuccessResult.value = null;
-  isLoadingBayarBills.value = false;
+  isLoadingBayarBills.value = true;
   showBayarModal.value = true;
+
+  try {
+    const res = await api.get(`/spp/santri/${santri.id_siswa}/tunggakan?all=1`);
+    if (res.data.success && (res.data.data?.daftar_tunggakan || res.data.data?.daftar_bulan)) {
+      const allBills = res.data.data.daftar_tunggakan || res.data.data.daftar_bulan || [];
+      if (allBills.length > 0) {
+        bayarTagihanList.value = allBills;
+        if (santri.daftar_bulan && santri.daftar_bulan.length > 0) {
+          selectedTagihanIds.value = santri.daftar_bulan.map(b => b.id_tagihan);
+        } else {
+          selectedTagihanIds.value = allBills.map(b => b.id_tagihan);
+        }
+      }
+    }
+  } catch (err) {
+    // Tetap gunakan data santri.daftar_bulan
+  } finally {
+    isLoadingBayarBills.value = false;
+  }
 };
 
 const openBayarModalFromTagihan = async (tagihan) => {
@@ -1143,9 +1162,10 @@ const openBayarModalFromTagihan = async (tagihan) => {
   showBayarModal.value = true;
 
   try {
-    const res = await api.get(`/spp/santri/${tagihan.id_siswa}/tunggakan`);
-    if (res.data.success && res.data.data?.daftar_bulan) {
-      bayarTagihanList.value = res.data.data.daftar_bulan;
+    const res = await api.get(`/spp/santri/${tagihan.id_siswa}/tunggakan?all=1`);
+    const allBills = res.data.data?.daftar_tunggakan || res.data.data?.daftar_bulan || [];
+    if (res.data.success && allBills.length > 0) {
+      bayarTagihanList.value = allBills;
       const ids = bayarTagihanList.value.map(b => b.id_tagihan);
       if (ids.includes(tagihan.id)) {
         selectedTagihanIds.value = [tagihan.id];
