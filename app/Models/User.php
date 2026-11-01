@@ -44,4 +44,17 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Siswa::class, 'nisn', 'nisn');
     }
+
+    /**
+     * Mendapatkan nama resmi bendahara lembaga sesuai yang diinput admin pada data guru.
+     */
+    public static function getNamaBendahara(): string
+    {
+        $bendahara = static::where('role', 'bendahara')->orderBy('id', 'asc')->first();
+        if ($bendahara && ! empty($bendahara->name)) {
+            return $bendahara->name;
+        }
+
+        return Pengaturan::getValue('nama_bendahara', 'Ust. Bendahara') ?: 'Ust. Bendahara';
+    }
 }

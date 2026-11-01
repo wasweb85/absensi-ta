@@ -220,11 +220,49 @@
         
         <!-- Printable Area -->
         <div id="kuitansiArea" class="border border-zinc-300 dark:border-zinc-700 rounded-2xl p-6 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-          <!-- Receipt Header -->
-          <div class="text-center border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-4">
-            <h4 class="text-base font-extrabold uppercase tracking-wide">KUITANSI PEMBAYARAN SPP</h4>
-            <p class="text-[10px] text-zinc-500 font-mono mt-0.5">No: {{ activeKuitansi.nomor_kuitansi }}</p>
-            <p class="text-[10px] text-zinc-400">{{ activeKuitansi.tanggal_bayar }}</p>
+          <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
+          <div class="text-black dark:text-white print:text-black pb-1 mb-2">
+            <div class="flex items-center justify-between gap-3 pb-1">
+              <!-- Logo Lembaga di Kiri -->
+              <div class="w-16 sm:w-20 shrink-0 flex items-center justify-center">
+                <img
+                  :src="appLogo || '/LOGOTPQ.png'"
+                  alt="Logo Lembaga"
+                  class="max-h-16 max-w-20 object-contain"
+                />
+              </div>
+
+              <!-- Teks Kop Surat di Tengah -->
+              <div class="flex-1 text-center px-1">
+                <h1 class="text-base sm:text-lg font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
+                  YAYASAN NURUL JADID
+                </h1>
+                <h2 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
+                  TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
+                </h2>
+                <h3 class="text-[10px] sm:text-[11px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
+                  KARANGANYAR PAITON PROBOLINGGO
+                </h3>
+                <p class="text-[8px] sm:text-[9px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+                  Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
+                </p>
+              </div>
+
+              <!-- Spacer Kanan Penyeimbang -->
+              <div class="w-16 sm:w-20 shrink-0"></div>
+            </div>
+
+            <!-- Garis Ganda Kop Surat Resmi -->
+            <div class="border-t-[2.5px] border-black dark:border-white print:border-black mt-1"></div>
+            <div class="border-t border-black dark:border-white print:border-black mt-[1.5px] mb-2"></div>
+
+            <!-- Judul Dokumen Kuitansi -->
+            <div class="text-center my-1">
+              <h4 class="text-xs font-bold uppercase tracking-wider underline">
+                KUITANSI PEMBAYARAN SPP RESMI
+              </h4>
+              <p class="text-[10px] text-zinc-500 font-mono mt-0.5">No: {{ activeKuitansi.nomor_kuitansi }} &bull; {{ activeKuitansi.tanggal_bayar }}</p>
+            </div>
           </div>
 
           <!-- Receipt Details Table -->
@@ -258,33 +296,49 @@
           <!-- Signatures Footer -->
           <div class="grid grid-cols-2 gap-4 text-center mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800 text-[11px]">
             <div>
-              <p class="text-zinc-400">Penyetor,</p>
-              <div class="h-12"></div>
-              <p class="font-semibold">(............................)</p>
+              <p class="text-zinc-500 dark:text-zinc-400">Penyetor / Wali Santri,</p>
+              <div class="h-10"></div>
+              <p class="font-semibold text-zinc-800 dark:text-zinc-200">( ........................................ )</p>
             </div>
             <div>
-              <p class="text-zinc-400">Bendahara,</p>
-              <div class="h-12"></div>
-              <p class="font-bold underline text-emerald-600">Ust. Bendahara</p>
+              <p class="text-zinc-500 dark:text-zinc-400">Paiton, {{ formatTanggalRingkas(activeKuitansi.tanggal_bayar) }}</p>
+              <p class="font-semibold text-zinc-700 dark:text-zinc-300">Bendahara TPQ,</p>
+              <div class="h-10"></div>
+              <p class="font-bold underline text-emerald-600 dark:text-emerald-400">( {{ activeKuitansi.nama_bendahara || namaBendahara }} )</p>
+              <p class="text-[9px] text-zinc-500 dark:text-zinc-400 mt-0.5" v-if="activeKuitansi.petugas && activeKuitansi.petugas !== (activeKuitansi.nama_bendahara || namaBendahara)">
+                Petugas Input: {{ activeKuitansi.petugas }}
+              </p>
             </div>
           </div>
         </div>
 
         <!-- Modal Actions (Hidden when printing) -->
-        <div class="flex items-center justify-end gap-2 mt-5 print:hidden">
+        <div class="flex flex-wrap items-center justify-between gap-2 mt-5 print:hidden">
           <button
-            @click="activeKuitansi = null"
-            class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold cursor-pointer"
+            type="button"
+            @click="sendKuitansiViaWa"
+            class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
+            title="Kirim Bukti Kuitansi ke WhatsApp Wali Santri"
           >
-            Tutup
+            <BaseIcon name="whatsapp" class="w-4 h-4" />
+            <span>Kirim WA ke Wali Santri</span>
           </button>
-          <button
-            @click="printKuitansi"
-            class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
-          >
-            <BaseIcon name="printer" class="w-4 h-4" />
-            <span>Cetak Kuitansi</span>
-          </button>
+
+          <div class="flex items-center gap-2">
+            <button
+              @click="activeKuitansi = null"
+              class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold cursor-pointer"
+            >
+              Tutup
+            </button>
+            <button
+              @click="printKuitansi"
+              class="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer hover:opacity-90"
+            >
+              <BaseIcon name="printer" class="w-4 h-4" />
+              <span>Cetak Kuitansi</span>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -308,6 +362,8 @@ const tunggakanData = ref({ total_tunggakan: 0, total_bulan: 0, daftar_tunggakan
 const selectedBill = ref(null);
 const isSubmitting = ref(false);
 const activeKuitansi = ref(null);
+const namaBendahara = ref('Ust. Bendahara');
+const appLogo = ref('/LOGOTPQ.png');
 
 const paymentForm = ref({
   jumlah_bayar: 0,
@@ -317,6 +373,57 @@ const paymentForm = ref({
 
 const formatRupiah = (val) => {
   return new Intl.NumberFormat('id-ID').format(val || 0);
+};
+
+const formatTanggalRingkas = (str) => {
+  if (!str) {
+    const today = new Date();
+    return today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  const cleanStr = String(str).replace(' ', 'T').replace('Z', '');
+  const d = new Date(cleanStr);
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const sendKuitansiViaWa = () => {
+  if (!activeKuitansi.value) return;
+  const k = activeKuitansi.value;
+
+  let phone = selectedStudent.value?.no_hp_ortu || k.no_hp_ortu || '';
+  if (!phone) {
+    phone = prompt('Nomor WhatsApp wali santri belum terdaftar. Masukkan nomor WhatsApp tujuan (contoh: 08123456789):');
+  }
+  if (!phone) return;
+
+  let clean = phone.replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+
+  const bendaharaName = k.nama_bendahara || namaBendahara.value;
+  const petugasInput = k.petugas || bendaharaName;
+
+  const text = `*BUKTI PEMBAYARAN SPP TPQ*
+---------------------------------------
+No. Kuitansi : ${k.nomor_kuitansi}
+Tanggal      : ${k.tanggal_bayar}
+Nama Santri  : ${k.nama_santri}
+NISN / Kelas : ${k.nisn} / ${k.kelas}
+Pembayaran   : ${k.pembayaran_untuk}
+Metode Bayar : ${k.metode}
+Status       : ${k.status_tagihan?.toUpperCase() || 'LUNAS'}
+---------------------------------------
+*TOTAL DIBAYAR: Rp ${formatRupiah(k.jumlah_bayar)}*
+Bendahara    : ${bendaharaName}
+${petugasInput !== bendaharaName ? 'Petugas Input: ' + petugasInput + '\n' : ''}${k.catatan ? 'Catatan: ' + k.catatan + '\n' : ''}---------------------------------------
+Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan membawa barokah bagi ananda serta keluarga tercinta.
+
+*TPQ Nurul Mun'im*
+Karanganyar Paiton Probolinggo`;
+
+  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
 };
 
 const loadStudents = async () => {
@@ -402,7 +509,19 @@ const printKuitansi = () => {
   window.print();
 };
 
-onMounted(() => {
+onMounted(async () => {
   loadStudents();
+
+  try {
+    const pub = await api.get('/pengaturan/public');
+    if (pub.data?.data?.nama_bendahara) {
+      namaBendahara.value = pub.data.data.nama_bendahara;
+    }
+    if (pub.data?.data?.logo_lembaga) {
+      appLogo.value = pub.data.data.logo_lembaga;
+    }
+  } catch (e) {
+    // fallback
+  }
 });
 </script>

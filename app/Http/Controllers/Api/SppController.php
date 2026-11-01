@@ -7,6 +7,7 @@ use App\Http\Requests\BayarSppRequest;
 use App\Models\PembayaranSpp;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
+use App\Models\User;
 use App\Services\SppBillingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,7 @@ class SppController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data,
+            'nama_bendahara' => User::getNamaBendahara(),
         ]);
     }
 
@@ -52,6 +54,7 @@ class SppController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data,
+            'nama_bendahara' => User::getNamaBendahara(),
         ]);
     }
 
@@ -203,6 +206,9 @@ class SppController extends Controller
         $petugasId = $request->user()->id;
 
         $result = $this->billingService->prosesPembayaran($validated, $petugasId);
+        if (isset($result['kuitansi'])) {
+            $result['kuitansi']['petugas'] = $request->user()->name;
+        }
 
         return response()->json($result);
     }
@@ -229,6 +235,10 @@ class SppController extends Controller
             $validated['catatan'] ?? null,
             $petugasId
         );
+
+        if (isset($result['kuitansi'])) {
+            $result['kuitansi']['petugas'] = $request->user()->name;
+        }
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
@@ -344,6 +354,7 @@ class SppController extends Controller
         return response()->json([
             'success' => true,
             'data' => $pembayaran,
+            'nama_bendahara' => User::getNamaBendahara(),
         ]);
     }
 }

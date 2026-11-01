@@ -6,6 +6,7 @@ use App\Models\PembayaranSpp;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -322,12 +323,14 @@ class SppBillingService
                     'tanggal_bayar' => $pembayaran->tanggal_bayar->format('d/m/Y H:i'),
                     'nama_santri' => $tagihan->siswa->nama_lengkap,
                     'nisn' => $tagihan->siswa->nisn,
+                    'no_hp_ortu' => $tagihan->siswa->no_hp_ortu,
                     'kelas' => $tagihan->siswa->kelas?->nama_kelas,
                     'pembayaran_untuk' => "SPP {$namaBulan} {$tagihan->tahun}",
                     'jumlah_bayar' => $jumlahBayar,
                     'metode' => $metode,
                     'status_tagihan' => $tagihan->fresh()->status,
                     'catatan' => $catatan,
+                    'nama_bendahara' => User::getNamaBendahara(),
                 ],
             ];
         });
@@ -449,6 +452,7 @@ class SppBillingService
                     'tanggal_bayar' => $now->format('d/m/Y H:i'),
                     'nama_santri' => $siswa->nama_lengkap,
                     'nisn' => $siswa->nisn,
+                    'no_hp_ortu' => $siswa->no_hp_ortu,
                     'kelas' => $siswa->kelas?->nama_kelas ?: '-',
                     'total_bulan' => count($daftarBulan),
                     'daftar_bulan' => $daftarBulan,
@@ -456,6 +460,7 @@ class SppBillingService
                     'total_bayar' => $totalBayar,
                     'metode' => $metode,
                     'catatan' => $catatan,
+                    'nama_bendahara' => User::getNamaBendahara(),
                 ],
             ];
         });

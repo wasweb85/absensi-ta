@@ -16,6 +16,16 @@
 
       <div class="flex items-center gap-2">
         <button
+          @click="printLaporan"
+          :disabled="pembayaranList.length === 0"
+          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          title="Cetak Laporan Rekapitulasi Pembayaran SPP"
+        >
+          <BaseIcon name="printer" class="w-4 h-4" />
+          <span>Cetak Laporan</span>
+        </button>
+
+        <button
           @click="exportCsv"
           :disabled="pembayaranList.length === 0"
           class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
@@ -82,85 +92,144 @@
       </div>
     </div>
 
+    <!-- KOP RESMI LAPORAN REKAPITULASI PEMBAYARAN SPP (Tampil saat cetak laporan rekap) -->
+    <div v-if="!showKuitansiModal" class="hidden print:block mb-2 text-black">
+      <div class="flex items-center justify-between gap-3 pb-1">
+        <!-- Logo Lembaga di Kiri -->
+        <div class="w-20 sm:w-24 shrink-0 flex items-center justify-center">
+          <img
+            :src="appLogo || '/LOGOTPQ.png'"
+            alt="Logo Lembaga"
+            class="max-h-16 max-w-20 sm:max-h-20 sm:max-w-24 object-contain"
+          />
+        </div>
+
+        <!-- Teks Kop Surat di Tengah -->
+        <div class="flex-1 text-center px-1">
+          <h1 class="text-xl sm:text-2xl font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
+            YAYASAN NURUL JADID
+          </h1>
+          <h2 class="text-sm sm:text-[15px] font-serif font-bold text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
+            TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
+          </h2>
+          <h3 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
+            KARANGANYAR PAITON PROBOLINGGO
+          </h3>
+          <p class="text-[9px] sm:text-[10px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+            Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
+          </p>
+        </div>
+
+        <!-- Spacer Kanan Penyeimbang -->
+        <div class="w-20 sm:w-24 shrink-0"></div>
+      </div>
+
+      <!-- Garis Ganda Kop Surat Resmi -->
+      <div class="border-t-[2.5px] border-black mt-1"></div>
+      <div class="border-t border-black mt-[1.5px] mb-2"></div>
+
+      <!-- Judul Dokumen & Periode Laporan -->
+      <div class="text-center my-1">
+        <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider underline">
+          LAPORAN REKAPITULASI TRANSAKSI PEMBAYARAN SPP
+        </h2>
+        <div class="flex justify-between items-center text-[10px] mt-1 px-1 font-medium text-black">
+          <div>
+            <span><strong>Filter:</strong> {{ filters.tanggal_mulai ? filters.tanggal_mulai : 'Awal' }} s/d {{ filters.tanggal_selesai ? filters.tanggal_selesai : 'Sekarang' }}</span>
+            <span class="mx-2">&bull;</span>
+            <span><strong>Jilid:</strong> {{ getNamaKelas(filters.id_kelas) }}</span>
+            <span class="mx-2" v-if="filters.status_transaksi">&bull;</span>
+            <span v-if="filters.status_transaksi"><strong>Status:</strong> {{ filters.status_transaksi.toUpperCase() }}</span>
+          </div>
+          <div>
+            <span><strong>Dicetak pada:</strong> {{ formattedCurrentDate }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Table Card -->
-    <div class="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden print:hidden">
+    <div
+      class="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden"
+      :class="showKuitansiModal ? 'print:hidden' : 'print:border-none print:shadow-none print:p-0 print:overflow-visible'"
+    >
       <!-- Loading State -->
-      <div v-if="isLoading" class="p-12 text-center text-zinc-400">
+      <div v-if="isLoading" class="p-12 text-center text-zinc-400 print:hidden">
         <BaseIcon name="refresh" class="w-8 h-8 mx-auto mb-2 animate-spin text-zinc-400" />
         <p class="text-sm font-medium">Memuat riwayat pembayaran SPP...</p>
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="pembayaranList.length === 0" class="p-12 text-center text-zinc-400">
+      <div v-else-if="pembayaranList.length === 0" class="p-12 text-center text-zinc-400 print:hidden">
         <BaseIcon name="riwayat" class="w-10 h-10 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
         <p class="text-sm font-semibold">Belum ada riwayat transaksi pembayaran sesuai filter.</p>
       </div>
 
       <!-- Table -->
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200/80 dark:border-zinc-800">
+      <div v-else class="overflow-x-auto print:overflow-visible">
+        <table class="w-full text-left text-xs print:text-[10px]">
+          <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200/80 dark:border-zinc-800 print:bg-transparent print:text-black print:border-b-2 print:border-black">
             <tr>
-              <th class="p-3">No. Kuitansi</th>
-              <th class="p-3">Tanggal</th>
-              <th class="p-3">Santri</th>
-              <th class="p-3">Kelas</th>
-              <th class="p-3">Tagihan</th>
-              <th class="p-3 text-right">Nominal Bayar</th>
-              <th class="p-3">Metode</th>
-              <th class="p-3">Petugas</th>
-              <th class="p-3 text-center">Status</th>
-              <th class="p-3 text-center">Aksi</th>
+              <th class="p-3 print:p-1.5 font-bold">No. Kuitansi</th>
+              <th class="p-3 print:p-1.5 font-bold">Tanggal</th>
+              <th class="p-3 print:p-1.5 font-bold">Santri</th>
+              <th class="p-3 print:p-1.5 font-bold">Kelas</th>
+              <th class="p-3 print:p-1.5 font-bold">Tagihan</th>
+              <th class="p-3 print:p-1.5 text-right font-bold">Nominal Bayar</th>
+              <th class="p-3 print:p-1.5 font-bold">Metode</th>
+              <th class="p-3 print:p-1.5 font-bold">Petugas</th>
+              <th class="p-3 print:p-1.5 text-center font-bold">Status</th>
+              <th class="p-3 text-center print:hidden">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800 print:divide-zinc-300">
             <tr
               v-for="p in pembayaranList"
               :key="p.id"
               :class="p.status_transaksi === 'dibatalkan' ? 'bg-rose-50/40 dark:bg-rose-950/20 opacity-70' : 'hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40'"
-              class="transition"
+              class="transition print:text-black"
             >
-              <td class="p-3 font-mono font-bold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+              <td class="p-3 print:p-1.5 font-mono font-bold text-zinc-900 dark:text-zinc-100 print:text-black whitespace-nowrap">
                 {{ p.nomor_kuitansi }}
               </td>
-              <td class="p-3 text-zinc-500 whitespace-nowrap">
+              <td class="p-3 print:p-1.5 text-zinc-500 print:text-black whitespace-nowrap">
                 {{ formatTanggal(p.tanggal_bayar) }}
               </td>
-              <td class="p-3">
-                <p class="font-bold text-zinc-900 dark:text-white">{{ p.siswa?.nama_lengkap || '-' }}</p>
-                <p class="text-[10px] text-zinc-400 font-mono">NISN: {{ p.siswa?.nisn || '-' }}</p>
+              <td class="p-3 print:p-1.5">
+                <p class="font-bold text-zinc-900 dark:text-white print:text-black">{{ p.siswa?.nama_lengkap || '-' }}</p>
+                <p class="text-[10px] text-zinc-400 print:text-zinc-600 font-mono">NISN: {{ p.siswa?.nisn || '-' }}</p>
               </td>
-              <td class="p-3 font-semibold text-zinc-700 dark:text-zinc-300">
+              <td class="p-3 print:p-1.5 font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">
                 {{ p.siswa?.kelas?.nama_kelas || '-' }}
               </td>
-              <td class="p-3 font-medium text-zinc-600 dark:text-zinc-400">
+              <td class="p-3 print:p-1.5 font-medium text-zinc-600 dark:text-zinc-400 print:text-black">
                 {{ getNamaBulan(p.tagihan?.bulan) }} {{ p.tagihan?.tahun }}
               </td>
-              <td class="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+              <td class="p-3 print:p-1.5 text-right font-bold text-emerald-600 dark:text-emerald-400 print:text-black whitespace-nowrap">
                 Rp {{ formatRupiah(p.jumlah_bayar) }}
               </td>
-              <td class="p-3 text-zinc-600 dark:text-zinc-400 font-medium">
+              <td class="p-3 print:p-1.5 text-zinc-600 dark:text-zinc-400 print:text-black font-medium">
                 {{ p.metode_pembayaran }}
               </td>
-              <td class="p-3 text-zinc-500 text-[11px]">
+              <td class="p-3 print:p-1.5 text-zinc-500 print:text-black text-[11px] print:text-[10px]">
                 {{ p.petugas?.name || '-' }}
               </td>
-              <td class="p-3 text-center whitespace-nowrap">
+              <td class="p-3 print:p-1.5 text-center whitespace-nowrap">
                 <span
                   v-if="p.status_transaksi === 'valid' || p.status_transaksi === 'sukses'"
-                  class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300"
+                  class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 print:bg-transparent print:text-black print:border print:border-black"
                 >
                   &check; Sukses
                 </span>
                 <span
                   v-else
-                  class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300"
+                  class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 print:bg-transparent print:text-black print:border print:border-black"
                   :title="p.alasan_pembatalan"
                 >
                   &cross; Dibatalkan
                 </span>
               </td>
-              <td class="p-3 text-center whitespace-nowrap">
+              <td class="p-3 text-center whitespace-nowrap print:hidden">
                 <div class="flex items-center justify-center gap-1.5">
                   <button
                     @click="previewKuitansi(p)"
@@ -185,8 +254,14 @@
         </table>
       </div>
 
+      <!-- Total Akumulasi (Hanya tampil saat dicetak laporan) -->
+      <div v-if="!showKuitansiModal && pembayaranList.length > 0" class="hidden print:flex justify-between items-center px-4 py-2 border-t-2 border-black text-xs font-bold text-black">
+        <span>Total Penerimaan Terbayar ({{ pembayaranList.length }} transaksi):</span>
+        <span class="font-mono text-sm">Rp {{ formatRupiah(totalNominalHalaman) }}</span>
+      </div>
+
       <!-- Pagination Footer -->
-      <div v-if="totalPages > 1" class="p-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
+      <div v-if="totalPages > 1" class="p-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500 print:hidden">
         <div>
           Menampilkan halaman {{ currentPage }} dari {{ totalPages }} (Total {{ totalRecords }} transaksi)
         </div>
@@ -209,84 +284,170 @@
       </div>
     </div>
 
+    <!-- Blok Pengesahan Tanda Tangan Resmi Laporan Pembayaran (Cetak) -->
+    <div v-if="!showKuitansiModal && pembayaranList.length > 0" class="hidden print:flex justify-between items-start mt-6 pt-2 text-black text-[10px] break-inside-avoid">
+      <!-- Sisi Kiri: Mengetahui Kepala TPQ -->
+      <div class="text-center min-w-[180px]">
+        <p class="font-normal">Mengetahui,</p>
+        <p class="font-semibold">Kepala TPQ</p>
+        <div class="h-12"></div>
+        <p class="font-bold underline tracking-wide">( Ny. Shofiyah )</p>
+        <p class="text-[9px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
+      </div>
+
+      <!-- Sisi Kanan: Bendahara TPQ -->
+      <div class="text-center min-w-[180px]">
+        <p class="font-normal">Paiton, {{ formattedCurrentDate }}</p>
+        <p class="font-semibold">Bendahara TPQ</p>
+        <div class="h-12"></div>
+        <p class="font-bold underline tracking-wide">( {{ namaBendahara }} )</p>
+        <p class="text-[9px] text-neutral-600 mt-0.5">Bendahara TPQ Nurul Mun'im</p>
+      </div>
+    </div>
+
     <!-- Kuitansi Modal Ready for Print -->
     <div
       v-if="showKuitansiModal && activeKuitansi"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:static print:p-0 print:bg-white print:backdrop-blur-none"
     >
-      <div class="w-full max-w-lg p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4">
+      <div class="w-full max-w-xl p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4 print:border-none print:shadow-none print:p-0 print:max-w-none">
         <!-- Printable Area -->
-        <div id="printKuitansiArea" class="border border-zinc-300 dark:border-zinc-700 p-6 rounded-2xl bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-4 text-xs font-sans">
-          <!-- Kop -->
-          <div class="text-center border-b border-zinc-300 dark:border-zinc-700 pb-3">
-            <h3 class="text-base font-extrabold uppercase tracking-wide">TPQ & PESANTREN NURUL MUN'IM</h3>
-            <p class="text-[10px] text-zinc-500 dark:text-zinc-400">Dusun Tanjung Lor RT. 08 RW. 04 Desa Karang Anyar Paiton Probolinggo</p>
-            <p class="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-wider">KUITANSI PEMBAYARAN SPP</p>
+        <div id="printKuitansiArea" class="border border-zinc-300 dark:border-zinc-700 p-6 rounded-2xl bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-4 text-xs font-sans print:border print:border-black print:text-black print:bg-white print:p-5">
+          <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
+          <div class="text-black dark:text-white print:text-black pb-1">
+            <div class="flex items-center justify-between gap-3 pb-1">
+              <!-- Logo Lembaga di Kiri -->
+              <div class="w-16 sm:w-20 shrink-0 flex items-center justify-center">
+                <img
+                  :src="appLogo || '/LOGOTPQ.png'"
+                  alt="Logo Lembaga"
+                  class="max-h-16 max-w-20 object-contain"
+                />
+              </div>
+
+              <!-- Teks Kop Surat di Tengah -->
+              <div class="flex-1 text-center px-1">
+                <h1 class="text-base sm:text-lg font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
+                  YAYASAN NURUL JADID
+                </h1>
+                <h2 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
+                  TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
+                </h2>
+                <h3 class="text-[10px] sm:text-[11px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
+                  KARANGANYAR PAITON PROBOLINGGO
+                </h3>
+                <p class="text-[8px] sm:text-[9px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+                  Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
+                </p>
+              </div>
+
+              <!-- Spacer Kanan Penyeimbang -->
+              <div class="w-16 sm:w-20 shrink-0"></div>
+            </div>
+
+            <!-- Garis Ganda Kop Surat Resmi -->
+            <div class="border-t-[2.5px] border-black dark:border-white print:border-black mt-1"></div>
+            <div class="border-t border-black dark:border-white print:border-black mt-[1.5px] mb-2"></div>
+
+            <!-- Judul Dokumen Kuitansi -->
+            <div class="text-center my-1">
+              <h2 class="text-xs font-bold uppercase tracking-wider underline">
+                KUITANSI PEMBAYARAN SPP SANTRI
+              </h2>
+            </div>
           </div>
 
           <!-- Meta -->
           <div class="grid grid-cols-2 gap-2 text-[11px]">
             <div>
-              <span class="text-zinc-400 block text-[10px]">No. Kuitansi</span>
+              <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[10px]">No. Kuitansi</span>
               <span class="font-mono font-bold">{{ activeKuitansi.nomor_kuitansi }}</span>
             </div>
             <div class="text-right">
-              <span class="text-zinc-400 block text-[10px]">Tanggal Bayar</span>
+              <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[10px]">Tanggal Bayar</span>
               <span class="font-bold">{{ formatTanggal(activeKuitansi.tanggal_bayar) }}</span>
             </div>
           </div>
 
           <!-- Rincian -->
-          <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+          <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5 print:bg-white print:border-zinc-300">
             <div class="flex justify-between">
-              <span class="text-zinc-500">Nama Santri:</span>
+              <span class="text-zinc-500 print:text-zinc-600">Nama Santri:</span>
               <span class="font-bold">{{ activeKuitansi.siswa?.nama_lengkap }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-500">NISN / Jilid:</span>
-              <span class="font-mono">{{ activeKuitansi.siswa?.nisn }} &bull; {{ activeKuitansi.siswa?.kelas?.nama_kelas }}</span>
+              <span class="text-zinc-500 print:text-zinc-600">NISN / Jilid:</span>
+              <span class="font-mono">{{ activeKuitansi.siswa?.nisn }} &bull; {{ activeKuitansi.siswa?.kelas?.nama_kelas || '-' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-500">Pembayaran Periode:</span>
+              <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
               <span class="font-semibold">{{ getNamaBulan(activeKuitansi.tagihan?.bulan) }} {{ activeKuitansi.tagihan?.tahun }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-500">Metode Bayar:</span>
+              <span class="text-zinc-500 print:text-zinc-600">Metode Bayar:</span>
               <span class="font-semibold">{{ activeKuitansi.metode_pembayaran }}</span>
             </div>
-            <div class="flex justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 text-sm font-bold text-emerald-600">
+            <div v-if="activeKuitansi.catatan" class="flex justify-between">
+              <span class="text-zinc-500 print:text-zinc-600">Catatan:</span>
+              <span class="italic text-zinc-600 dark:text-zinc-300 print:text-zinc-700">{{ activeKuitansi.catatan }}</span>
+            </div>
+            <div class="flex justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-sm font-bold text-emerald-600 print:text-black">
               <span>Jumlah Disetor:</span>
               <span>Rp {{ formatRupiah(activeKuitansi.jumlah_bayar) }}</span>
             </div>
           </div>
 
-          <!-- TTD Bendahara -->
-          <div class="pt-2 flex justify-between text-[10px] text-zinc-500">
+          <!-- Blok Pengesahan Tanda Tangan Resmi Kuitansi -->
+          <div class="grid grid-cols-2 gap-4 text-center mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-[10px]">
             <div>
-              <p>Status: <span class="font-bold text-emerald-600 uppercase">{{ activeKuitansi.status_transaksi }}</span></p>
+              <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600">Penyetor / Wali Santri,</p>
+              <div class="h-10"></div>
+              <p class="font-semibold text-zinc-800 dark:text-zinc-200 print:text-black">( ........................................ )</p>
             </div>
-            <div class="text-right">
-              <p>Bendahara,</p>
-              <p class="font-bold mt-6 text-zinc-900 dark:text-white">{{ activeKuitansi.petugas?.name || 'Ust. Bendahara' }}</p>
+            <div>
+              <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600">Paiton, {{ formatTanggalRingkas(activeKuitansi.tanggal_bayar) }}</p>
+              <p class="font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">Bendahara TPQ,</p>
+              <div class="h-10"></div>
+              <p class="font-bold underline tracking-wide text-zinc-900 dark:text-white print:text-black">( {{ namaBendahara }} )</p>
+              <p class="text-[8px] text-zinc-500 dark:text-zinc-400 print:text-zinc-600 mt-0.5">
+                <span v-if="activeKuitansi.petugas?.name && activeKuitansi.petugas.name !== namaBendahara">
+                  Petugas Input: {{ activeKuitansi.petugas.name }}
+                </span>
+                <span v-else>TPQ Nurul Mun'im</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="flex items-center justify-end gap-2 pt-2">
+        <!-- Buttons (Hidden when printing) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 print:hidden">
           <button
-            @click="showKuitansiModal = false"
-            class="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
+            type="button"
+            @click="sendKuitansiViaWa"
+            class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5 transition"
+            title="Kirim Kuitansi ke WhatsApp Wali Santri"
           >
-            Tutup
+            <BaseIcon name="whatsapp" class="w-4 h-4" />
+            <span>Kirim WA ke Wali Santri</span>
           </button>
-          <button
-            @click="printKuitansi"
-            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5"
-          >
-            <BaseIcon name="printer" class="w-4 h-4" />
-            <span>Cetak Dokumen</span>
-          </button>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="showKuitansiModal = false"
+              class="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
+              @click="printKuitansi"
+              class="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition"
+            >
+              <BaseIcon name="printer" class="w-4 h-4" />
+              <span>Cetak Kuitansi</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -345,7 +506,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
 import { useAuth } from '../../composables/useAuth';
@@ -362,6 +523,8 @@ const namaBulanMap = {
 const kelasList = ref([]);
 const pembayaranList = ref([]);
 const isLoading = ref(false);
+const namaBendahara = ref('Ust. Bendahara');
+const appLogo = ref('/LOGOTPQ.png');
 
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -384,6 +547,24 @@ const targetBatal = ref(null);
 const alasanBatal = ref('');
 const isCancelling = ref(false);
 
+const totalNominalHalaman = computed(() => {
+  return pembayaranList.value.reduce((acc, curr) => {
+    if (curr.status_transaksi === 'valid' || curr.status_transaksi === 'sukses') {
+      return acc + (Number(curr.jumlah_bayar) || 0);
+    }
+    return acc;
+  }, 0);
+});
+
+const formattedCurrentDate = computed(() => {
+  const today = new Date();
+  return today.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+});
+
 function formatRupiah(val) {
   if (!val) return '0';
   return Number(val).toLocaleString('id-ID');
@@ -403,8 +584,26 @@ function formatTanggal(str) {
   }).replace(/\./g, ':');
 }
 
+function formatTanggalRingkas(str) {
+  if (!str) return formattedCurrentDate.value;
+  const cleanStr = String(str).replace(' ', 'T').replace('Z', '');
+  const d = new Date(cleanStr);
+  if (isNaN(d.getTime())) return formattedCurrentDate.value;
+  return d.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 function getNamaBulan(b) {
   return namaBulanMap[b] || `Bulan ${b}`;
+}
+
+function getNamaKelas(id) {
+  if (!id) return 'Semua Jilid / Kelas';
+  const found = kelasList.value.find(k => k.id == id);
+  return found ? found.nama_kelas : 'Semua Jilid / Kelas';
 }
 
 async function loadKelas() {
@@ -432,6 +631,10 @@ async function loadRiwayat(page = 1) {
     pembayaranList.value = data.data || [];
     totalPages.value = data.last_page || 1;
     totalRecords.value = data.total || 0;
+
+    if (res.data?.nama_bendahara) {
+      namaBendahara.value = res.data.nama_bendahara;
+    }
   } catch (err) {
     toast.error('Gagal mengambil data riwayat pembayaran SPP.');
   } finally {
@@ -446,6 +649,56 @@ function previewKuitansi(p) {
 
 function printKuitansi() {
   window.print();
+}
+
+function printLaporan() {
+  showKuitansiModal.value = false;
+  window.print();
+}
+
+function sendKuitansiViaWa() {
+  if (!activeKuitansi.value) return;
+  const k = activeKuitansi.value;
+
+  let phone = k.siswa?.no_hp_ortu;
+  if (!phone) {
+    phone = prompt('Nomor WhatsApp wali santri belum terdaftar. Masukkan nomor WhatsApp tujuan (contoh: 08123456789):');
+  }
+  if (!phone) return;
+
+  let clean = phone.replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+
+  const namaSantri = k.siswa?.nama_lengkap || '-';
+  const nisn = k.siswa?.nisn || '-';
+  const kelas = k.siswa?.kelas?.nama_kelas || '-';
+  const bulanTagihan = `${getNamaBulan(k.tagihan?.bulan)} ${k.tagihan?.tahun || ''}`.trim();
+  const tgl = formatTanggal(k.tanggal_bayar);
+  const nominal = formatRupiah(k.jumlah_bayar);
+  const petugasInput = k.petugas?.name || namaBendahara.value;
+
+  const text = `*BUKTI PEMBAYARAN SPP TPQ*
+---------------------------------------
+No. Kuitansi : ${k.nomor_kuitansi}
+Tanggal      : ${tgl}
+Nama Santri  : ${namaSantri}
+NISN / Jilid : ${nisn} / ${kelas}
+Pembayaran   : SPP ${bulanTagihan}
+Metode Bayar : ${k.metode_pembayaran || 'Tunai'}
+Status       : ${k.status_transaksi?.toUpperCase() || 'LUNAS'}
+---------------------------------------
+*TOTAL DIBAYAR: Rp ${nominal}*
+Bendahara    : ${namaBendahara.value}
+${petugasInput !== namaBendahara.value ? 'Petugas Input: ' + petugasInput + '\n' : ''}${k.catatan ? 'Catatan      : ' + k.catatan + '\n' : ''}---------------------------------------
+Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan membawa barokah bagi ananda serta keluarga tercinta.
+
+*TPQ Nurul Mun'im*
+Karanganyar Paiton Probolinggo`;
+
+  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
 }
 
 function openBatalModal(p) {
@@ -509,8 +762,20 @@ function exportCsv() {
   document.body.removeChild(link);
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadKelas();
   loadRiwayat(1);
+
+  try {
+    const pub = await api.get('/pengaturan/public');
+    if (pub.data?.data?.nama_bendahara) {
+      namaBendahara.value = pub.data.data.nama_bendahara;
+    }
+    if (pub.data?.data?.logo_lembaga) {
+      appLogo.value = pub.data.data.logo_lembaga;
+    }
+  } catch (e) {
+    // fallback
+  }
 });
 </script>

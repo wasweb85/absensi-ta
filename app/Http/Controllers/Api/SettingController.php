@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengaturan;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ class SettingController extends Controller
         if (empty($settings['nama_instansi']) || in_array(strtoupper(trim($settings['nama_instansi'])), ['E ABSENSI', 'E-ABSENSI', 'SISTEM TERPADU ABSENSI SANTRI', 'SISTEM TERPADU PRESENSI & NOTIFIKASI WHATSAPP SANTRI', 'TPQ & LEMBAGA'])) {
             $settings['nama_instansi'] = "TPQ Nurul Mun'im";
         }
+
+        $settings['nama_bendahara'] = User::getNamaBendahara();
 
         return response()->json([
             'success' => true,
@@ -48,6 +51,7 @@ class SettingController extends Controller
             'success' => true,
             'data' => [
                 'nama_instansi' => $namaInstansi,
+                'nama_bendahara' => User::getNamaBendahara(),
                 'tahun_ajaran_aktif' => $settings['tahun_ajaran_aktif'] ?? '2026/2027',
                 'alamat_instansi' => $settings['alamat_instansi'] ?? '',
                 'kontak_instansi' => $settings['kontak_instansi'] ?? '',
