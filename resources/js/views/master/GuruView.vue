@@ -121,21 +121,21 @@
                     variant="outline"
                     class="text-[10.5px] font-medium border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
                   >
-                    {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putra)
+                    {{ getCleanNamaKelas(u.nama_kelas || u.kelas?.nama_kelas) }} (Putra)
                   </Badge>
                   <Badge
                     v-else-if="u.gender_binaan === 'P'"
                     variant="outline"
                     class="text-[10.5px] font-medium border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
                   >
-                    {{ u.nama_kelas || u.kelas?.nama_kelas }} (Putri)
+                    {{ getCleanNamaKelas(u.nama_kelas || u.kelas?.nama_kelas) }} (Putri)
                   </Badge>
                   <Badge
                     v-else
                     variant="outline"
                     class="text-[10.5px] font-medium"
                   >
-                    {{ u.nama_kelas || u.kelas?.nama_kelas }}
+                    {{ getCleanNamaKelas(u.nama_kelas || u.kelas?.nama_kelas) }}
                   </Badge>
                 </template>
                 <span v-else class="text-xs text-muted-foreground">—</span>
@@ -276,7 +276,7 @@
               >
                 <option :value="null">-- Tidak Mengajar --</option>
                 <option v-for="k in kelasList" :key="k.id" :value="k.id">
-                  {{ k.nama_kelas }}
+                  {{ getCleanNamaKelas(k.nama_kelas) }}
                 </option>
               </select>
             </div>
@@ -380,6 +380,10 @@ const searchQuery = ref('');
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+
+function getCleanNamaKelas(name) {
+  return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+}
 
 const form = ref({
   name: '',

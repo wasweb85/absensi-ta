@@ -38,7 +38,7 @@
         >
           <option value="">Semua Jilid</option>
           <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ k.nama_kelas }}
+            {{ getCleanNamaKelas(k.nama_kelas) }}
           </option>
         </select>
       </div>
@@ -317,6 +317,10 @@ const selectedGender = ref('');
 const searchQuery = ref('');
 const kelasList = ref([]);
 const students = ref([]);
+
+function getCleanNamaKelas(name) {
+  return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+}
 const stats = ref({ total: 0, hadir: 0, terlambat: 0, sakit: 0, izin: 0, alpa: 0, belum_absen: 0 });
 
 const updatingStudentId = ref(null);

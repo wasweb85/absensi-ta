@@ -54,7 +54,7 @@
             >
               <option value="">Semua Jilid</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">
-                {{ k.nama_kelas }}
+                {{ getCleanNamaKelas(k.nama_kelas) }}
               </option>
             </select>
 
@@ -266,7 +266,7 @@
                 class="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Pilih Jilid</option>
-                <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
+                <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ getCleanNamaKelas(k.nama_kelas) }}</option>
               </select>
             </div>
             <div class="space-y-1.5">
@@ -500,6 +500,10 @@ const form = ref({
   alamat: '',
   status: 'aktif',
 });
+
+function getCleanNamaKelas(name) {
+  return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+}
 
 const loadKelas = async () => {
   try {

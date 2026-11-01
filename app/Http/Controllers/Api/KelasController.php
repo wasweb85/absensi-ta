@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KelasController extends Controller
 {
@@ -16,8 +17,21 @@ class KelasController extends Controller
             $q->select('id', 'name', 'username', 'email', 'role', 'id_kelas');
         }, 'waliGuru'])->withCount('siswa')->orderBy('urutan')->get();
 
-        // Label wali jilid diturunkan dari data guru (putra/putri/campur) tanpa memicu query UPDATE di GET request
+        // Label wali jilid diturunkan dari data guru (putra/putri/campur)
         foreach ($kelas as $item) {
+            // Bersihkan nama_kelas jika di database tersimpan dengan imbuhan tanda kurung nama wali
+            if (preg_match('/\s*\([^)]+\)\s*$/', (string) $item->nama_kelas)) {
+                $cleanedName = trim(preg_replace('/\s*\([^)]+\)\s*$/', '', (string) $item->nama_kelas));
+                if (! empty($cleanedName)) {
+                    try {
+                        DB::table('kelas')->where('id', $item->id)->update(['nama_kelas' => $cleanedName]);
+                        $item->nama_kelas = $cleanedName;
+                    } catch (\Throwable) {
+                        $item->nama_kelas = $cleanedName;
+                    }
+                }
+            }
+
             $label = Kelas::buildWaliLabel($item->waliGuru);
             if ($label !== null) {
                 $item->wali_kelas = $label;
@@ -35,6 +49,12 @@ class KelasController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($request->has('nama_kelas')) {
+            $request->merge([
+                'nama_kelas' => trim(preg_replace('/\s*\([^)]+\)\s*$/', '', (string) $request->input('nama_kelas'))),
+            ]);
+        }
+
         $validated = $request->validate([
             'nama_kelas' => 'required|string|max:50|unique:kelas,nama_kelas',
             'id_guru' => 'nullable|exists:users,id',
@@ -75,6 +95,12 @@ class KelasController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $kelas = Kelas::findOrFail($id);
+
+        if ($request->has('nama_kelas')) {
+            $request->merge([
+                'nama_kelas' => trim(preg_replace('/\s*\([^)]+\)\s*$/', '', (string) $request->input('nama_kelas'))),
+            ]);
+        }
 
         $validated = $request->validate([
             'nama_kelas' => 'required|string|max:50|unique:kelas,nama_kelas,'.$id,

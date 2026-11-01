@@ -755,7 +755,7 @@ const kelasBreakdown = computed(() => {
 
     return {
       id: k.id,
-      nama_kelas: k.nama_kelas,
+      nama_kelas: (k.nama_kelas || '').replace(/\s*\([^)]+\)\s*$/, '').trim(),
       wali_kelas: k.wali_kelas || k.guru?.name || null,
       warna_label: k.warna_label,
       total: santriKelas.length,

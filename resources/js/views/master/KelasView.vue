@@ -1,109 +1,183 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Halaman -->
-    <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">
-          Data Jilid
-        </h2>
-        <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-          {{ kelasList.length }} Jilid
-        </Badge>
-      </div>
-
-      <!-- Action Button -->
-      <Button
-        size="sm"
-        class="h-8 gap-1.5 text-xs"
-        @click="openAddModal"
-      >
-        <Plus class="size-3.5" />
-        <span>Tambah Jilid Baru</span>
-      </Button>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="isLoading" class="p-12 text-center text-muted-foreground">
-      <LoaderCircle class="size-8 mx-auto animate-spin mb-2 text-primary" />
-      <p class="text-xs font-medium">Memuat data jilid...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="kelasList.length === 0" class="p-16 text-center text-muted-foreground border rounded-xl bg-card">
-      <Layers class="size-10 mx-auto mb-2 text-muted-foreground/40" />
-      <p class="text-xs font-semibold text-foreground">Belum ada jilid yang didaftarkan.</p>
-      <p class="text-[11px] text-muted-foreground mt-0.5">Klik tombol Tambah Jilid Baru untuk membuat tingkatan jilid pertama.</p>
-    </div>
-
-    <!-- Kelas Card Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <Card
-        v-for="k in kelasList"
-        :key="k.id"
-        class="flex flex-col justify-between transition-all hover:shadow-xs"
-      >
-        <CardHeader class="pb-3">
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center gap-2">
-              <span
-                class="size-3 rounded-full ring-1 ring-border shadow-xs shrink-0"
-                :style="{ backgroundColor: k.warna_label || '#059669' }"
-              ></span>
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Urutan #{{ k.urutan || 0 }}
-              </span>
-            </div>
-
-            <Badge variant="secondary" class="font-normal text-[11px] gap-1">
-              <Users class="size-3" />
-              <span>{{ k.siswa_count || 0 }} Santri</span>
+    <!-- Kontainer Tunggal Terpadu (Judul, Tombol Tambah, Pencarian, dan Tabel Menyatu) -->
+    <Card class="overflow-hidden py-0 gap-0">
+      <!-- Toolbar Atas di Dalam Kontainer Card -->
+      <div class="px-3 pt-1.5 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
+        <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Tombol Tambah Jilid [Kanan] -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h2 class="text-sm sm:text-lg font-semibold tracking-tight text-foreground">
+              Data Jilid
+            </h2>
+            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
+              {{ filteredKelasList.length }} Jilid
             </Badge>
           </div>
 
-          <CardTitle class="text-base font-semibold text-foreground">
-            {{ k.nama_kelas }}
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent class="py-2 text-xs space-y-1.5 border-t">
-          <div class="flex items-start justify-between gap-3 pt-2">
-            <span class="text-muted-foreground text-[11px] shrink-0">Wali Jilid:</span>
-            <span class="font-medium text-foreground text-[11px] text-right">
-              {{ k.wali_kelas || '-' }}
-            </span>
+          <!-- Tombol Aksi Tambah Jilid Baru (Responsif) -->
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Button
+              size="sm"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Tambah Jilid Baru"
+              @click="openAddModal"
+            >
+              <Plus class="size-3.5" />
+              <span class="hidden sm:inline">Tambah Jilid Baru</span>
+              <span class="sm:hidden">Tambah</span>
+            </Button>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground text-[11px]">No. WhatsApp:</span>
-            <span class="font-mono text-muted-foreground text-[11px]">
-              {{ k.no_hp_wali || '-' }}
-            </span>
-          </div>
-        </CardContent>
+        </div>
 
-        <CardFooter class="pt-3 border-t flex items-center justify-end gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            @click="openEditModal(k)"
-          >
-            <Pencil class="size-3.5" />
-            <span>Edit</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-            :disabled="k.siswa_count > 0"
-            :title="k.siswa_count > 0 ? 'Jilid masih memiliki santri aktif' : 'Hapus jilid'"
-            @click="deleteKelas(k)"
-          >
-            <Trash2 class="size-3.5" />
-            <span>Hapus</span>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        <!-- Baris 2: Kolom Pencarian Penuh -->
+        <div class="relative w-full">
+          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            id="searchKelas"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Cari tingkatan jilid, wali jilid, atau kontak..."
+            class="h-9 pl-9 text-xs bg-background w-full"
+          />
+        </div>
+      </div>
+
+      <!-- Tabel Terpadu Data Jilid -->
+      <div class="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow class="bg-muted/30">
+              <TableHead class="w-14 text-center text-[10px] uppercase">No</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[160px]">Tingkatan Jilid</TableHead>
+              <TableHead class="text-[10px] uppercase text-center min-w-[110px]">Santri Aktif</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[180px]">Wali Jilid Binaan</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[140px]">No. WhatsApp</TableHead>
+              <TableHead class="text-[10px] uppercase text-center w-24 min-w-[90px]">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <!-- Loading State -->
+            <TableRow v-if="isLoading">
+              <TableCell colspan="6" class="h-36 text-center text-muted-foreground text-xs">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <LoaderCircle class="size-6 animate-spin text-primary" />
+                  <span>Memuat data jilid...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <!-- Empty State -->
+            <TableRow v-else-if="filteredKelasList.length === 0">
+              <TableCell colspan="6" class="h-32 text-center text-muted-foreground text-xs">
+                <div class="flex flex-col items-center justify-center gap-1.5 py-4">
+                  <Layers class="size-8 text-muted-foreground/40" />
+                  <p class="font-medium text-foreground">
+                    {{ searchQuery ? 'Tidak ditemukan jilid yang sesuai pencarian.' : 'Belum ada jilid yang didaftarkan.' }}
+                  </p>
+                  <p class="text-[11px] text-muted-foreground">
+                    {{ searchQuery ? 'Coba ubah kata kunci pencarian Anda.' : 'Klik tombol Tambah Jilid Baru untuk membuat tingkatan jilid.' }}
+                  </p>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            <!-- Rows Data Jilid -->
+            <TableRow
+              v-else
+              v-for="(k, idx) in filteredKelasList"
+              :key="k.id"
+              class="transition-colors hover:bg-muted/40"
+            >
+              <!-- Kolom No / Urutan -->
+              <TableCell class="text-center font-mono text-xs text-muted-foreground">
+                #{{ k.urutan || idx + 1 }}
+              </TableCell>
+
+              <!-- Tingkatan Jilid -->
+              <TableCell>
+                <div class="flex items-center gap-2.5">
+                  <span
+                    class="size-3 rounded-full ring-1 ring-border shadow-2xs shrink-0"
+                    :style="{ backgroundColor: k.warna_label || '#059669' }"
+                    :title="'Warna: ' + (k.warna_label || '#059669')"
+                  ></span>
+                  <div class="min-w-0">
+                    <p class="font-semibold text-foreground text-xs leading-tight truncate">
+                      {{ getCleanNamaKelas(k.nama_kelas) }}
+                    </p>
+                    <p class="text-[10px] text-muted-foreground font-mono">
+                      Urutan ke-{{ k.urutan || idx + 1 }}
+                    </p>
+                  </div>
+                </div>
+              </TableCell>
+
+              <!-- Jumlah Santri -->
+              <TableCell class="text-center whitespace-nowrap">
+                <Badge variant="secondary" class="font-normal text-[11px] gap-1 py-0.5">
+                  <Users class="size-3 text-primary" />
+                  <span>{{ k.siswa_count || 0 }} Santri</span>
+                </Badge>
+              </TableCell>
+
+              <!-- Wali Jilid -->
+              <TableCell>
+                <span v-if="k.wali_kelas" class="font-medium text-foreground text-xs leading-tight">
+                  {{ k.wali_kelas }}
+                </span>
+                <span v-else class="text-xs text-muted-foreground italic">
+                  Belum diatur
+                </span>
+              </TableCell>
+
+              <!-- No. WhatsApp -->
+              <TableCell class="whitespace-nowrap">
+                <a
+                  v-if="k.no_hp_wali"
+                  :href="'https://wa.me/' + k.no_hp_wali.replace(/\D/g, '')"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+                  title="Hubungi via WhatsApp"
+                >
+                  <Phone class="size-3 shrink-0" />
+                  <span>{{ k.no_hp_wali }}</span>
+                </a>
+                <span v-else class="text-muted-foreground font-mono text-xs">
+                  —
+                </span>
+              </TableCell>
+
+              <!-- Tombol Aksi -->
+              <TableCell class="text-center whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-7 text-muted-foreground hover:text-foreground"
+                    title="Edit Jilid"
+                    @click="openEditModal(k)"
+                  >
+                    <Pencil class="size-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-7 text-destructive hover:bg-destructive/10"
+                    :disabled="k.siswa_count > 0"
+                    :title="k.siswa_count > 0 ? 'Jilid masih memiliki santri aktif dan tidak dapat dihapus' : 'Hapus jilid'"
+                    @click="deleteKelas(k)"
+                  >
+                    <Trash2 class="size-3" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
 
     <!-- Dialog Form (Tambah / Edit Kelas) -->
     <Dialog :open="showModal" @update:open="(val) => { if (!val) closeModal(); }">
@@ -113,7 +187,7 @@
             {{ isEditing ? 'Edit Data Jilid' : 'Tambah Jilid Baru' }}
           </DialogTitle>
           <DialogDescription class="text-xs">
-            Lengkapi nama tingkatan jilid dan nomor urutan. Wali jilid diatur dari menu Data Guru.
+            Lengkapi nama tingkatan jilid dan nomor urutan. Wali jilid diatur otomatis melalui menu Data Guru.
           </DialogDescription>
         </DialogHeader>
 
@@ -142,13 +216,14 @@
             />
           </div>
 
+          <!-- Info Wali Jilid (Otomatis dari Data Guru) -->
           <div class="space-y-1.5">
-            <Label class="text-xs font-medium">Wali Jilid</Label>
+            <Label class="text-xs font-medium">Wali Jilid Binaan</Label>
             <p class="flex min-h-9 items-center rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               {{ currentWaliLabel || 'Belum ada wali — atur melalui menu Data Guru' }}
             </p>
-            <p class="text-[10px] text-muted-foreground">
-              Wali jilid (putra, putri, atau campur) ditentukan otomatis dari penugasan di menu Data Guru.
+            <p class="text-[10px] text-muted-foreground leading-normal">
+              Wali jilid (putra, putri, atau campur) ditentukan otomatis dari penugasan di menu <b>Data Guru</b>.
             </p>
           </div>
 
@@ -207,12 +282,11 @@
         </form>
       </DialogContent>
     </Dialog>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   Plus,
   Layers,
@@ -220,8 +294,18 @@ import {
   Pencil,
   Trash2,
   LoaderCircle,
+  Search,
+  Phone,
 } from '@lucide/vue';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -242,6 +326,7 @@ const toast = useToast();
 const kelasList = ref([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
+const searchQuery = ref('');
 
 const showModal = ref(false);
 const isEditing = ref(false);
@@ -257,13 +342,40 @@ const form = ref({
 });
 const currentWaliLabel = ref('');
 
+/**
+ * Membersihkan nama jilid dari teks nama wali di dalam tanda kurung jika tersimpan lama
+ */
+function getCleanNamaKelas(name) {
+  return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+}
+
+const filteredKelasList = computed(() => {
+  if (!searchQuery.value.trim()) return kelasList.value;
+  const q = searchQuery.value.toLowerCase().trim();
+  return kelasList.value.filter((k) => {
+    const cleanName = getCleanNamaKelas(k.nama_kelas).toLowerCase();
+    const rawName = (k.nama_kelas || '').toLowerCase();
+    const wali = (k.wali_kelas || '').toLowerCase();
+    const hp = (k.no_hp_wali || '').toLowerCase();
+    const urutanStr = String(k.urutan || '');
+
+    return (
+      cleanName.includes(q) ||
+      rawName.includes(q) ||
+      wali.includes(q) ||
+      hp.includes(q) ||
+      urutanStr.includes(q)
+    );
+  });
+});
+
 async function loadKelas() {
   isLoading.value = true;
   try {
     const res = await api.get('/kelas');
     kelasList.value = res.data.data || [];
     sessionStorage.setItem('cached_kelas_list', JSON.stringify(kelasList.value));
-  } catch (err) {
+  } catch {
     toast.error('Gagal memuat data jilid.');
   } finally {
     isLoading.value = false;
@@ -287,7 +399,7 @@ function openEditModal(k) {
   isEditing.value = true;
   editingId.value = k.id;
   form.value = {
-    nama_kelas: k.nama_kelas,
+    nama_kelas: getCleanNamaKelas(k.nama_kelas),
     no_hp_wali: k.no_hp_wali || '',
     warna_label: k.warna_label || '#059669',
     urutan: k.urutan || 1,
@@ -305,11 +417,16 @@ function closeModal() {
 async function saveKelas() {
   isSaving.value = true;
   try {
+    const payload = {
+      ...form.value,
+      nama_kelas: getCleanNamaKelas(form.value.nama_kelas),
+    };
+
     if (isEditing.value) {
-      await api.put(`/kelas/${editingId.value}`, form.value);
+      await api.put(`/kelas/${editingId.value}`, payload);
       toast.success('Data jilid berhasil diperbarui.');
     } else {
-      await api.post('/kelas', form.value);
+      await api.post('/kelas', payload);
       toast.success('Jilid baru berhasil ditambahkan.');
     }
     closeModal();
@@ -328,7 +445,8 @@ async function deleteKelas(k) {
     return;
   }
 
-  if (!confirm(`Apakah Anda yakin ingin menghapus jilid "${k.nama_kelas}"?`)) return;
+  const cleanName = getCleanNamaKelas(k.nama_kelas);
+  if (!confirm(`Apakah Anda yakin ingin menghapus jilid "${cleanName}"?`)) return;
 
   try {
     const res = await api.delete(`/kelas/${k.id}`);
@@ -341,6 +459,16 @@ async function deleteKelas(k) {
 }
 
 onMounted(() => {
+  // Ambil cache awal jika ada untuk tampilan cepat
+  const cached = sessionStorage.getItem('cached_kelas_list');
+  if (cached) {
+    try {
+      kelasList.value = JSON.parse(cached);
+      isLoading.value = false;
+    } catch {
+      // Abaikan jika format cache tidak valid
+    }
+  }
   loadKelas();
 });
 </script>

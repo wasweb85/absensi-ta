@@ -50,7 +50,7 @@
         >
           <option value="">Semua Jilid</option>
           <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ k.nama_kelas }}
+            {{ getCleanNamaKelas(k.nama_kelas) }}
           </option>
         </select>
 
@@ -336,15 +336,19 @@ const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
 
+function getCleanNamaKelas(name) {
+  return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+}
+
 const currentKelasLabel = computed(() => {
   let label = 'Semua Jilid';
   if (canFilterAllKelas.value) {
     if (selectedKelas.value) {
       const found = kelasList.value.find(k => String(k.id) === String(selectedKelas.value));
-      label = found?.nama_kelas || waliInfo.value?.nama_kelas || 'Jilid';
+      label = getCleanNamaKelas(found?.nama_kelas || waliInfo.value?.nama_kelas || 'Jilid');
     }
   } else {
-    label = waliInfo.value?.nama_kelas || user.value?.nama_kelas || 'Jilid';
+    label = getCleanNamaKelas(waliInfo.value?.nama_kelas || user.value?.nama_kelas || 'Jilid');
   }
 
   if (selectedGender.value === 'L') {
