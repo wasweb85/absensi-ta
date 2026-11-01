@@ -3,43 +3,56 @@
     <!-- Kontainer Tunggal Terpadu (Judul, Tombol Tambah, Pencarian, dan Tabel Menyatu) -->
     <Card class="overflow-hidden py-0 gap-0">
       <!-- Toolbar Atas di Dalam Kontainer Card -->
-      <div class="px-3 pt-1.5 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
-        <!-- Baris 1: Judul & Badge [Kiri] sejajar dengan Tombol Tambah Jilid [Kanan] -->
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-1.5 sm:gap-2">
-            <h2 class="text-sm sm:text-lg font-semibold tracking-tight text-foreground">
-              Data Jilid
-            </h2>
-            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
-              {{ filteredKelasList.length }} Jilid
-            </Badge>
-          </div>
+      <div class="px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border bg-card">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
+          <!-- Kiri: Judul & Badge (dan Tombol Tambah di Mobile) -->
+          <div class="flex items-center justify-between sm:justify-start gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
+                Data Jilid
+              </h2>
+              <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0 whitespace-nowrap">
+                {{ filteredKelasList.length }} Jilid
+              </Badge>
+            </div>
 
-          <!-- Tombol Aksi Tambah Jilid Baru (Responsif) -->
-          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <!-- Tombol Tambah Jilid Baru (Khusus Mobile di Baris Atas) -->
             <Button
               size="sm"
-              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              class="h-8 px-2.5 gap-1.5 text-xs sm:hidden shrink-0"
               title="Tambah Jilid Baru"
               @click="openAddModal"
             >
               <Plus class="size-3.5" />
-              <span class="hidden sm:inline">Tambah Jilid Baru</span>
-              <span class="sm:hidden">Tambah</span>
+              <span>Tambah</span>
             </Button>
           </div>
-        </div>
 
-        <!-- Baris 2: Kolom Pencarian Penuh -->
-        <div class="relative w-full">
-          <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            id="searchKelas"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari tingkatan jilid, wali jilid, atau kontak..."
-            class="h-9 pl-9 text-xs bg-background w-full"
-          />
+          <!-- Kanan: Kolom Pencarian (Lebar Proporsional Mengikuti Tulisan) & Tombol Tambah (Desktop) -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <!-- Kolom Pencarian Mengikuti Panjang Teks -->
+            <div class="relative w-full sm:w-60 md:w-64">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="searchKelas"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Cari nama jilid atau wali..."
+                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+              />
+            </div>
+
+            <!-- Tombol Tambah Jilid Baru (Desktop) -->
+            <Button
+              size="sm"
+              class="hidden sm:inline-flex h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs shrink-0"
+              title="Tambah Jilid Baru"
+              @click="openAddModal"
+            >
+              <Plus class="size-3.5" />
+              <span>Tambah Jilid Baru</span>
+            </Button>
+          </div>
         </div>
       </div>
 
