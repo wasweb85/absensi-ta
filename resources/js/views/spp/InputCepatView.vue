@@ -51,7 +51,7 @@
         </div>
       </div>
 
-      <!-- Baris 2: Tahun & Metode Sejajar 2 Kolom Kanan-Kiri di Mobile & Desktop -->
+      <!-- Baris 2: Tahun & Status Pembayaran Sejajar 2 Kolom Kanan-Kiri di Mobile & Desktop -->
       <div class="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
         <div>
           <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Tahun *</label>
@@ -65,14 +65,14 @@
         </div>
 
         <div>
-          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Metode Pembayaran</label>
+          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Status Pembayaran</label>
           <select
-            v-model="defaultMetode"
-            @change="applyDefaultMetode"
+            v-model="statusFilter"
             class="w-full h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition truncate"
           >
-            <option value="Tunai">Tunai / Cash</option>
-            <option value="Transfer">Transfer Bank</option>
+            <option value="">Semua Status</option>
+            <option value="belum_lunas">Belum Lunas</option>
+            <option value="lunas">Sudah Lunas</option>
           </select>
         </div>
       </div>
@@ -504,6 +504,7 @@ const selectedBulan = ref(currentDate.getMonth() + 1);
 const selectedTahun = ref(currentDate.getFullYear());
 const selectedKelasId = ref('');
 const defaultMetode = ref('Tunai');
+const statusFilter = ref('');
 const targetSiswaId = ref(null);
 const searchKeyword = ref('');
 
@@ -628,24 +629,30 @@ function applyDefaultMetode() {
   }
 }
 
-// Filtered Santri berdasarkan Pencarian Nama Santri
+// Filtered Santri berdasarkan Status Pembayaran & Pencarian Nama Santri
 const filteredSantriItems = computed(() => {
+  let list = santriItems.value;
+  if (statusFilter.value === 'belum_lunas') {
+    list = list.filter(s => s.status !== 'lunas');
+  } else if (statusFilter.value === 'lunas') {
+    list = list.filter(s => s.status === 'lunas');
+  }
   if (!searchKeyword.value.trim()) {
-    return santriItems.value;
+    return list;
   }
   const q = searchKeyword.value.toLowerCase().trim();
-  return santriItems.value.filter(s =>
+  return list.filter(s =>
     (s.nama_lengkap && s.nama_lengkap.toLowerCase().includes(q)) ||
     (s.nisn && s.nisn.toLowerCase().includes(q))
   );
 });
 
 const selectedCount = computed(() => {
-  return santriItems.value.filter(i => i.selected && i.status !== 'lunas').length;
+  return filteredSantriItems.value.filter(i => i.selected && i.status !== 'lunas').length;
 });
 
 const totalNominalBayar = computed(() => {
-  return santriItems.value
+  return filteredSantriItems.value
     .filter(i => i.selected && i.status !== 'lunas')
     .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
 });
@@ -665,7 +672,7 @@ function toggleSelectAll(e) {
 }
 
 async function submitBatchPayment() {
-  const selectedItems = santriItems.value.filter(i => i.selected && i.status !== 'lunas');
+  const selectedItems = filteredSantriItems.value.filter(i => i.selected && i.status !== 'lunas');
   if (selectedItems.length === 0) {
     toast.warning('Pilih minimal satu santri yang belum lunas.');
     return;

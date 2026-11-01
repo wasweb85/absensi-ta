@@ -16,78 +16,47 @@
       </router-link>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="flex border-b border-border space-x-2 print:hidden">
-      <button
-        @click="switchTab('rekap')"
-        :class="[
-          activeTab === 'rekap'
-            ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
-            : 'text-muted-foreground hover:text-foreground font-medium'
-        ]"
-        class="pb-2.5 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
-      >
-        <AlertTriangle class="size-3.5 text-rose-500" />
-        <span>Rekap Santri Menunggak</span>
-      </button>
-
-      <button
-        @click="switchTab('semua')"
-        :class="[
-          activeTab === 'semua'
-            ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
-            : 'text-muted-foreground hover:text-foreground font-medium'
-        ]"
-        class="pb-2.5 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
-      >
-        <CreditCard class="size-3.5" />
-        <span>Semua Tagihan (Per Bulan)</span>
-      </button>
-    </div>
-
-    <!-- TAB 1: REKAP SANTRI MENUNGGAK (AKUMULASI SEMESTER BERJALAN) -->
-    <div v-if="activeTab === 'rekap'" class="space-y-3.5 sm:space-y-4 print:hidden">
-      <!-- 2 Summary Cards: Santri Menunggak & Total Tunggakan Sejajar di Mobile & Desktop -->
-      <div class="grid grid-cols-2 gap-2 sm:gap-3">
-        <!-- Card 1: Total Santri Menunggak -->
-        <Card class="p-2.5 sm:p-3.5 flex items-center justify-between gap-2 overflow-hidden">
-          <div class="min-w-0">
-            <p class="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
-              Santri Menunggak
-            </p>
-            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
-              {{ rekapSummary.total_santri_menunggak }} <span class="text-[10px] sm:text-xs font-semibold">Santri</span>
-            </h4>
-            <p class="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
-              Memiliki sisa tagihan aktif
-            </p>
-          </div>
-          <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+    <!-- 2 Summary Cards: Ultra Responsif pada Mobile & Desktop -->
+    <div class="grid grid-cols-2 gap-2 sm:gap-3 print:hidden">
+      <!-- Card 1: Total Santri Menunggak -->
+      <Card class="p-3 sm:p-4 rounded-xl border border-border bg-card shadow-xs">
+        <div class="flex items-center justify-between gap-1.5 mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            Santri Nunggak
+          </span>
+          <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
             <Users class="size-3.5 sm:size-4" />
           </div>
-        </Card>
+        </div>
+        <div class="text-base sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight">
+          {{ rekapSummary.total_santri_menunggak }} <span class="text-xs font-semibold">Santri</span>
+        </div>
+        <p class="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
+          Memiliki sisa tagihan aktif
+        </p>
+      </Card>
 
-        <!-- Card 2: Total Nominal Tunggakan Riil -->
-        <Card class="p-2.5 sm:p-3.5 flex items-center justify-between gap-2 overflow-hidden">
-          <div class="min-w-0">
-            <p class="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
-              Total Tunggakan Riil
-            </p>
-            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-foreground mt-0.5 truncate">
-              Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
-            </h4>
-            <p class="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
-              Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}
-            </p>
-          </div>
-          <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+      <!-- Card 2: Total Nominal Tunggakan Riil -->
+      <Card class="p-3 sm:p-4 rounded-xl border border-border bg-card shadow-xs">
+        <div class="flex items-center justify-between gap-1.5 mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            Total Tunggakan
+          </span>
+          <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
             <Wallet class="size-3.5 sm:size-4" />
           </div>
-        </Card>
-      </div>
+        </div>
+        <div class="text-base sm:text-xl font-extrabold text-foreground tracking-tight truncate">
+          Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
+        </div>
+        <p class="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
+          s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}
+        </p>
+      </Card>
+    </div>
 
-      <!-- Kontainer Tunggal Terpadu Rekap Santri Menunggak (Filter & Tabel Menyatu Sesuai Model Data Santri) -->
-      <Card class="overflow-hidden py-0 gap-0">
+    <!-- Kontainer Tunggal Terpadu Rekap Santri Menunggak (Filter & Tabel Menyatu Sesuai Model Data Santri) -->
+    <Card class="overflow-hidden py-0 gap-0">
         <!-- Toolbar Atas di Dalam Kontainer Card -->
         <div class="p-2.5 sm:p-3.5 border-b border-border bg-card space-y-2 sm:space-y-2.5">
           <!-- Baris 1: Filter Jilid & Batas Cut-Off Sejajar di Mobile & Desktop -->
@@ -297,212 +266,6 @@
           </Table>
         </div>
       </Card>
-    </div>
-
-    <!-- TAB 2: SEMUA TAGIHAN (PER BULAN) -->
-    <div v-else class="space-y-4 print:hidden">
-      <!-- Kontainer Tunggal Terpadu Semua Tagihan -->
-      <Card class="overflow-hidden py-0 gap-0">
-        <!-- Toolbar Atas di Dalam Kontainer Card -->
-        <div class="px-3 pt-2 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5 border-b border-border bg-card space-y-2 sm:space-y-3">
-          <!-- Baris 1: Judul & Badge Tagihan -->
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
-                Semua Tagihan (Per Bulan)
-              </h2>
-              <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-1.5 py-0">
-                {{ tagihanTotalCount || tagihanList.length }} Tagihan
-              </Badge>
-            </div>
-          </div>
-
-          <!-- Baris 2: Filter & Kolom Pencarian -->
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-2.5">
-            <!-- Filter Dropdowns (Bulan, Tahun, Jilid, Status) -->
-            <div class="order-1 lg:order-2 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-              <select
-                v-model="filters.bulan"
-                @change="loadTagihan(1)"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                title="Filter Bulan"
-              >
-                <option value="">Semua Bulan</option>
-                <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
-              </select>
-
-              <select
-                v-model="filters.tahun"
-                @change="loadTagihan(1)"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                title="Filter Tahun"
-              >
-                <option value="">Semua Tahun</option>
-                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-              </select>
-
-              <select
-                v-model="filters.id_kelas"
-                @change="loadTagihan(1)"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer min-w-[110px]"
-                title="Filter Jilid"
-              >
-                <option value="">Semua Jilid</option>
-                <option v-for="k in kelasList" :key="k.id" :value="k.id">
-                  {{ getCleanNamaKelas(k.nama_kelas) }}
-                </option>
-              </select>
-
-              <select
-                v-model="filters.status"
-                @change="loadTagihan(1)"
-                class="h-8 sm:h-9 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                title="Status Pembayaran"
-              >
-                <option value="">Semua Status</option>
-                <option value="belum_lunas">Belum Lunas</option>
-                <option value="lunas">Lunas</option>
-                <option value="kurang_bayar">Kurang Bayar</option>
-              </select>
-            </div>
-
-            <!-- Kolom Pencarian -->
-            <div class="order-2 lg:order-1 relative flex-1 min-w-[200px] max-w-sm">
-              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                id="searchTagihan"
-                v-model="filters.search"
-                type="text"
-                placeholder="Cari santri atau NISN..."
-                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
-                @input="onTagihanSearch"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabel Semua Tagihan -->
-        <div class="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow class="bg-muted/30">
-                <TableHead class="w-12 text-center text-[10px] uppercase font-semibold">No</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Santri</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Jilid</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Periode Tagihan</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Nominal Tagihan</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Status</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold">Jatuh Tempo</TableHead>
-                <TableHead class="text-[10px] uppercase font-semibold text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-if="isLoadingTagihan">
-                <TableCell colspan="8" class="h-36 text-center text-muted-foreground text-xs">
-                  <div class="flex flex-col items-center justify-center gap-2">
-                    <LoaderCircle class="size-6 animate-spin text-primary" />
-                    <span>Memuat data tagihan...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-
-              <TableRow v-else-if="tagihanList.length === 0">
-                <TableCell colspan="8" class="h-32 text-center text-muted-foreground text-xs">
-                  {{ filters.search ? 'Tidak ada data tagihan yang sesuai dengan pencarian.' : 'Tidak ada data tagihan yang sesuai filter.' }}
-                </TableCell>
-              </TableRow>
-
-              <TableRow
-                v-else
-                v-for="(t, index) in tagihanList"
-                :key="t.id"
-                class="transition-colors hover:bg-muted/40"
-              >
-                <TableCell class="text-center font-mono text-xs text-muted-foreground">
-                  {{ (currentPage - 1) * 50 + (index + 1) }}
-                </TableCell>
-                <TableCell class="font-medium text-foreground min-w-[140px] sm:min-w-[180px] max-w-[220px]">
-                  <div class="whitespace-normal break-words leading-tight">
-                    {{ t.siswa?.nama_lengkap || '-' }}
-                  </div>
-                  <div class="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">NISN: {{ t.siswa?.nisn || '-' }}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" class="font-medium text-[11px]">
-                    {{ getCleanNamaKelas(t.siswa?.kelas?.nama_kelas) || '-' }}
-                  </Badge>
-                </TableCell>
-                <TableCell class="font-semibold text-foreground text-xs">
-                  {{ bulanList[t.bulan] }} {{ t.tahun }}
-                </TableCell>
-                <TableCell class="font-mono font-bold text-foreground text-xs">
-                  Rp {{ formatRupiah(t.nominal_tagihan) }}
-                </TableCell>
-                <TableCell>
-                  <span
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase inline-block"
-                    :class="{
-                      'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300': t.status === 'lunas',
-                      'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300': t.status === 'belum_lunas',
-                      'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300': t.status === 'kurang_bayar',
-                    }"
-                  >
-                    {{ t.status.replace('_', ' ') }}
-                  </span>
-                </TableCell>
-                <TableCell class="text-muted-foreground font-mono text-xs">
-                  {{ t.jatuh_tempo || '-' }}
-                </TableCell>
-                <TableCell class="text-center">
-                  <Button
-                    v-if="canManageSpp && t.status !== 'lunas'"
-                    size="sm"
-                    class="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                    @click="openBayarModalFromTagihan(t)"
-                  >
-                    Bayar &rarr;
-                  </Button>
-                  <span v-else-if="t.status !== 'lunas'" class="text-rose-500 font-semibold text-xs">
-                    Belum Lunas
-                  </span>
-                  <span v-else class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                    <Check class="size-3.5" />
-                    <span>Lunas</span>
-                  </span>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="px-4 py-3 border-t border-border bg-card flex items-center justify-between text-xs">
-          <span class="text-muted-foreground">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-          <div class="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              class="h-8 text-xs"
-              :disabled="currentPage <= 1"
-              @click="loadTagihan(currentPage - 1)"
-            >
-              Sebelumnya
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              class="h-8 text-xs"
-              :disabled="currentPage >= totalPages"
-              @click="loadTagihan(currentPage + 1)"
-            >
-              Berikutnya
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
-
-
 
     <!-- Modal Pop-up Japri WhatsApp Santri Menunggak -->
     <div
@@ -990,13 +753,9 @@ import {
   Search,
   LoaderCircle,
   CheckCircle2,
-  Check,
   RefreshCw,
-  CreditCard,
   Wallet,
   Users,
-  Clock,
-  AlertTriangle,
   X,
   ExternalLink,
   Copy,
@@ -1008,26 +767,8 @@ const route = useRoute();
 const toast = useToast();
 const { canManageSpp } = useAuth();
 
-const activeTab = ref(route.query.tab === 'semua' ? 'semua' : 'rekap');
-
-// Data Tab Semua Tagihan
-const isLoadingTagihan = ref(false);
-const tagihanList = ref([]);
-const tagihanTotalCount = ref(0);
+// Data Rekap Santri Menunggak
 const kelasList = ref([]);
-const currentPage = ref(1);
-const totalPages = ref(1);
-let tagihanSearchTimer = null;
-
-const filters = ref({
-  bulan: new Date().getMonth() + 1,
-  tahun: new Date().getFullYear(),
-  id_kelas: '',
-  status: '',
-  search: '',
-});
-
-// Data Tab Rekap Santri Menunggak
 const isLoadingRekap = ref(false);
 const rekapSantriList = ref([]);
 const rekapSearch = ref('');
@@ -1094,15 +835,6 @@ const bulanList = {
 
 const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
 
-function switchTab(tab) {
-  activeTab.value = tab;
-  if (tab === 'rekap') {
-    loadRekapTunggakan();
-  } else {
-    loadTagihan(1);
-  }
-}
-
 const loadKelas = async () => {
   try {
     const res = await api.get('/kelas');
@@ -1111,38 +843,6 @@ const loadKelas = async () => {
     }
   } catch (e) {}
 };
-
-const loadTagihan = async (page = 1) => {
-  isLoadingTagihan.value = true;
-  currentPage.value = page;
-  try {
-    const params = {
-      page: page,
-      bulan: filters.value.bulan || undefined,
-      tahun: filters.value.tahun || undefined,
-      id_kelas: filters.value.id_kelas || undefined,
-      status: filters.value.status || undefined,
-      search: filters.value.search || undefined,
-    };
-    const res = await api.get('/spp/tagihan', { params });
-    if (res.data.success) {
-      tagihanList.value = res.data.data.data || [];
-      totalPages.value = res.data.data.last_page || 1;
-      tagihanTotalCount.value = res.data.data.total || 0;
-    }
-  } catch (e) {
-    toast.error('Gagal memuat data tagihan SPP.');
-  } finally {
-    isLoadingTagihan.value = false;
-  }
-};
-
-function onTagihanSearch() {
-  clearTimeout(tagihanSearchTimer);
-  tagihanSearchTimer = setTimeout(() => {
-    loadTagihan(1);
-  }, 350);
-}
 
 const loadRekapTunggakan = async () => {
   isLoadingRekap.value = true;
@@ -1227,40 +927,7 @@ const openBayarModal = async (santri) => {
   }
 };
 
-const openBayarModalFromTagihan = async (tagihan) => {
-  selectedBayarSantri.value = {
-    id_siswa: tagihan.id_siswa,
-    nama_lengkap: tagihan.siswa?.nama_lengkap || 'Santri',
-    nisn: tagihan.siswa?.nisn || '-',
-    nama_kelas: tagihan.siswa?.kelas?.nama_kelas || '-',
-    no_hp_ortu: tagihan.siswa?.no_hp_ortu || '',
-  };
-  bayarTagihanList.value = [];
-  selectedTagihanIds.value = [tagihan.id];
-  bayarMetode.value = 'Tunai';
-  bayarCatatan.value = '';
-  bayarSuccessResult.value = null;
-  isLoadingBayarBills.value = true;
-  showBayarModal.value = true;
 
-  try {
-    const res = await api.get(`/spp/santri/${tagihan.id_siswa}/tunggakan?all=1`);
-    const allBills = res.data.data?.daftar_tunggakan || res.data.data?.daftar_bulan || [];
-    if (res.data.success && allBills.length > 0) {
-      bayarTagihanList.value = allBills;
-      const ids = bayarTagihanList.value.map(b => b.id_tagihan);
-      if (ids.includes(tagihan.id)) {
-        selectedTagihanIds.value = [tagihan.id];
-      } else if (ids.length > 0) {
-        selectedTagihanIds.value = ids;
-      }
-    }
-  } catch (err) {
-    toast.error('Gagal memuat rincian tagihan santri.');
-  } finally {
-    isLoadingBayarBills.value = false;
-  }
-};
 
 const toggleBulanItem = (idTagihan) => {
   const idx = selectedTagihanIds.value.indexOf(idTagihan);
@@ -1467,7 +1134,6 @@ onMounted(async () => {
   // Otomatis sinkronkan dengan tahun ajaran aktif secara silent
   await syncTahunAjaranOtomatis();
   loadRekapTunggakan();
-  loadTagihan(1);
 
   try {
     const pub = await api.get('/pengaturan/public');
