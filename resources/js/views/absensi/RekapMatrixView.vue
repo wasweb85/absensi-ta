@@ -1,95 +1,5 @@
 <template>
   <div class="space-y-6 print:space-y-0">
-    <!-- Header Halaman -->
-    <div class="flex items-center gap-2 pb-2 border-b print:hidden">
-      <h2 class="text-lg font-semibold tracking-tight text-foreground">
-        Rekap
-      </h2>
-      <Badge variant="outline" class="font-normal text-xs text-muted-foreground">
-        {{ bulanList[selectedBulan] }} {{ selectedTahun }}
-      </Badge>
-    </div>
-
-    <!-- Toolbar Filter Rekap & Aksi (Semua Filter Tetap Ada, Tanpa Label Mengambang di Atasnya) -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 print:hidden">
-      <div class="flex flex-wrap items-center gap-2 flex-1">
-        <!-- Bulan Selector (Tanpa Label di Atasnya) -->
-        <select
-          id="selectBulan"
-          v-model="selectedBulan"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Bulan"
-          @change="loadMatrix"
-        >
-          <option v-for="(nama, num) in bulanList" :key="num" :value="num">
-            Bulan: {{ nama }}
-          </option>
-        </select>
-
-        <!-- Tahun Selector (Tanpa Label di Atasnya) -->
-        <select
-          id="selectTahun"
-          v-model="selectedTahun"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Tahun"
-          @change="loadMatrix"
-        >
-          <option v-for="y in [2024, 2025, 2026, 2027, 2028]" :key="y" :value="y">
-            Tahun {{ y }}
-          </option>
-        </select>
-
-        <!-- Filter Jilid (Hanya untuk Admin & Sekretaris, Tanpa Label di Atasnya) -->
-        <select
-          v-if="canFilterAllKelas"
-          id="selectKelas"
-          v-model="selectedKelas"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Jilid"
-          @change="loadMatrix"
-        >
-          <option value="">Semua Jilid</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">
-            {{ getCleanNamaKelas(k.nama_kelas) }}
-          </option>
-        </select>
-
-        <!-- Gender Filter Select (Otomatis terpilih sesuai kelompok binaan guru, tetap fleksibel dapat diubah) -->
-        <select
-          id="selectGender"
-          v-model="selectedGender"
-          class="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          title="Pilih Kelompok Gender"
-          @change="loadMatrix"
-        >
-          <option value="">Semua Gender</option>
-          <option value="L">Santri Putra (L)</option>
-          <option value="P">Santri Putri (P)</option>
-        </select>
-      </div>
-
-      <!-- Action Buttons (Cetak & Export CSV) -->
-      <div class="flex items-center gap-2 shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          class="h-9 gap-1.5 text-xs"
-          @click="printMatrix"
-        >
-          <Printer class="size-3.5" />
-          <span>Cetak</span>
-        </Button>
-        <Button
-          size="sm"
-          class="h-9 gap-1.5 text-xs"
-          @click="exportCsv"
-        >
-          <Download class="size-3.5" />
-          <span>Export CSV</span>
-        </Button>
-      </div>
-    </div>
-
     <!-- KOP RESMI LAPORAN (Hanya tampil saat dicetak) -->
     <div class="hidden print:block mb-1.5 text-black">
       <div class="flex items-center justify-between gap-3 pb-1">
@@ -144,8 +54,153 @@
       </div>
     </div>
 
-    <!-- Matrix Table Container -->
-    <Card class="overflow-hidden print:border-none print:shadow-none print:bg-transparent print:p-0 print:m-0">
+    <!-- Kontainer Tunggal Terpadu (Toolbar & Tabel Matrix Menyatu Sesuai Model Data Santri) -->
+    <Card class="overflow-hidden py-0 gap-0 print:border-none print:shadow-none print:bg-transparent print:p-0 print:m-0">
+      <!-- Toolbar Atas di Dalam Kontainer Card (Sembunyi saat cetak) -->
+      <div class="p-3 sm:p-4 border-b border-border bg-card space-y-2.5 sm:space-y-3 print:hidden">
+        <!-- Baris 1: Judul Halaman [Kiri] sejajar dengan Tombol Aksi Cetak & Export [Kanan] -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
+              Rekap Presensi
+            </h2>
+            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-2 py-0.5 whitespace-nowrap">
+              {{ bulanList[selectedBulan] }} {{ selectedTahun }}
+            </Badge>
+          </div>
+
+          <!-- Tombol Aksi (Cetak & Export CSV) -->
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Cetak Laporan Rekap"
+              @click="printMatrix"
+            >
+              <Printer class="size-3.5" />
+              <span>Cetak</span>
+            </Button>
+            <Button
+              size="sm"
+              class="h-8 sm:h-9 px-2.5 sm:px-3 gap-1.5 text-xs"
+              title="Export CSV"
+              @click="exportCsv"
+            >
+              <Download class="size-3.5" />
+              <span class="hidden sm:inline">Export CSV</span>
+              <span class="sm:hidden">CSV</span>
+            </Button>
+          </div>
+        </div>
+
+        <!-- Baris Filter & Pencarian:
+             - Di Mobile:
+               * Baris atas: Bulan sejajar dengan Tahun (grid-cols-2)
+               * Baris bawah: Jilid & Gender (atau Gender sejajar Pencarian jika guru)
+             - Di Desktop (md:): Satu baris horizontal rapi dan proporsional
+        -->
+        <div class="flex flex-col md:flex-row md:items-center gap-2 sm:gap-2.5">
+          <!-- Grup 1: Bulan & Tahun (Mobile: Sejajar 50:50, Desktop: natural) -->
+          <div class="grid grid-cols-2 md:flex md:items-center gap-2 sm:gap-2.5 shrink-0">
+            <!-- Bulan Selector -->
+            <select
+              id="selectBulan"
+              v-model="selectedBulan"
+              class="h-8 sm:h-9 w-full md:w-36 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Bulan"
+              @change="loadMatrix"
+            >
+              <option v-for="(nama, num) in bulanList" :key="num" :value="num">
+                Bulan: {{ nama }}
+              </option>
+            </select>
+
+            <!-- Tahun Selector -->
+            <select
+              id="selectTahun"
+              v-model="selectedTahun"
+              class="h-8 sm:h-9 w-full md:w-28 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Tahun"
+              @change="loadMatrix"
+            >
+              <option v-for="y in [2024, 2025, 2026, 2027, 2028]" :key="y" :value="y">
+                Tahun {{ y }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Grup 2: Jilid & Gender (Jika admin) -->
+          <div v-if="canFilterAllKelas" class="grid grid-cols-2 md:flex md:items-center gap-2 sm:gap-2.5 shrink-0">
+            <!-- Filter Jilid -->
+            <select
+              id="selectKelas"
+              v-model="selectedKelas"
+              class="h-8 sm:h-9 w-full md:w-36 lg:w-40 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Jilid"
+              @change="loadMatrix"
+            >
+              <option value="">Semua Jilid</option>
+              <option v-for="k in kelasList" :key="k.id" :value="k.id">
+                {{ getCleanNamaKelas(k.nama_kelas) }}
+              </option>
+            </select>
+
+            <!-- Filter Gender (Admin) -->
+            <select
+              id="selectGenderAdmin"
+              v-model="selectedGender"
+              class="h-8 sm:h-9 w-full md:w-32 rounded-lg border border-input bg-background px-2.5 sm:px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Kelompok Gender"
+              @change="loadMatrix"
+            >
+              <option value="">Semua Gender</option>
+              <option value="L">Putra (L)</option>
+              <option value="P">Putri (P)</option>
+            </select>
+          </div>
+
+          <!-- Jika Guru: Gender sejajar Pencarian (Pencarian lebih lebar dari gender) -->
+          <div v-else class="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
+            <select
+              id="selectGenderGuru"
+              v-model="selectedGender"
+              class="h-8 sm:h-9 w-[115px] sm:w-[130px] md:w-32 shrink-0 rounded-lg border border-input bg-background px-2 sm:px-2.5 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              title="Pilih Kelompok Gender"
+              @change="loadMatrix"
+            >
+              <option value="">Semua Gender</option>
+              <option value="L">Putra (L)</option>
+              <option value="P">Putri (P)</option>
+            </select>
+
+            <div class="relative flex-1 min-w-0 md:max-w-xs lg:max-w-sm">
+              <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="searchSantriGuru"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Cari santri..."
+                class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+              />
+            </div>
+          </div>
+
+          <!-- Kolom Pencarian Tambahan untuk Admin (Di desktop flex-1, di mobile baris penuh) -->
+          <div v-if="canFilterAllKelas" class="relative flex-1 min-w-0 md:max-w-xs lg:max-w-sm">
+            <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="searchSantriAdmin"
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari santri..."
+              class="h-8 sm:h-9 pl-9 text-xs bg-background w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Matrix Table Container -->
       <div class="overflow-x-auto print:overflow-visible">
         <Table class="text-center text-[11px] print:text-[8.5px] print:w-full print:border-collapse">
           <TableHeader>
@@ -182,7 +237,7 @@
               </TableCell>
             </TableRow>
 
-            <TableRow v-else-if="matrixData.length === 0">
+            <TableRow v-else-if="filteredMatrixData.length === 0">
               <TableCell :colspan="daysInMonth + 9" class="h-32 text-center text-muted-foreground font-sans text-xs">
                 Tidak ada data rekap untuk periode ini.
               </TableCell>
@@ -190,7 +245,7 @@
 
             <TableRow
               v-else
-              v-for="(row, idx) in matrixData"
+              v-for="(row, idx) in filteredMatrixData"
               :key="row.id_siswa"
               class="transition-colors hover:bg-muted/40 print:hover:bg-transparent"
             >
@@ -302,10 +357,12 @@ import {
   Printer,
   Download,
   LoaderCircle,
+  Search,
 } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Table,
@@ -335,6 +392,18 @@ const waliInfo = ref(null);
 const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
+const searchQuery = ref('');
+
+const filteredMatrixData = computed(() => {
+  if (!searchQuery.value.trim()) return matrixData.value;
+  const q = searchQuery.value.toLowerCase().trim();
+  return matrixData.value.filter((row) => {
+    const nama = (row.nama_lengkap || '').toLowerCase();
+    const nisn = (row.nisn || '').toLowerCase();
+    const kelas = (row.nama_kelas || '').toLowerCase();
+    return nama.includes(q) || nisn.includes(q) || kelas.includes(q);
+  });
+});
 
 function getCleanNamaKelas(name) {
   return (name || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
