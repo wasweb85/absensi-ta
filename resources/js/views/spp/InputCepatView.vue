@@ -1,32 +1,36 @@
 <template>
-  <div class="space-y-5 animate-fadeIn">
-    <!-- Header: Cukup Judul Halaman Sesuai Permintaan (Tanpa Card dan Tanpa Deskripsi) -->
-    <div class="flex items-center justify-between gap-3 print:hidden">
-      <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+  <div class="space-y-3.5 sm:space-y-4 animate-fadeIn">
+    <!-- Header: Proporsional, Rapi & Elegan pada Mobile & Desktop -->
+    <div class="flex items-center justify-between gap-2.5 print:hidden">
+      <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
         Input Pembayaran SPP
       </h2>
       <router-link
         to="/spp/tagihan"
-        class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 shadow-2xs"
+        class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 shadow-2xs shrink-0"
       >
-        <BaseIcon name="tagihan" class="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+        <BaseIcon name="tagihan" class="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
         <span class="hidden sm:inline">Lihat Data Tagihan &rarr;</span>
         <span class="sm:hidden">Tagihan &rarr;</span>
       </router-link>
     </div>
 
-    <!-- Parameter Filter Box: Baris 1 (Jilid & Bulan), Baris 2 (Tahun & Metode), Baris 3 (Pencarian Nama) -->
-    <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-3.5 print:hidden">
-      <!-- Baris 1: Jilid & Bulan Sejajar -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
+    <!-- Parameter Filter Box:
+         - Baris 1: Jilid & Bulan Sejajar 2 Kolom (Bahkan pada Mobile)
+         - Baris 2: Tahun & Metode Sejajar 2 Kolom Kanan-Kiri (Bahkan pada Mobile)
+         - Baris 3: Pencarian Nama Santri Full Width
+    -->
+    <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs space-y-2.5 sm:space-y-3 print:hidden">
+      <!-- Baris 1: Jilid & Bulan Sejajar 2 Kolom di Mobile & Desktop -->
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
         <div>
-          <label class="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Jilid / Kelas *</label>
+          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Jilid / Kelas *</label>
           <select
             v-model="selectedKelasId"
             @change="onKelasChange"
-            class="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            class="w-full h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition truncate"
           >
-            <option value="">-- Pilih Jilid / Kelas --</option>
+            <option value="">-- Pilih Jilid --</option>
             <option v-for="k in kelasList" :key="k.id" :value="k.id">
               {{ k.nama_kelas }} (Rp {{ formatRupiah(k.nominal_spp) }})
             </option>
@@ -34,11 +38,11 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Bulan Tagihan *</label>
+          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Bulan Tagihan *</label>
           <select
             v-model="selectedBulan"
             @change="fetchSantriByKelas"
-            class="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            class="w-full h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
           >
             <option v-for="(nama, num) in bulanList" :key="num" :value="num">
               {{ nama }}
@@ -47,25 +51,25 @@
         </div>
       </div>
 
-      <!-- Baris 2: Tahun & Metode Sejajar Kanan-Kiri -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
+      <!-- Baris 2: Tahun & Metode Sejajar 2 Kolom Kanan-Kiri di Mobile & Desktop -->
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
         <div>
-          <label class="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Tahun *</label>
+          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Tahun *</label>
           <select
             v-model="selectedTahun"
             @change="fetchSantriByKelas"
-            class="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            class="w-full h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
           >
             <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
 
         <div>
-          <label class="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Metode Pembayaran</label>
+          <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Metode Pembayaran</label>
           <select
             v-model="defaultMetode"
             @change="applyDefaultMetode"
-            class="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            class="w-full h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition truncate"
           >
             <option value="Tunai">Tunai / Cash</option>
             <option value="Transfer">Transfer Bank</option>
@@ -73,24 +77,24 @@
         </div>
       </div>
 
-      <!-- Baris 3: Kolom Pencarian Nama Santri -->
+      <!-- Baris 3: Kolom Pencarian Nama Santri (Full Width) -->
       <div class="text-xs">
-        <label class="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Pencarian Nama Santri</label>
+        <label class="block font-medium text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs mb-1">Pencarian Nama Santri</label>
         <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-            <BaseIcon name="search" class="w-4 h-4" />
+          <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
+            <BaseIcon name="search" class="w-3.5 h-3.5" />
           </div>
           <input
             v-model="searchKeyword"
             type="text"
-            placeholder="Ketik nama santri atau NISN untuk memfilter tabel..."
-            class="w-full pl-9 pr-8 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+            placeholder="Ketik nama santri atau NISN..."
+            class="w-full h-8 sm:h-9 pl-8 pr-7 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
           />
           <button
             v-if="searchKeyword"
             type="button"
             @click="searchKeyword = ''"
-            class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 text-base"
+            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 text-sm"
             title="Hapus Pencarian"
           >
             &times;
