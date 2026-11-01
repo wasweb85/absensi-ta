@@ -64,9 +64,6 @@
             <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
               Rekap Presensi
             </h2>
-            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground px-2 py-0.5 whitespace-nowrap">
-              {{ bulanList[selectedBulan] }} {{ selectedTahun }}
-            </Badge>
           </div>
 
           <!-- Tombol Aksi (Cetak & Export CSV) -->
