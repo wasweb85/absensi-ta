@@ -21,4 +21,3 @@ class BayarSppRequest extends FormRequest
         ];
     }
 }
-

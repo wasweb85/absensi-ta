@@ -44,4 +44,3 @@ class TagihanSpp extends Model
         return $this->hasMany(PembayaranSpp::class, 'id_tagihan');
     }
 }
-

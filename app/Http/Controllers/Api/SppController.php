@@ -60,6 +60,10 @@ class SppController extends Controller
      */
     public function tagihanList(Request $request): JsonResponse
     {
+        if (TagihanSpp::count() === 0) {
+            $this->billingService->sinkronkanTagihanSemester(7, 2026, 12, 2026);
+        }
+
         $query = TagihanSpp::with(['siswa.kelas']);
 
         if ($request->filled('bulan')) {
@@ -137,6 +141,25 @@ class SppController extends Controller
                 'created' => $totalCreated,
                 'skipped' => $totalSkipped,
             ],
+        ]);
+    }
+
+    /**
+     * Sinkronkan tagihan SPP untuk semester berjalan (Juli s/d Desember 2026)
+     */
+    public function sinkronkanSemester(Request $request): JsonResponse
+    {
+        $fromBulan = (int) $request->input('from_bulan', 7);
+        $fromTahun = (int) $request->input('from_tahun', 2026);
+        $toBulan = (int) $request->input('to_bulan', 12);
+        $toTahun = (int) $request->input('to_tahun', 2026);
+
+        $result = $this->billingService->sinkronkanTagihanSemester($fromBulan, $fromTahun, $toBulan, $toTahun);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sinkronisasi tagihan semester berhasil: {$result['created']} tagihan baru dibuat untuk {$result['total_santri']} santri aktif.",
+            'data' => $result,
         ]);
     }
 
@@ -308,4 +331,3 @@ class SppController extends Controller
         ]);
     }
 }
-

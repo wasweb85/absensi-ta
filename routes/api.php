@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Modul SPP - Operasional Kasir & Bayar (Admin, Bendahara, Sekretaris)
     Route::prefix('spp')->middleware('role:admin,bendahara,sekretaris')->group(function () {
         Route::post('/generate-tagihan', [SppController::class, 'generateTagihan']);
+        Route::post('/sinkronkan-semester', [SppController::class, 'sinkronkanSemester']);
         Route::post('/bayar', [SppController::class, 'bayar']);
         Route::post('/bayar-multi', [SppController::class, 'bayarMulti']);
         Route::post('/batal-bayar', [SppController::class, 'batalBayar']);

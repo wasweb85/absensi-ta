@@ -165,5 +165,65 @@ class SppRekapTunggakanTest extends TestCase
         $this->assertEquals(4, $santriList[0]['total_bulan']);
         $this->assertEquals(200000, $santriList[0]['total_tunggakan']);
     }
-}
 
+    public function test_rekap_tunggakan_excludes_months_before_semester_start_juli_2026(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        // Tagihan bulan Mei & Juni 2026 (Sebelum awal semester ajaran aktif)
+        foreach ([5, 6] as $bln) {
+            TagihanSpp::create([
+                'id_siswa' => $this->siswa1->id,
+                'bulan' => $bln,
+                'tahun' => 2026,
+                'tahun_ajaran' => '2025/2026',
+                'nominal_tagihan' => 50000,
+                'status' => 'belum_lunas',
+            ]);
+        }
+
+        // Tagihan bulan Juli & Agustus 2026 (Awal semester berjalan)
+        foreach ([7, 8] as $bln) {
+            TagihanSpp::create([
+                'id_siswa' => $this->siswa1->id,
+                'bulan' => $bln,
+                'tahun' => 2026,
+                'tahun_ajaran' => '2026/2027',
+                'nominal_tagihan' => 50000,
+                'status' => 'belum_lunas',
+            ]);
+        }
+
+        $service = app(SppBillingService::class);
+        $rekap = $service->getRekapTunggakanSantri(null, 8, 2026);
+
+        // Hanya menghitung 2 bulan (Juli dan Agustus), Mei & Juni tidak dihitung
+        $this->assertEquals(1, $rekap['summary']['total_santri_menunggak']);
+        $this->assertEquals(100000, $rekap['summary']['total_nominal_tunggakan']);
+        $this->assertEquals(2, $rekap['santri'][0]['total_bulan']);
+        $this->assertEquals(['Juli', 'Agustus'], array_column($rekap['santri'][0]['daftar_bulan'], 'nama_bulan'));
+    }
+
+    public function test_sinkronkan_semester_generates_all_bills_for_active_santri(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        $response = $this->postJson('/api/spp/sinkronkan-semester', [
+            'from_bulan' => 7,
+            'from_tahun' => 2026,
+            'to_bulan' => 12,
+            'to_tahun' => 2026,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'created' => 12, // 2 santri aktif * 6 bulan
+                    'total_santri' => 2,
+                ],
+            ]);
+
+        $this->assertDatabaseCount('tagihan_spp', 12);
+    }
+}

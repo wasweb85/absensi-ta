@@ -25,6 +25,26 @@ class SppBillingService
     ];
 
     /**
+     * Awal semester ajaran berjalan (Juli 2026)
+     */
+    public const SEMESTER_START_BULAN = 7;
+
+    public const SEMESTER_START_TAHUN = 2026;
+
+    /**
+     * Mendapatkan awal semester ajaran aktif
+     *
+     * @return array{0: int, 1: int}
+     */
+    public static function getSemesterStart(): array
+    {
+        $startBulan = (int) Pengaturan::getValue('spp_semester_start_bulan', self::SEMESTER_START_BULAN);
+        $startTahun = (int) Pengaturan::getValue('spp_semester_start_tahun', self::SEMESTER_START_TAHUN);
+
+        return [$startBulan, $startTahun];
+    }
+
+    /**
      * Memastikan kolom nominal_spp, tabel tagihan_spp, dan pembayaran_spp tersedia di database
      * (self-healing untuk remote cloud database jika migrasi belum sempat dijalankan).
      */
@@ -169,17 +189,31 @@ class SppBillingService
         $cutOffBulan = $cutOffBulan ?: (int) Carbon::now('Asia/Jakarta')->month;
         $cutOffTahun = $cutOffTahun ?: (int) Carbon::now('Asia/Jakarta')->year;
 
+        [$startBulan, $startTahun] = self::getSemesterStart();
+
         $tagihanUnpaid = TagihanSpp::with(['pembayaran' => function ($q) {
             $q->where('status_transaksi', 'valid');
         }])
             ->where('id_siswa', $idSiswa)
             ->whereIn('status', ['belum_lunas', 'kurang_bayar'])
-            ->where(function ($q) use ($cutOffBulan, $cutOffTahun) {
-                $q->where('tahun', '<', $cutOffTahun)
-                    ->orWhere(function ($q2) use ($cutOffBulan, $cutOffTahun) {
-                        $q2->where('tahun', $cutOffTahun)
-                            ->where('bulan', '<=', $cutOffBulan);
-                    });
+            ->where(function ($q) use ($startBulan, $startTahun, $cutOffBulan, $cutOffTahun) {
+                // Batas awal: mulai awal semester (Juli 2026)
+                $q->where(function ($sq) use ($startBulan, $startTahun) {
+                    $sq->where('tahun', '>', $startTahun)
+                        ->orWhere(function ($sq2) use ($startBulan, $startTahun) {
+                            $sq2->where('tahun', $startTahun)
+                                ->where('bulan', '>=', $startBulan);
+                        });
+                });
+
+                // Batas akhir: s/d cut-off bulan & tahun
+                $q->where(function ($sq) use ($cutOffBulan, $cutOffTahun) {
+                    $sq->where('tahun', '<', $cutOffTahun)
+                        ->orWhere(function ($sq2) use ($cutOffBulan, $cutOffTahun) {
+                            $sq2->where('tahun', $cutOffTahun)
+                                ->where('bulan', '<=', $cutOffBulan);
+                        });
+                });
             })
             ->orderBy('tahun', 'asc')
             ->orderBy('bulan', 'asc')
@@ -480,13 +514,26 @@ class SppBillingService
         $totalBelumLunasCount = $tagihanBulanIni->whereIn('status', ['belum_lunas', 'kurang_bayar'])->count();
 
         // 3. Total seluruh tunggakan aktif riil (hanya tagihan yang sudah berjalan s/d bulan & tahun terpilih)
+        [$startBulan, $startTahun] = self::getSemesterStart();
         $unpaidTagihanQuery = TagihanSpp::whereIn('status', ['belum_lunas', 'kurang_bayar'])
-            ->where(function ($q) use ($bulan, $tahun) {
-                $q->where('tahun', '<', $tahun)
-                    ->orWhere(function ($q2) use ($bulan, $tahun) {
-                        $q2->where('tahun', $tahun)
-                            ->where('bulan', '<=', $bulan);
-                    });
+            ->where(function ($q) use ($startBulan, $startTahun, $bulan, $tahun) {
+                // Batas awal: mulai Juli 2026
+                $q->where(function ($sq) use ($startBulan, $startTahun) {
+                    $sq->where('tahun', '>', $startTahun)
+                        ->orWhere(function ($sq2) use ($startBulan, $startTahun) {
+                            $sq2->where('tahun', $startTahun)
+                                ->where('bulan', '>=', $startBulan);
+                        });
+                });
+
+                // Batas akhir: s/d bulan & tahun terpilih
+                $q->where(function ($sq) use ($bulan, $tahun) {
+                    $sq->where('tahun', '<', $tahun)
+                        ->orWhere(function ($sq2) use ($bulan, $tahun) {
+                            $sq2->where('tahun', $tahun)
+                                ->where('bulan', '<=', $bulan);
+                        });
+                });
             });
 
         $unpaidTagihanIds = (clone $unpaidTagihanQuery)->pluck('id');
@@ -530,6 +577,94 @@ class SppBillingService
     }
 
     /**
+     * Menyinkronkan tagihan seluruh santri aktif untuk semester berjalan (mulai Juli 2026 s/d Desember 2026 atau sesuai rentang).
+     *
+     * @return array{created: int, existing: int, total_santri: int}
+     */
+    public function sinkronkanTagihanSemester(
+        int $fromBulan = 7,
+        int $fromTahun = 2026,
+        int $toBulan = 12,
+        int $toTahun = 2026
+    ): array {
+        self::ensureSppSchemaExists();
+
+        $santriList = Siswa::with('kelas')
+            ->where('status', 'aktif')
+            ->get();
+
+        if ($santriList->isEmpty()) {
+            return ['created' => 0, 'existing' => 0, 'total_santri' => 0];
+        }
+
+        $tahunAjaran = Pengaturan::getValue('tahun_ajaran_aktif', '2026/2027');
+
+        $periods = [];
+        for ($y = $fromTahun; $y <= $toTahun; $y++) {
+            $mStart = ($y === $fromTahun) ? $fromBulan : 1;
+            $mEnd = ($y === $toTahun) ? $toBulan : 12;
+            for ($m = $mStart; $m <= $mEnd; $m++) {
+                $periods[] = ['bulan' => $m, 'tahun' => $y];
+            }
+        }
+
+        $existingRecords = TagihanSpp::whereIn('id_siswa', $santriList->pluck('id'))
+            ->where(function ($q) use ($periods) {
+                foreach ($periods as $p) {
+                    $q->orWhere(function ($sub) use ($p) {
+                        $sub->where('bulan', $p['bulan'])->where('tahun', $p['tahun']);
+                    });
+                }
+            })
+            ->select('id_siswa', 'bulan', 'tahun')
+            ->get();
+
+        $existingKeys = [];
+        foreach ($existingRecords as $rec) {
+            $existingKeys["{$rec->id_siswa}_{$rec->bulan}_{$rec->tahun}"] = true;
+        }
+
+        $now = Carbon::now('Asia/Jakarta')->format('Y-m-d H:i:s');
+        $toInsert = [];
+        $createdCount = 0;
+
+        foreach ($santriList as $santri) {
+            $nominal = (float) ($santri->kelas?->nominal_spp ?: 15000);
+            foreach ($periods as $p) {
+                $key = "{$santri->id}_{$p['bulan']}_{$p['tahun']}";
+                if (! isset($existingKeys[$key])) {
+                    $jatuhTempo = Carbon::createFromDate($p['tahun'], $p['bulan'], 10)->format('Y-m-d');
+                    $toInsert[] = [
+                        'id_siswa' => $santri->id,
+                        'bulan' => $p['bulan'],
+                        'tahun' => $p['tahun'],
+                        'tahun_ajaran' => $tahunAjaran,
+                        'nominal_tagihan' => $nominal,
+                        'status' => 'belum_lunas',
+                        'jatuh_tempo' => $jatuhTempo,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                    $createdCount++;
+                    $existingKeys[$key] = true;
+                }
+            }
+        }
+
+        if (! empty($toInsert)) {
+            foreach (array_chunk($toInsert, 200) as $chunk) {
+                TagihanSpp::insert($chunk);
+            }
+        }
+
+        return [
+            'created' => $createdCount,
+            'existing' => count($existingKeys) - $createdCount,
+            'total_santri' => $santriList->count(),
+        ];
+    }
+
+    /**
      * Rekap Akumulasi Santri Menunggak dari awal semester berjalan sampai bulan cut-off
      *
      * @return array{summary: array, santri: array}
@@ -545,7 +680,14 @@ class SppBillingService
         $cutOffBulan = $cutOffBulan ?: (int) Carbon::now('Asia/Jakarta')->month;
         $cutOffTahun = $cutOffTahun ?: (int) Carbon::now('Asia/Jakarta')->year;
 
-        // Ambil semua tagihan unpaid sampai dengan cut-off bulan & tahun
+        // Jika tagihan_spp masih kosong (misal database baru), otomatis sinkronkan semester berjalan
+        if (TagihanSpp::count() === 0) {
+            $this->sinkronkanTagihanSemester(7, 2026, max(12, $cutOffBulan), $cutOffTahun);
+        }
+
+        [$startBulan, $startTahun] = self::getSemesterStart();
+
+        // Ambil semua tagihan unpaid mulai semester berjalan (Juli 2026) sampai dengan cut-off bulan & tahun
         $query = TagihanSpp::with([
             'siswa.kelas',
             'pembayaran' => function ($q) {
@@ -553,12 +695,24 @@ class SppBillingService
             },
         ])
             ->whereIn('status', ['belum_lunas', 'kurang_bayar'])
-            ->where(function ($q) use ($cutOffBulan, $cutOffTahun) {
-                $q->where('tahun', '<', $cutOffTahun)
-                    ->orWhere(function ($q2) use ($cutOffBulan, $cutOffTahun) {
-                        $q2->where('tahun', $cutOffTahun)
-                            ->where('bulan', '<=', $cutOffBulan);
-                    });
+            ->where(function ($q) use ($startBulan, $startTahun, $cutOffBulan, $cutOffTahun) {
+                // Batas awal: mulai Juli 2026 (awal semester ajaran aktif)
+                $q->where(function ($sq) use ($startBulan, $startTahun) {
+                    $sq->where('tahun', '>', $startTahun)
+                        ->orWhere(function ($sq2) use ($startBulan, $startTahun) {
+                            $sq2->where('tahun', $startTahun)
+                                ->where('bulan', '>=', $startBulan);
+                        });
+                });
+
+                // Batas akhir: s/d cut-off bulan & tahun
+                $q->where(function ($sq) use ($cutOffBulan, $cutOffTahun) {
+                    $sq->where('tahun', '<', $cutOffTahun)
+                        ->orWhere(function ($sq2) use ($cutOffBulan, $cutOffTahun) {
+                            $sq2->where('tahun', $cutOffTahun)
+                                ->where('bulan', '<=', $cutOffBulan);
+                        });
+                });
             })
             ->whereHas('siswa', function ($q) use ($idKelas, $search) {
                 $q->where('status', 'aktif');
@@ -654,4 +808,3 @@ class SppBillingService
         ];
     }
 }
-

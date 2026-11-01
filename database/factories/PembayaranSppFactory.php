@@ -48,4 +48,3 @@ class PembayaranSppFactory extends Factory
         ]);
     }
 }
-

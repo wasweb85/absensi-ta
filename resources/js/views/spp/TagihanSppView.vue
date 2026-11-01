@@ -15,15 +15,26 @@
         </p>
       </div>
 
-      <!-- Action: Generate Tagihan -->
-      <button
-        v-if="canManageSpp"
-        @click="showGenerateModal = true"
-        class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
-      >
-        <BaseIcon name="zap" class="w-4 h-4" />
-        <span>Generate Tagihan Bulanan</span>
-      </button>
+      <!-- Actions: Sinkronkan Semester & Generate Tagihan -->
+      <div v-if="canManageSpp" class="flex flex-wrap items-center gap-2">
+        <button
+          @click="executeSinkronkanSemester"
+          :disabled="isSyncingSemester"
+          class="px-3.5 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          title="Sinkronkan seluruh tagihan santri aktif dari awal semester (Juli 2026)"
+        >
+          <BaseIcon name="refresh" :class="['w-4 h-4', isSyncingSemester ? 'animate-spin' : '']" />
+          <span>{{ isSyncingSemester ? 'Menyinkronkan...' : 'Sinkronkan Semester' }}</span>
+        </button>
+
+        <button
+          @click="showGenerateModal = true"
+          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <BaseIcon name="zap" class="w-4 h-4" />
+          <span>Generate Tagihan Bulanan</span>
+        </button>
+      </div>
     </div>
 
     <!-- Navigation Tabs -->
@@ -978,11 +989,35 @@ const rekapSummary = ref({
 
 const showGenerateModal = ref(false);
 const isGenerating = ref(false);
+const isSyncingSemester = ref(false);
 const genForm = ref({
   mode: 'single',
   bulan: new Date().getMonth() + 1,
   tahun: new Date().getFullYear(),
 });
+
+const executeSinkronkanSemester = async () => {
+  isSyncingSemester.value = true;
+  try {
+    const res = await api.post('/spp/sinkronkan-semester', {
+      from_bulan: 7,
+      from_tahun: 2026,
+      to_bulan: 12,
+      to_tahun: 2026,
+    });
+    if (res.data.success) {
+      toast.success(res.data.message || 'Sinkronisasi tagihan semester berhasil!');
+      loadRekapTunggakan();
+      loadTagihan(currentPage.value);
+    } else {
+      toast.error(res.data.message || 'Gagal menyinkronkan tagihan semester.');
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyinkronkan tagihan.');
+  } finally {
+    isSyncingSemester.value = false;
+  }
+};
 
 const bulanList = {
   1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',

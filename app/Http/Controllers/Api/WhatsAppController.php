@@ -36,7 +36,7 @@ class WhatsAppController extends Controller
         if ($type === 'japri') {
             $idSiswa = (int) $request->input('id_siswa');
             $siswa = Siswa::with('kelas')->findOrFail($idSiswa);
-            $tunggakan = $this->billingService->hitungTunggakanSantri($idSiswa);
+            $tunggakan = $this->billingService->hitungTunggakanSantri($idSiswa, $bulan, $tahun);
 
             if ($tunggakan['total_bulan'] > 1) {
                 $daftarStr = implode(', ', array_column($tunggakan['daftar_tunggakan'], 'label'));
