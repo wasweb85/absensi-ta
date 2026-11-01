@@ -35,6 +35,10 @@ export function useAuth() {
     const canViewWaLogs = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara'].includes(role.value));
     const canManageWaLogs = computed(() => ['admin', 'sekretaris'].includes(role.value));
 
+    // Keuangan SPP (Pencatatan Pembayaran oleh Bendahara & Sekretaris, Laporan oleh Kepala)
+    const canManageSpp = computed(() => ['admin', 'bendahara', 'sekretaris'].includes(role.value));
+    const canViewSppReports = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara'].includes(role.value));
+
     // Agenda & Pengaturan
     const canViewAgenda = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
     const canManageAgenda = computed(() => ['admin'].includes(role.value));
@@ -132,6 +136,8 @@ export function useAuth() {
         canManageGuru,
         canViewWaLogs,
         canManageWaLogs,
+        canManageSpp,
+        canViewSppReports,
         canManageAgenda,
         canViewAgenda,
         canManageSettings,

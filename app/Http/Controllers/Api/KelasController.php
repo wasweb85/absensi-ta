@@ -5,12 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\User;
+use App\Services\SppBillingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class KelasController extends Controller
 {
+    public function __construct()
+    {
+        SppBillingService::ensureSppSchemaExists();
+    }
+
     public function index(): JsonResponse
     {
         $kelas = Kelas::with(['guru' => function ($q) {
@@ -57,12 +63,17 @@ class KelasController extends Controller
 
         $validated = $request->validate([
             'nama_kelas' => 'required|string|max:50|unique:kelas,nama_kelas',
+            'nominal_spp' => 'nullable|numeric|min:0',
             'id_guru' => 'nullable|exists:users,id',
             'wali_kelas' => 'nullable|string|max:100',
             'no_hp_wali' => 'nullable|string|max:20',
             'warna_label' => 'nullable|string|max:20',
             'urutan' => 'nullable|integer',
         ]);
+
+        if (! isset($validated['nominal_spp']) || $validated['nominal_spp'] === null) {
+            $validated['nominal_spp'] = 15000;
+        }
 
         $idGuru = $validated['id_guru'] ?? null;
         unset($validated['id_guru']);
@@ -104,6 +115,7 @@ class KelasController extends Controller
 
         $validated = $request->validate([
             'nama_kelas' => 'required|string|max:50|unique:kelas,nama_kelas,'.$id,
+            'nominal_spp' => 'nullable|numeric|min:0',
             'id_guru' => 'nullable|exists:users,id',
             'wali_kelas' => 'nullable|string|max:100',
             'no_hp_wali' => 'nullable|string|max:20',

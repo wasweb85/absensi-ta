@@ -85,15 +85,19 @@ import {
   Bot,
   CalendarDays,
   Download,
+  FileText,
   GraduationCap,
   Layers,
   LayoutDashboard,
+  MessageSquareShare,
   QrCode,
+  ReceiptText,
   ScanLine,
   Send,
   Settings,
   TableProperties,
   UserCog,
+  Wallet,
 } from '@lucide/vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/composables/useAuth';
@@ -124,6 +128,15 @@ const sections = [
       { to: '/absensi/monitoring', label: 'Monitoring', icon: Activity },
       { to: '/absensi/rekap', label: 'Rekap', icon: TableProperties },
       { to: '/absensi/agenda-libur', label: 'Agenda & Libur', icon: CalendarDays },
+    ],
+  },
+  {
+    title: 'Keuangan SPP',
+    items: [
+      { to: '/spp/input-cepat', label: 'Input Pembayaran', icon: Wallet },
+      { to: '/spp/tagihan', label: 'Data Tagihan', icon: FileText },
+      { to: '/spp/riwayat', label: 'Riwayat Transaksi', icon: ReceiptText },
+      { to: '/spp/pengingat-wa', label: 'Himbauan WA', icon: MessageSquareShare },
     ],
   },
   {

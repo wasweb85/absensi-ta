@@ -58,6 +58,36 @@ const routes = [
                 component: () => import('../views/absensi/AgendaLiburView.vue'),
                 meta: { title: 'Agenda & Libur', roles: ['admin', 'sekretaris', 'kepala', 'bendahara', 'guru'] },
             },
+            // Modul SPP
+            {
+                path: 'spp/transaksi',
+                redirect: '/spp/input-cepat',
+            },
+            {
+                path: 'spp/tagihan',
+                name: 'spp-tagihan',
+                component: () => import('../views/spp/TagihanSppView.vue'),
+                meta: { title: 'Tagihan & Tunggakan SPP', roles: ['admin', 'bendahara', 'sekretaris', 'kepala'] },
+            },
+            {
+                path: 'spp/input-cepat',
+                alias: ['spp/input-pembayaran'],
+                name: 'spp-input-cepat',
+                component: () => import('../views/spp/InputCepatView.vue'),
+                meta: { title: 'Input Pembayaran SPP', roles: ['admin', 'bendahara', 'sekretaris'] },
+            },
+            {
+                path: 'spp/pengingat-wa',
+                name: 'spp-pengingat-wa',
+                component: () => import('../views/spp/PengingatWaView.vue'),
+                meta: { title: 'Broadcast Pengingat WA', roles: ['admin', 'bendahara', 'sekretaris'] },
+            },
+            {
+                path: 'spp/riwayat',
+                name: 'spp-riwayat',
+                component: () => import('../views/spp/RiwayatSppView.vue'),
+                meta: { title: 'Riwayat Transaksi SPP', roles: ['admin', 'bendahara', 'sekretaris', 'kepala'] },
+            },
             // Layanan WhatsApp & Notifikasi
             {
                 path: 'wa/delivery-log',

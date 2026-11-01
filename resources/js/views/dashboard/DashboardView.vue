@@ -172,9 +172,9 @@
           </Card>
         </router-link>
 
-        <!-- Card 4: WhatsApp Delivery Log -->
+        <!-- Card 4: WhatsApp Delivery Log (Hanya tampil di baris atas jika bukan role SPP dashboard atau jika ruang cukup) -->
         <router-link
-          v-if="canViewWaLogs"
+          v-if="canViewWaLogs && !showSppDashboard"
           to="/wa/delivery-log"
           class="block group outline-none"
         >
@@ -203,7 +203,126 @@
             </CardContent>
           </Card>
         </router-link>
+
+        <!-- Card SPP 1: Pemasukan SPP Bulan Ini (Khusus Sekretaris, Bendahara, Kepala) -->
+        <router-link
+          v-if="showSppDashboard"
+          to="/spp/riwayat"
+          class="block group outline-none"
+        >
+          <Card class="relative overflow-hidden transition-all group-hover:border-teal-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 transition-transform group-hover:scale-105">
+                  <Wallet class="size-4 sm:size-5" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                    Pemasukan SPP Bulan Ini
+                  </p>
+                  <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
+                      Rp {{ formatRupiah(sppStats.pemasukan_bulan_ini) }}
+                    </span>
+                  </div>
+                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                    Kelunasan: <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ sppStats.persentase_lunas }}%</span> ({{ sppStats.santri_lunas }} Lunas)
+                  </p>
+                </div>
+              </div>
+              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </CardContent>
+          </Card>
+        </router-link>
+
+        <!-- Card SPP 2: Total Tunggakan Aktif (Khusus Sekretaris, Bendahara, Kepala) -->
+        <router-link
+          v-if="showSppDashboard"
+          to="/spp/tagihan?tab=rekap"
+          class="block group outline-none"
+          title="Klik untuk melihat rincian rekap santri menunggak"
+        >
+          <Card class="relative overflow-hidden transition-all group-hover:border-rose-500/50 group-hover:shadow-xs h-full">
+            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-transform group-hover:scale-105">
+                  <AlertTriangle class="size-4 sm:size-5" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                    Total Tunggakan Aktif
+                  </p>
+                  <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-base sm:text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400 truncate">
+                      Rp {{ formatRupiah(sppStats.total_tunggakan_aktif) }}
+                    </span>
+                  </div>
+                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                    Belum Lunas: <span class="font-medium text-rose-600 dark:text-rose-400">{{ sppStats.santri_belum_lunas }}</span> Santri
+                  </p>
+                </div>
+              </div>
+              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-rose-500" />
+            </CardContent>
+          </Card>
+        </router-link>
       </div>
+
+      <!-- Tren Penerimaan SPP Santri 12 Bulan (Khusus Sekretaris, Bendahara, Kepala) -->
+      <Card v-if="showSppDashboard">
+        <CardHeader class="pb-3 border-b">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                <Wallet class="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Tren Penerimaan SPP Santri Tahun {{ currentYear }}</span>
+              </CardTitle>
+              <CardDescription class="text-xs mt-0.5">
+                Grafik total nominal kas pembayaran SPP per bulan &amp; aksi cepat administrasi SPP
+              </CardDescription>
+            </div>
+            <div class="flex items-center gap-2">
+              <Button v-if="canManageSpp" as-child size="sm" class="h-8 px-3 text-xs gap-1.5">
+                <router-link to="/spp/input-cepat">
+                  <Wallet class="size-3.5" />
+                  <span>Input Pembayaran SPP</span>
+                </router-link>
+              </Button>
+              <Button as-child variant="outline" size="sm" class="h-8 px-3 text-xs gap-1.5 hidden sm:inline-flex">
+                <router-link to="/spp/tagihan">
+                  <FileText class="size-3.5" />
+                  <span>Data Tagihan</span>
+                </router-link>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent class="p-4 sm:p-6">
+          <div class="grid grid-cols-12 gap-1.5 sm:gap-2 items-end h-44 pb-6 border-b">
+            <div
+              v-for="g in sppStats.grafik_bulanan"
+              :key="g.bulan"
+              class="flex flex-col items-center h-full justify-end group relative"
+            >
+              <div class="hidden group-hover:block absolute -top-8 bg-zinc-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-20 font-mono">
+                {{ g.nama_bulan }}: Rp {{ formatRupiah(g.total) }}
+              </div>
+              <div
+                class="w-full max-w-[28px] rounded-t-lg transition-all duration-500 group-hover:brightness-110"
+                :class="g.total > 0 ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-xs' : 'bg-muted'"
+                :style="{ height: getBarHeight(g.total) }"
+              ></div>
+              <span class="text-[9px] sm:text-[10px] text-muted-foreground font-semibold mt-2 truncate w-full text-center">
+                {{ g.nama_bulan.slice(0, 3) }}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-3 text-xs text-muted-foreground">
+            <span>Rata-rata Bulanan: <b class="text-foreground">Rp {{ formatRupiah(averageRevenue) }}</b></span>
+            <span>Total Akumulasi: <b class="text-emerald-600 dark:text-emerald-400">Rp {{ formatRupiah(yearlyRevenue) }}</b></span>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Middle Section: Visualisasi Presensi & Fokus Kerja -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -640,6 +759,32 @@
               <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Ustadz &amp; pengurus</span>
             </router-link>
 
+            <!-- Input Bayar SPP (Khusus Sekretaris & Bendahara) -->
+            <router-link
+              v-if="showSppDashboard && canManageSpp"
+              to="/spp/input-cepat"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <Wallet class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Input Bayar SPP</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Bayar per jilid/santri</span>
+            </router-link>
+
+            <!-- Data Tagihan SPP (Khusus Sekretaris, Bendahara, Kepala) -->
+            <router-link
+              v-if="showSppDashboard"
+              to="/spp/tagihan"
+              class="p-2.5 sm:p-3.5 rounded-xl border bg-card hover:bg-muted/60 text-center transition-all group flex flex-col items-center"
+            >
+              <div class="flex size-8 sm:size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-1.5 sm:mb-2 transition-transform group-hover:scale-110">
+                <FileText class="size-4 sm:size-5" />
+              </div>
+              <span class="text-[11px] sm:text-xs font-medium text-foreground block truncate max-w-full">Tagihan SPP</span>
+              <span class="hidden sm:block text-[10px] text-muted-foreground mt-0.5">Cek tunggakan</span>
+            </router-link>
+
             <!-- Delivery Log WA -->
             <router-link
               v-if="canViewWaLogs && !canViewGuru"
@@ -675,6 +820,9 @@ import {
   Activity,
   TableProperties,
   CalendarDays,
+  Wallet,
+  AlertTriangle,
+  FileText,
 } from '@lucide/vue';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -685,15 +833,21 @@ import api from '@/services/api';
 
 const {
   user,
+  role,
   isGuru,
   canScanQr,
   canViewRekapMatrix,
   canViewSantri,
   canViewGuru,
   canViewWaLogs,
+  canManageSpp,
   canViewAgenda,
   kelasBinaan,
 } = useAuth();
+
+// Sesuai instruksi: Dashboard SPP hanya ditampilkan untuk Sekretaris, Bendahara, dan Kepala TPQ
+const showSppDashboard = computed(() => ['sekretaris', 'bendahara', 'kepala'].includes(role.value));
+const currentYear = new Date().getFullYear();
 
 const isLoading = ref(false);
 const hasDataLoaded = ref(false);
@@ -704,6 +858,9 @@ const currentDateFormatted = computed(() => {
 });
 
 const topGridColsClass = computed(() => {
+  if (showSppDashboard.value) {
+    return canViewGuru.value ? 'lg:grid-cols-5' : 'lg:grid-cols-4';
+  }
   if (canViewGuru.value && canViewWaLogs.value) return 'lg:grid-cols-4';
   if (canViewWaLogs.value || canViewGuru.value) return 'lg:grid-cols-3';
   return 'lg:grid-cols-2';
@@ -744,6 +901,42 @@ const waStats = ref({
   read: 0,
   failed: 0,
 });
+
+const sppStats = ref({
+  pemasukan_bulan_ini: 0,
+  total_tagihan_nominal: 0,
+  total_tunggakan_aktif: 0,
+  santri_lunas: 0,
+  santri_belum_lunas: 0,
+  persentase_lunas: 0,
+  grafik_bulanan: [],
+});
+
+function formatRupiah(val) {
+  if (!val) return '0';
+  return Number(val).toLocaleString('id-ID');
+}
+
+const maxRevenue = computed(() => {
+  const values = (sppStats.value.grafik_bulanan || []).map(g => Number(g.total) || 0);
+  return Math.max(...values, 100000);
+});
+
+const yearlyRevenue = computed(() => {
+  return (sppStats.value.grafik_bulanan || []).reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+});
+
+const averageRevenue = computed(() => {
+  const list = sppStats.value.grafik_bulanan || [];
+  if (list.length === 0) return 0;
+  return Math.round(yearlyRevenue.value / list.length);
+});
+
+function getBarHeight(total) {
+  if (!total || total <= 0) return '6px';
+  const pct = Math.max(8, Math.round((Number(total) / maxRevenue.value) * 100));
+  return `${pct}%`;
+}
 
 const kelasBreakdown = computed(() => {
   return kelasList.value.map((k) => {
@@ -862,6 +1055,16 @@ async function loadDashboard() {
               read: waRes.data.summary.read || 0,
               failed: waRes.data.summary.failed || 0,
             };
+          }
+        })
+      );
+    }
+
+    if (showSppDashboard.value) {
+      requests.push(
+        api.get('/spp/dashboard').then((sppRes) => {
+          if (sppRes.data.success && sppRes.data.data) {
+            sppStats.value = sppRes.data.data;
           }
         })
       );

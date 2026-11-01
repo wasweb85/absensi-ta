@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiswaController;
+use App\Http\Controllers\Api\SppController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
 use Illuminate\Support\Facades\Route;
@@ -66,20 +67,42 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/riwayat', [AbsensiController::class, 'riwayat'])->middleware('role:admin,kepala,sekretaris,bendahara,guru');
     });
 
+    // Modul SPP - Supervisi & Laporan (Admin, Bendahara, Sekretaris, Kepala)
+    Route::prefix('spp')->middleware('role:admin,bendahara,sekretaris,kepala')->group(function () {
+        Route::get('/dashboard', [SppController::class, 'dashboard']);
+        Route::get('/rekap-tunggakan', [SppController::class, 'rekapTunggakan']);
+        Route::get('/tagihan', [SppController::class, 'tagihanList']);
+        Route::get('/santri/{id}/tunggakan', [SppController::class, 'tunggakanSantri']);
+        Route::get('/riwayat', [SppController::class, 'riwayatPembayaran']);
+    });
+
+    // Modul SPP - Operasional Kasir & Bayar (Admin, Bendahara, Sekretaris)
+    Route::prefix('spp')->middleware('role:admin,bendahara,sekretaris')->group(function () {
+        Route::post('/generate-tagihan', [SppController::class, 'generateTagihan']);
+        Route::post('/bayar', [SppController::class, 'bayar']);
+        Route::post('/bayar-multi', [SppController::class, 'bayarMulti']);
+        Route::post('/batal-bayar', [SppController::class, 'batalBayar']);
+        Route::post('/input-cepat', [SppController::class, 'inputCepat']);
+    });
+
     // WhatsApp Gateway & Delivery Logs
     Route::prefix('wa')->group(function () {
         // Monitoring Log Pengiriman: Admin, Kepala, Sekretaris, Bendahara
         Route::get('/logs', [WhatsAppController::class, 'logs'])->middleware('role:admin,kepala,sekretaris,bendahara');
 
-        // Pengiriman & Tindakan: Khusus Admin dan Sekretaris
-        Route::middleware('role:admin,sekretaris')->group(function () {
+        // Preview, Kirim Japri/Pengingat SPP, dan Tes Koneksi: Admin, Sekretaris, Bendahara
+        Route::middleware('role:admin,sekretaris,bendahara')->group(function () {
             Route::get('/preview', [WhatsAppController::class, 'preview']);
             Route::post('/send', [WhatsAppController::class, 'send']);
-            Route::post('/broadcast', [WhatsAppController::class, 'broadcast']);
             Route::post('/test', [WhatsAppController::class, 'testKoneksi']);
             Route::post('/logs/retry-failed', [WhatsAppController::class, 'retryFailed']);
             Route::post('/logs/{id}/retry', [WhatsAppController::class, 'retry']);
             Route::delete('/logs/{id}', [WhatsAppController::class, 'deleteLog']);
+        });
+
+        // Broadcast Pengumuman Massal: Khusus Admin dan Sekretaris
+        Route::middleware('role:admin,sekretaris')->group(function () {
+            Route::post('/broadcast', [WhatsAppController::class, 'broadcast']);
         });
     });
 

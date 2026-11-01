@@ -16,6 +16,7 @@ class Kelas extends Model
 
     protected $fillable = [
         'nama_kelas',
+        'nominal_spp',
         'wali_kelas',
         'no_hp_wali',
         'warna_label',
@@ -25,6 +26,7 @@ class Kelas extends Model
     protected function casts(): array
     {
         return [
+            'nominal_spp' => 'decimal:2',
             'urutan' => 'integer',
         ];
     }

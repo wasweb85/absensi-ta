@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWhatsAppMessageJob;
+use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
+use App\Models\TagihanSpp;
 use App\Models\WhatsAppLog;
+use App\Services\SppBillingService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +19,8 @@ use Illuminate\Support\Facades\Http;
 class WhatsAppController extends Controller
 {
     public function __construct(
-        protected WhatsAppService $waService
+        protected WhatsAppService $waService,
+        protected SppBillingService $billingService
     ) {}
 
     /**
@@ -25,6 +29,93 @@ class WhatsAppController extends Controller
     public function preview(Request $request): JsonResponse
     {
         $type = $request->input('type', 'custom');
+        $bulan = (int) $request->input('bulan', Carbon::now('Asia/Jakarta')->month);
+        $tahun = (int) $request->input('tahun', Carbon::now('Asia/Jakarta')->year);
+        $namaBulanTahun = (SppBillingService::NAMA_BULAN[$bulan] ?? "Bulan {$bulan}")." {$tahun}";
+
+        if ($type === 'japri') {
+            $idSiswa = (int) $request->input('id_siswa');
+            $siswa = Siswa::with('kelas')->findOrFail($idSiswa);
+            $tunggakan = $this->billingService->hitungTunggakanSantri($idSiswa);
+
+            if ($tunggakan['total_bulan'] > 1) {
+                $daftarStr = implode(', ', array_column($tunggakan['daftar_tunggakan'], 'label'));
+                $message = $this->waService->buildPesanJapriAkumulasi(
+                    $siswa->nama_lengkap,
+                    $tunggakan['total_tunggakan'],
+                    $tunggakan['total_bulan'],
+                    $daftarStr
+                );
+            } else {
+                $nominal = $tunggakan['total_tunggakan'] > 0 ? $tunggakan['total_tunggakan'] : ($siswa->kelas?->nominal_spp ?: 15000);
+                $message = $this->waService->buildPesanJapriOrtu($siswa->nama_lengkap, (float) $nominal, $namaBulanTahun);
+            }
+
+            $waMeLink = $siswa->no_hp_ortu ? $this->waService->generateWaMeLink($siswa->no_hp_ortu, $message) : null;
+
+            return response()->json([
+                'success' => true,
+                'target_phone' => $siswa->no_hp_ortu,
+                'message' => $message,
+                'wa_me_link' => $waMeLink,
+            ]);
+        }
+
+        if ($type === 'grup') {
+            $idKelas = (int) $request->input('id_kelas');
+            $kelas = Kelas::findOrFail($idKelas);
+            $nominalSpp = (float) ($kelas->nominal_spp ?: 15000);
+            $message = $this->waService->buildPesanGrupJilid($kelas->nama_kelas, $nominalSpp, $namaBulanTahun);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        if ($type === 'wali_jilid') {
+            $idKelas = (int) $request->input('id_kelas');
+            $kelas = Kelas::with(['siswa' => function ($q) {
+                $q->where('status', 'aktif');
+            }, 'waliGuru', 'guru'])->findOrFail($idKelas);
+
+            $totalSantri = $kelas->siswa->count();
+            $menunggakList = [];
+
+            foreach ($kelas->siswa as $santri) {
+                $tagihanUnpaid = TagihanSpp::where('id_siswa', $santri->id)
+                    ->where('bulan', $bulan)
+                    ->where('tahun', $tahun)
+                    ->whereIn('status', ['belum_lunas', 'kurang_bayar'])
+                    ->first();
+
+                if ($tagihanUnpaid) {
+                    $menunggakList[] = [
+                        'nama' => $santri->nama_lengkap,
+                        'nominal' => (float) $tagihanUnpaid->nominal_tagihan,
+                    ];
+                }
+            }
+
+            $waliLabel = Kelas::buildWaliLabel($kelas->waliGuru) ?: ($kelas->wali_kelas ?: ($kelas->guru?->name ?: 'Wali Jilid'));
+
+            $message = $this->waService->buildPesanWaliJilid(
+                $kelas->nama_kelas,
+                $waliLabel,
+                $totalSantri,
+                $menunggakList,
+                $namaBulanTahun
+            );
+
+            $waMeLink = $kelas->no_hp_wali ? $this->waService->generateWaMeLink($kelas->no_hp_wali, $message) : null;
+
+            return response()->json([
+                'success' => true,
+                'target_phone' => $kelas->no_hp_wali,
+                'message' => $message,
+                'wa_me_link' => $waMeLink,
+            ]);
+        }
 
         if ($type === 'presensi') {
             $idSiswa = (int) $request->input('id_siswa');

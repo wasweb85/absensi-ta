@@ -46,4 +46,14 @@ class Siswa extends Model
     {
         return $this->hasMany(ChatbotLog::class, 'id_siswa');
     }
+
+    public function tagihanSpp(): HasMany
+    {
+        return $this->hasMany(TagihanSpp::class, 'id_siswa');
+    }
+
+    public function pembayaranSpp(): HasMany
+    {
+        return $this->hasMany(PembayaranSpp::class, 'id_siswa');
+    }
 }

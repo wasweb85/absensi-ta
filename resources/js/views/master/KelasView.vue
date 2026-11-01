@@ -63,6 +63,7 @@
             <TableRow class="bg-muted/30">
               <TableHead class="w-14 text-center text-[10px] uppercase">No</TableHead>
               <TableHead class="text-[10px] uppercase min-w-[160px]">Tingkatan Jilid</TableHead>
+              <TableHead class="text-[10px] uppercase min-w-[120px]">Tarif SPP</TableHead>
               <TableHead class="text-[10px] uppercase text-center min-w-[110px]">Santri Aktif</TableHead>
               <TableHead class="text-[10px] uppercase min-w-[180px]">Wali Jilid Binaan</TableHead>
               <TableHead class="text-[10px] uppercase min-w-[140px]">No. WhatsApp</TableHead>
@@ -72,7 +73,7 @@
           <TableBody>
             <!-- Loading State -->
             <TableRow v-if="isLoading">
-              <TableCell colspan="6" class="h-36 text-center text-muted-foreground text-xs">
+              <TableCell colspan="7" class="h-36 text-center text-muted-foreground text-xs">
                 <div class="flex flex-col items-center justify-center gap-2">
                   <LoaderCircle class="size-6 animate-spin text-primary" />
                   <span>Memuat data jilid...</span>
@@ -82,7 +83,7 @@
 
             <!-- Empty State -->
             <TableRow v-else-if="filteredKelasList.length === 0">
-              <TableCell colspan="6" class="h-32 text-center text-muted-foreground text-xs">
+              <TableCell colspan="7" class="h-32 text-center text-muted-foreground text-xs">
                 <div class="flex flex-col items-center justify-center gap-1.5 py-4">
                   <Layers class="size-8 text-muted-foreground/40" />
                   <p class="font-medium text-foreground">
@@ -124,6 +125,13 @@
                     </p>
                   </div>
                 </div>
+              </TableCell>
+
+              <!-- Tarif SPP -->
+              <TableCell class="whitespace-nowrap">
+                <span class="font-semibold text-emerald-600 dark:text-emerald-400 text-xs font-mono">
+                  Rp {{ formatRupiah(k.nominal_spp ?? 15000) }}
+                </span>
               </TableCell>
 
               <!-- Jumlah Santri -->
@@ -217,16 +225,32 @@
             />
           </div>
 
-          <div class="space-y-1.5">
-            <Label for="urutanKelas" class="text-xs font-medium">Nomor Urutan</Label>
-            <Input
-              id="urutanKelas"
-              v-model.number="form.urutan"
-              type="number"
-              min="1"
-              placeholder="1"
-              class="h-9 text-xs"
-            />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <Label for="nominalSpp" class="text-xs font-medium">Tarif SPP per Bulan (Rp) *</Label>
+              <Input
+                id="nominalSpp"
+                v-model.number="form.nominal_spp"
+                type="number"
+                min="0"
+                step="500"
+                required
+                placeholder="15000"
+                class="h-9 font-mono text-xs"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="urutanKelas" class="text-xs font-medium">Nomor Urutan</Label>
+              <Input
+                id="urutanKelas"
+                v-model.number="form.urutan"
+                type="number"
+                min="1"
+                placeholder="1"
+                class="h-9 text-xs"
+              />
+            </div>
           </div>
 
           <!-- Info Wali Jilid (Otomatis dari Data Guru) -->
@@ -349,11 +373,17 @@ const presetColors = ['#f44336', '#e91e63', '#f2a93b', '#2196f3', '#4caf50', '#9
 
 const form = ref({
   nama_kelas: '',
+  nominal_spp: 15000,
   no_hp_wali: '',
   warna_label: '#059669',
   urutan: 1,
 });
 const currentWaliLabel = ref('');
+
+function formatRupiah(val) {
+  if (val === null || val === undefined || val === '') return '0';
+  return Number(val).toLocaleString('id-ID');
+}
 
 /**
  * Membersihkan nama jilid dari teks nama wali di dalam tanda kurung jika tersimpan lama
@@ -400,6 +430,7 @@ function openAddModal() {
   editingId.value = null;
   form.value = {
     nama_kelas: '',
+    nominal_spp: 15000,
     no_hp_wali: '',
     warna_label: '#059669',
     urutan: kelasList.value.length + 1,
@@ -413,6 +444,7 @@ function openEditModal(k) {
   editingId.value = k.id;
   form.value = {
     nama_kelas: getCleanNamaKelas(k.nama_kelas),
+    nominal_spp: k.nominal_spp !== null && k.nominal_spp !== undefined ? Number(k.nominal_spp) : 15000,
     no_hp_wali: k.no_hp_wali || '',
     warna_label: k.warna_label || '#059669',
     urutan: k.urutan || 1,
