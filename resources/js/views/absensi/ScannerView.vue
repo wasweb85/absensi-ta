@@ -275,14 +275,6 @@
           </CardContent>
         </Card>
 
-        <!-- Standby State Placeholder when no recent result -->
-        <Card v-else class="border-dashed">
-          <CardContent class="p-8 text-center text-muted-foreground">
-            <ScanLine class="size-8 mx-auto mb-2 text-muted-foreground/60" />
-            <p class="text-xs font-medium">Arahkan kartu QR code santri ke kamera untuk memulai...</p>
-          </CardContent>
-        </Card>
-
         <!-- Recent Scans History in this Session -->
         <Card>
           <CardHeader class="pb-3 border-b">
@@ -393,33 +385,91 @@ const configData = ref({
 
 let html5QrCode = null;
 
-// Audio Chime Synthesis using Web Audio API
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  return audioCtx;
+}
+
+function unlockAudioOnGesture() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+}
+
+// Audio Chime Synthesis using Web Audio API (Suara "TING!" lonceng jernih)
 const playSound = (isSuccess) => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => playSound(isSuccess)).catch(() => {});
+      return;
+    }
+
+    const now = ctx.currentTime;
 
     if (isSuccess) {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
+      // Suara "TING!" lonceng jernih bernada tinggi (C6 & C7 harmonik lonceng)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1046.5, now); // C6 (1046.5 Hz)
+      osc1.frequency.exponentialRampToValueAtTime(1046.5, now + 0.35);
+
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(2093.0, now); // C7 (oktaf atas lonceng)
+      osc2.frequency.exponentialRampToValueAtTime(2093.0, now + 0.25);
+
+      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+      gain2.gain.setValueAtTime(0.15, now);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+      osc1.connect(gain1);
+      osc2.connect(gain2);
+      gain1.connect(ctx.destination);
+      gain2.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.35);
+      osc2.stop(now + 0.25);
     } else {
+      // Suara peringatan scan gagal / ditolak (buzz tone)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
     }
   } catch (e) {
-    //
+    console.warn('Audio playback error:', e);
   }
 };
 
@@ -801,11 +851,15 @@ const loadConfig = async () => {
 };
 
 onMounted(() => {
+  window.addEventListener('click', unlockAudioOnGesture, { once: true });
+  window.addEventListener('touchstart', unlockAudioOnGesture, { once: true });
   loadConfig();
   startCamera();
 });
 
 onUnmounted(() => {
+  window.removeEventListener('click', unlockAudioOnGesture);
+  window.removeEventListener('touchstart', unlockAudioOnGesture);
   stopCamera();
 });
 </script>

@@ -8,7 +8,7 @@
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 sm:gap-2">
             <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
-              Monitoring Presensi
+              Monitoring
             </h2>
           </div>
 
