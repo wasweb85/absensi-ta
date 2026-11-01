@@ -211,17 +211,19 @@
                   class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer disabled:opacity-30"
                 />
               </td>
-              <td class="p-3">
+              <td class="p-3 max-w-[140px] sm:max-w-[200px] md:max-w-xs">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <p class="font-bold text-zinc-900 dark:text-white">{{ item.nama_lengkap }}</p>
+                  <p class="font-bold text-zinc-900 dark:text-white line-clamp-2 leading-snug break-words" :title="item.nama_lengkap">
+                    {{ item.nama_lengkap }}
+                  </p>
                   <span
                     v-if="item.id_siswa === targetSiswaId"
-                    class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shadow-xs"
+                    class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shadow-xs shrink-0"
                   >
-                    Target Pembayaran
+                    Target
                   </span>
                 </div>
-                <p class="text-[11px] font-mono text-zinc-400">NISN: {{ item.nisn }} &bull; {{ item.nama_kelas }}</p>
+                <p class="text-[11px] font-mono text-zinc-400 truncate">NISN: {{ item.nisn }} &bull; {{ item.nama_kelas }}</p>
               </td>
               <td class="p-3">
                 <span

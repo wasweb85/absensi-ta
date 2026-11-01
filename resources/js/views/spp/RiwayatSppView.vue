@@ -195,9 +195,11 @@
               <td class="p-3 print:p-1.5 text-zinc-500 print:text-black whitespace-nowrap">
                 {{ formatTanggal(p.tanggal_bayar) }}
               </td>
-              <td class="p-3 print:p-1.5">
-                <p class="font-bold text-zinc-900 dark:text-white print:text-black">{{ p.siswa?.nama_lengkap || '-' }}</p>
-                <p class="text-[10px] text-zinc-400 print:text-zinc-600 font-mono">NISN: {{ p.siswa?.nisn || '-' }}</p>
+              <td class="p-3 print:p-1.5 max-w-[140px] sm:max-w-[200px] md:max-w-xs">
+                <p class="font-bold text-zinc-900 dark:text-white print:text-black line-clamp-2 leading-snug break-words" :title="p.siswa?.nama_lengkap">
+                  {{ p.siswa?.nama_lengkap || '-' }}
+                </p>
+                <p class="text-[10px] text-zinc-400 print:text-zinc-600 font-mono truncate">NISN: {{ p.siswa?.nisn || '-' }}</p>
               </td>
               <td class="p-3 print:p-1.5 font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">
                 {{ p.siswa?.kelas?.nama_kelas || '-' }}

@@ -1,42 +1,20 @@
 <template>
   <div class="space-y-6 animate-fadeIn">
     
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl sm:rounded-2xl bg-card border border-border shadow-xs print:hidden">
-      <div>
-        <h2 class="text-base sm:text-xl font-bold text-foreground flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <CreditCard class="size-4" />
-          </div>
-          <span>Data Tagihan &amp; Tunggakan SPP</span>
-        </h2>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          Monitoring status kewajiban SPP seluruh santri per periode dan rekapitulasi akumulasi tunggakan semester
-        </p>
-      </div>
-
-      <!-- Actions: Sinkronkan Semester & Generate Tagihan -->
-      <div v-if="canManageSpp" class="flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="isSyncingSemester"
-          class="h-8 sm:h-9 text-xs gap-1.5 border-emerald-300 dark:border-emerald-700/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-          title="Sinkronkan seluruh tagihan santri aktif untuk tahun ajaran aktif (Juli 2026 - Juni 2027)"
-          @click="executeSinkronkanSemester"
-        >
-          <RefreshCw :class="['size-3.5', isSyncingSemester ? 'animate-spin' : '']" />
-          <span>{{ isSyncingSemester ? 'Menyinkronkan...' : 'Sinkronkan Tahun Ajaran' }}</span>
-        </Button>
-
-        <Button
-          size="sm"
-          class="h-8 sm:h-9 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-          @click="showGenerateModal = true"
-        >
-          <Zap class="size-3.5" />
-          <span>Generate Tagihan Bulanan</span>
-        </Button>
+    <!-- Header: Proporsional & Bersih (Tombol Sinkronkan & Generate Dihapus, Otomatis Tersinkron) -->
+    <div class="flex items-center justify-between gap-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card border border-border shadow-xs print:hidden">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <CreditCard class="size-4" />
+        </div>
+        <div>
+          <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-foreground">
+            Data Tagihan &amp; Tunggakan SPP
+          </h2>
+          <p class="text-[11px] sm:text-xs text-muted-foreground">
+            Monitoring kewajiban &amp; rekapitulasi tunggakan semester santri
+          </p>
+        </div>
       </div>
     </div>
 
@@ -78,47 +56,65 @@
 
     <!-- TAB 1: REKAP SANTRI MENUNGGAK (AKUMULASI SEMESTER BERJALAN) -->
     <div v-if="activeTab === 'rekap'" class="space-y-4 print:hidden">
-      <!-- 3 Summary Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <!-- 3 Summary Cards: Proporsional Grid Kanan-Kiri di Mobile & Desktop -->
+      <div class="grid grid-cols-3 gap-1.5 sm:gap-3">
         <!-- Card 1: Total Santri Menunggak -->
-        <Card class="p-3.5 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-            <Users class="size-5" />
+        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+              Santri Menunggak
+            </p>
+            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <Users class="size-3 sm:size-3.5" />
+            </div>
           </div>
-          <div class="min-w-0">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Santri Menunggak</p>
-            <h4 class="text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
-              {{ rekapSummary.total_santri_menunggak }} Santri
+          <div class="min-w-0 mt-1 sm:mt-1.5">
+            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-rose-600 dark:text-rose-400 truncate">
+              {{ rekapSummary.total_santri_menunggak }} <span class="text-[10px] sm:text-xs font-semibold">Santri</span>
             </h4>
-            <p class="text-[10px] text-muted-foreground mt-0.5">Memiliki sisa tagihan aktif</p>
+            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
+              Memiliki sisa tagihan aktif
+            </p>
           </div>
         </Card>
 
-        <!-- Card 2: Total Nominal Tunggakan (Juli s/d Cut-off) -->
-        <Card class="p-3.5 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-            <Wallet class="size-5" />
+        <!-- Card 2: Total Nominal Tunggakan Riil -->
+        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+              Total Tunggakan Riil
+            </p>
+            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Wallet class="size-3 sm:size-3.5" />
+            </div>
           </div>
-          <div class="min-w-0">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Tunggakan Riil</p>
-            <h4 class="text-lg sm:text-xl font-bold text-foreground mt-0.5">
+          <div class="min-w-0 mt-1 sm:mt-1.5">
+            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-foreground truncate">
               Rp {{ formatRupiah(rekapSummary.total_nominal_tunggakan) }}
             </h4>
-            <p class="text-[10px] text-muted-foreground mt-0.5">Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}</p>
+            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
+              Periode Juli 2026 s/d {{ rekapSummary.nama_bulan_cut_off }} {{ rekapSummary.cut_off_tahun }}
+            </p>
           </div>
         </Card>
 
-        <!-- Card 3: Rata-rata Bulan Tunggakan -->
-        <Card class="p-3.5 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Clock class="size-5" />
+        <!-- Card 3: Rata-rata Durasi -->
+        <Card class="p-2 sm:p-3.5 flex flex-col justify-between overflow-hidden">
+          <div class="flex items-center justify-between gap-1">
+            <p class="text-[9px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+              Rata-rata Durasi
+            </p>
+            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Clock class="size-3.5 sm:size-4" />
+            </div>
           </div>
-          <div class="min-w-0">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Rata-rata Durasi</p>
-            <h4 class="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-              {{ rekapSummary.rata_rata_bulan }} Bulan
+          <div class="min-w-0 mt-1 sm:mt-1.5">
+            <h4 class="text-xs sm:text-lg md:text-xl font-bold text-emerald-600 dark:text-emerald-400 truncate">
+              {{ rekapSummary.rata_rata_bulan }} <span class="text-[10px] sm:text-xs font-semibold">Bulan</span>
             </h4>
-            <p class="text-[10px] text-muted-foreground mt-0.5">Rata-rata bulan nunggak per santri</p>
+            <p class="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 truncate leading-tight">
+              Rata-rata bulan nunggak per santri
+            </p>
           </div>
         </Card>
       </div>
@@ -251,21 +247,23 @@
               >
                 <TableCell class="text-center font-mono text-xs text-muted-foreground">{{ idx + 1 }}</TableCell>
 
-                <!-- Santri -->
-                <TableCell>
-                  <div class="font-medium text-foreground">{{ s.nama_lengkap }}</div>
-                  <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px] mt-0.5">
+                <!-- Santri (Nama panjang otomatis wrap ke 2 baris, tidak memanjang ke samping) -->
+                <TableCell class="max-w-[130px] sm:max-w-[180px] md:max-w-xs">
+                  <div class="font-medium text-foreground line-clamp-2 leading-snug break-words" :title="s.nama_lengkap">
+                    {{ s.nama_lengkap }}
+                  </div>
+                  <div class="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px] mt-0.5 truncate">
                     <span>NISN: {{ s.nisn }}</span>
                     <span v-if="s.no_hp_ortu">&bull;</span>
                     <a
                       v-if="s.no_hp_ortu"
                       :href="'https://wa.me/' + cleanPhone(s.no_hp_ortu)"
                       target="_blank"
-                      class="text-emerald-600 hover:underline inline-flex items-center gap-0.5"
+                      class="text-emerald-600 hover:underline inline-flex items-center gap-0.5 truncate"
                       title="Buka WA Ortu"
                     >
-                      <span>{{ s.no_hp_ortu }}</span>
-                      <ExternalLink class="size-3" />
+                      <span class="truncate">{{ s.no_hp_ortu }}</span>
+                      <ExternalLink class="size-3 shrink-0" />
                     </a>
                   </div>
                 </TableCell>
@@ -458,9 +456,11 @@
                 <TableCell class="text-center font-mono text-xs text-muted-foreground">
                   {{ (currentPage - 1) * 50 + (index + 1) }}
                 </TableCell>
-                <TableCell class="font-medium text-foreground">
-                  <div>{{ t.siswa?.nama_lengkap || '-' }}</div>
-                  <div class="text-[11px] text-muted-foreground font-mono mt-0.5">NISN: {{ t.siswa?.nisn || '-' }}</div>
+                <TableCell class="font-medium text-foreground max-w-[130px] sm:max-w-[180px] md:max-w-xs">
+                  <div class="line-clamp-2 leading-snug break-words" :title="t.siswa?.nama_lengkap">
+                    {{ t.siswa?.nama_lengkap || '-' }}
+                  </div>
+                  <div class="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">NISN: {{ t.siswa?.nisn || '-' }}</div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" class="font-medium text-[11px]">
@@ -537,72 +537,7 @@
       </Card>
     </div>
 
-    <!-- Modal Generate Tagihan Massal -->
-    <div
-      v-if="showGenerateModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs print:hidden"
-    >
-      <div class="w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl animate-slideUp">
-        <h3 class="text-base font-bold text-zinc-900 dark:text-white mb-2">Generate Tagihan Bulanan</h3>
-        <p class="text-xs text-zinc-500 mb-4">
-          Sistem akan membuat tagihan SPP untuk seluruh santri yang berstatus aktif berdasarkan tarif jilid masing-masing.
-        </p>
 
-        <form @submit.prevent="executeGenerate" class="space-y-3.5 text-xs">
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Periode Generate *</label>
-            <select
-              v-model="genForm.mode"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-            >
-              <option value="single">Bulan Tertentu</option>
-              <option value="semester_1">Semester Ganjil (Juli - Desember)</option>
-              <option value="semester_2">Semester Genap (Januari - Juni)</option>
-              <option value="full_year">1 Tahun Ajaran Penuh (12 Bulan)</option>
-            </select>
-          </div>
-
-          <div v-if="genForm.mode === 'single'">
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Pilih Bulan *</label>
-            <select
-              v-model.number="genForm.bulan"
-              required
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-            >
-              <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block font-bold text-zinc-600 dark:text-zinc-400 mb-1">Pilih Tahun *</label>
-            <input
-              v-model.number="genForm.tahun"
-              type="number"
-              required
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs"
-            />
-          </div>
-
-          <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <button
-              type="button"
-              @click="showGenerateModal = false"
-              class="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              :disabled="isGenerating"
-              class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5"
-            >
-              <span v-if="isGenerating" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isGenerating ? 'Memproses...' : 'Mulai Generate' }}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- Modal Pop-up Japri WhatsApp Santri Menunggak -->
     <div
@@ -1092,7 +1027,6 @@ import {
   CheckCircle2,
   Check,
   RefreshCw,
-  Zap,
   CreditCard,
   Wallet,
   Users,
@@ -1146,14 +1080,18 @@ const rekapSummary = ref({
   nama_bulan_cut_off: '',
 });
 
-const showGenerateModal = ref(false);
-const isGenerating = ref(false);
-const isSyncingSemester = ref(false);
-const genForm = ref({
-  mode: 'single',
-  bulan: new Date().getMonth() + 1,
-  tahun: new Date().getFullYear(),
-});
+const syncTahunAjaranOtomatis = async () => {
+  try {
+    await api.post('/spp/sinkronkan-semester', {
+      from_bulan: 7,
+      from_tahun: 2026,
+      to_bulan: 6,
+      to_tahun: 2027,
+    });
+  } catch (e) {
+    // Background sync silent
+  }
+};
 
 const getCleanNamaKelas = (nama) => {
   if (!nama) return '';
@@ -1181,29 +1119,6 @@ const formatTanggalRingkas = (str) => {
   const d = new Date(cleanStr);
   if (isNaN(d.getTime())) return str;
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-};
-
-const executeSinkronkanSemester = async () => {
-  isSyncingSemester.value = true;
-  try {
-    const res = await api.post('/spp/sinkronkan-semester', {
-      from_bulan: 7,
-      from_tahun: 2026,
-      to_bulan: 6,
-      to_tahun: 2027,
-    });
-    if (res.data.success) {
-      toast.success(res.data.message || 'Sinkronisasi tagihan tahun ajaran berhasil!');
-      loadRekapTunggakan();
-      loadTagihan(currentPage.value);
-    } else {
-      toast.error(res.data.message || 'Gagal menyinkronkan tagihan tahun ajaran.');
-    }
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyinkronkan tagihan.');
-  } finally {
-    isSyncingSemester.value = false;
-  }
 };
 
 const bulanList = {
@@ -1582,27 +1497,10 @@ const copyJapriText = () => {
   toast.success('Pesan pengingat disalin ke clipboard!');
 };
 
-const executeGenerate = async () => {
-  isGenerating.value = true;
-  try {
-    const res = await api.post('/spp/generate-tagihan', genForm.value);
-    if (res.data.success) {
-      toast.success(res.data.message);
-      showGenerateModal.value = false;
-      filters.value.bulan = genForm.value.bulan;
-      filters.value.tahun = genForm.value.tahun;
-      loadTagihan(1);
-      loadRekapTunggakan();
-    }
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Gagal generate tagihan.');
-  } finally {
-    isGenerating.value = false;
-  }
-};
-
 onMounted(async () => {
   loadKelas();
+  // Otomatis sinkronkan dengan tahun ajaran aktif secara silent
+  await syncTahunAjaranOtomatis();
   loadRekapTunggakan();
   loadTagihan(1);
 
