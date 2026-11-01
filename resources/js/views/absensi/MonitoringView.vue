@@ -10,10 +10,6 @@
             <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
               Monitoring Presensi
             </h2>
-            <Badge variant="outline" class="font-normal text-[11px] sm:text-xs text-muted-foreground gap-1.5 px-2 py-0.5">
-              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Live &bull; {{ filteredStudents.length }} Santri</span>
-            </Badge>
           </div>
 
           <!-- Tombol Buka Scanner (Sejajar di Kanan Judul pada Mobile & Desktop) -->
