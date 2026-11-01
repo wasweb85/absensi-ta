@@ -78,12 +78,12 @@ class WhatsAppService
     public function buildPesanJapriOrtu(string $namaSantri, float $nominalTunggakan, string $bulanTahun): string
     {
         $nominalFormat = number_format($nominalTunggakan, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
-            ."Kami dari *{$namaInstansi}* menginformasikan mengenai kewajiban pembayaran SPP bulan *{$bulanTahun}* sebesar *Rp {$nominalFormat}* yang belum terselesaikan.\n\n"
-            ."Mohon agar dapat segera melakukan pembayaran melalui kasir sekolah atau transfer. Apabila Bapak/Ibu telah melakukan pembayaran, mohon abaikan pesan ini dan kirimkan bukti pembayarannya.\n\n"
+            ."Kami dari pihak *{$namaInstansi}* menginformasikan mengenai kewajiban pembayaran SPP bulan *{$bulanTahun}* sebesar *Rp {$nominalFormat}* yang belum terselesaikan.\n\n"
+            ."Mohon agar dapat segera melakukan pembayaran melalui Bendahara TPQ atau transfer. Apabila Bapak/Ibu telah menyelesaikan pembayaran, mohon abaikan pesan ini dan konfirmasikan bukti pembayarannya.\n\n"
             ."Jazakumullah khairan katsiran atas perhatian dan kerjasamanya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }
@@ -94,13 +94,13 @@ class WhatsAppService
     public function buildPesanJapriAkumulasi(string $namaSantri, float $totalNominal, int $totalBulan, string $daftarBulanStr): string
     {
         $nominalFormat = number_format($totalNominal, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
-            ."Kami dari *{$namaInstansi}* menginformasikan rekapitulasi kewajiban SPP ananda yang saat ini masih tercatat belum lunas sebanyak *{$totalBulan} bulan* ({$daftarBulanStr}) dengan total tunggakan sebesar *Rp {$nominalFormat}*.\n\n"
-            ."Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini demi kelancaran kegiatan belajar mengajar ananda.\n\n"
-            ."Jazakumullah khairan katsiran.\n\n"
+            ."Kami dari pihak *{$namaInstansi}* menginformasikan rekapitulasi kewajiban SPP ananda yang saat ini masih tercatat belum lunas sebanyak *{$totalBulan} bulan* ({$daftarBulanStr}) dengan total tunggakan sebesar *Rp {$nominalFormat}*.\n\n"
+            ."Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara TPQ demi kelancaran kegiatan belajar mengajar ananda.\n\n"
+            ."Jazakumullah khairan katsiran atas perhatian dan dukungannya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }
 
@@ -110,12 +110,12 @@ class WhatsAppService
     public function buildPesanGrupJilid(string $namaKelas, float $nominalSpp, string $bulanTahun, string $jatuhTempo = '10'): string
     {
         $nominalFormat = number_format($nominalSpp, 0, ',', '.');
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Pengumuman untuk seluruh Wali Santri *{$namaKelas}* - *{$namaInstansi}*:\n\n"
             ."Mengingatkan kembali bahwa masa pembayaran SPP untuk bulan *{$bulanTahun}* (Nominal: *Rp {$nominalFormat}*) telah dibuka. Batas akhir pembayaran jatuh pada tanggal *{$jatuhTempo}*.\n\n"
-            ."Pembayaran dapat dilakukan langsung ke bendahara atau melalui transfer.\n\n"
+            ."Pembayaran dapat dilakukan langsung melalui Bendahara TPQ atau melalui transfer.\n\n"
             ."Terima kasih atas perhatian dan dukungannya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }
@@ -125,7 +125,7 @@ class WhatsAppService
      */
     public function buildPesanWaliJilid(string $namaKelas, string $waliKelas, int $totalSantri, array $santriMenunggakList, string $bulanTahun): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im");
         $totalMenunggak = count($santriMenunggakList);
         $totalLunas = max(0, $totalSantri - $totalMenunggak);
         $persentase = ($totalSantri > 0) ? round(($totalLunas / $totalSantri) * 100, 1) : 0;

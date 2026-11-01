@@ -196,7 +196,7 @@ class DatabaseSeeder extends Seeder
 
         // 4. Seed Pengaturan Default
         $settings = [
-            'nama_instansi' => 'Sistem Terpadu Presensi & Notifikasi WhatsApp Santri',
+            'nama_instansi' => "TPQ Nurul Mun'im",
             'jam_masuk' => '07:00',
             'jam_terlambat' => '07:15',
             'jam_pulang' => '12:00',

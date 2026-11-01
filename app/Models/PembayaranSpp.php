@@ -34,6 +34,11 @@ class PembayaranSpp extends Model
         ];
     }
 
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->setTimezone(new \DateTimeZone('Asia/Jakarta'))->format('Y-m-d H:i:s');
+    }
+
     public function tagihan(): BelongsTo
     {
         return $this->belongsTo(TagihanSpp::class, 'id_tagihan');

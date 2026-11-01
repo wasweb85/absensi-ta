@@ -811,9 +811,9 @@
                 <p class="font-semibold">(............................)</p>
               </div>
               <div>
-                <p class="text-zinc-400">Petugas Kasir,</p>
+                <p class="text-zinc-400">Bendahara,</p>
                 <div class="h-10"></div>
-                <p class="font-bold underline text-emerald-600">{{ bayarSuccessResult.petugas || 'Petugas Kasir' }}</p>
+                <p class="font-bold underline text-emerald-600">{{ bayarSuccessResult.petugas || 'Bendahara' }}</p>
               </div>
             </div>
           </div>
@@ -1415,11 +1415,11 @@ Metode Bayar : ${k.metode}
 Status       : LUNAS
 ---------------------------------------
 *TOTAL DIBAYAR: Rp ${formatRupiah(k.total_bayar)}*
-Petugas      : ${k.petugas || 'Admin/Bendahara'}
+Petugas      : ${k.petugas || 'Bendahara'}
 ${k.catatan ? 'Catatan: ' + k.catatan + '\n' : ''}
 Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan berkah bagi ananda tercinta.
 ---------------------------------------
-*TPQ Baitul 'Izzah*`;
+*TPQ Nurul Mun'im*`;
 
   const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');

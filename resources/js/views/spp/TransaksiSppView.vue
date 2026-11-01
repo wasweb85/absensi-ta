@@ -8,7 +8,7 @@
           <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
             <BaseIcon name="kasir" class="w-5 h-5" />
           </div>
-          <span>Kasir & Pembayaran SPP Santri</span>
+          <span>Loket Pembayaran SPP Santri</span>
         </h2>
         <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           Proses penerimaan pembayaran SPP santri, cetak bukti kuitansi, dan pembaruan status lunas otomatis
@@ -263,9 +263,9 @@
               <p class="font-semibold">(............................)</p>
             </div>
             <div>
-              <p class="text-zinc-400">Petugas Kasir,</p>
+              <p class="text-zinc-400">Bendahara,</p>
               <div class="h-12"></div>
-              <p class="font-bold underline">Ustadz / Ustadzah</p>
+              <p class="font-bold underline text-emerald-600">Ust. Bendahara</p>
             </div>
           </div>
         </div>

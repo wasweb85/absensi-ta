@@ -260,13 +260,13 @@
             </div>
           </div>
 
-          <!-- TTD Kasir -->
+          <!-- TTD Bendahara -->
           <div class="pt-2 flex justify-between text-[10px] text-zinc-500">
             <div>
               <p>Status: <span class="font-bold text-emerald-600 uppercase">{{ activeKuitansi.status_transaksi }}</span></p>
             </div>
             <div class="text-right">
-              <p>Petugas Kasir,</p>
+              <p>Bendahara,</p>
               <p class="font-bold mt-6 text-zinc-900 dark:text-white">{{ activeKuitansi.petugas?.name || 'Ust. Bendahara' }}</p>
             </div>
           </div>
@@ -391,14 +391,16 @@ function formatRupiah(val) {
 
 function formatTanggal(str) {
   if (!str) return '-';
-  const d = new Date(str);
+  const cleanStr = String(str).replace(' ', 'T').replace('Z', '');
+  const d = new Date(cleanStr);
+  if (isNaN(d.getTime())) return str;
   return d.toLocaleDateString('id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  }).replace(/\./g, ':');
 }
 
 function getNamaBulan(b) {

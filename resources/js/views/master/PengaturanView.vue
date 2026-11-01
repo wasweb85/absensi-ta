@@ -612,7 +612,7 @@ const isScriptCopied = ref(false);
 const logoFileInputRef = ref(null);
 
 const settings = ref({
-  nama_instansi: "Sistem Terpadu Absensi Santri",
+  nama_instansi: "TPQ Nurul Mun'im",
   tahun_ajaran_aktif: "2026/2027",
   alamat_instansi: "",
   kontak_instansi: "",
