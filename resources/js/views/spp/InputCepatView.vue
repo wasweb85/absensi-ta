@@ -286,174 +286,193 @@
       </div>
     </div>
 
-    <!-- Modal Pop-up Kuitansi Resmi Pembayaran SPP (Printable - Menggantikan Bug Raw JSON pada Gambar 2) -->
+    <!-- Modal Pop-up Kuitansi Resmi Pembayaran SPP (Responsive Mobile & Sticky Action Buttons) -->
     <div
       v-if="showResultModal && resultKuitansiList.length > 0"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:static print:p-0 print:bg-white print:backdrop-blur-none"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/70 backdrop-blur-sm animate-fadeIn print:static print:p-0 print:bg-white print:backdrop-blur-none"
     >
-      <div class="w-full max-w-xl rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-5 sm:p-6 space-y-4 animate-slideUp text-xs print:border-none print:shadow-none print:p-0 print:max-w-none">
+      <div class="w-full max-w-lg max-h-[92vh] flex flex-col rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-3.5 sm:p-5 text-xs animate-slideUp print:border-none print:shadow-none print:p-0 print:max-w-none print:max-h-none">
         
-        <!-- Header Info & Multi-Kuitansi Selector (Hidden saat cetak) -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800 print:hidden">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-              <BaseIcon name="check-circle" class="w-5 h-5 text-emerald-600" />
+        <!-- Header Info & Multi-Kuitansi Selector (Fixed Top, Hidden saat cetak) -->
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-zinc-100 dark:border-zinc-800 shrink-0 print:hidden">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <BaseIcon name="check-circle" class="w-4 h-4 text-emerald-600" />
             </div>
             <div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-white">Pembayaran Berhasil Diproses!</h3>
-              <p class="text-[11px] text-zinc-500">{{ resultMessage }}</p>
+              <h3 class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-tight">Bukti Pembayaran SPP</h3>
+              <p class="text-[10px] text-zinc-400">{{ resultMessage }}</p>
             </div>
           </div>
 
-          <!-- Selector jika ada lebih dari 1 santri yang dibayar sekaligus -->
-          <div v-if="resultKuitansiList.length > 1" class="flex items-center gap-1">
-            <span class="text-[11px] text-zinc-400 font-medium mr-1">Kuitansi:</span>
+          <div class="flex items-center gap-1.5">
+            <!-- Selector jika ada lebih dari 1 santri yang dibayar sekaligus -->
+            <div v-if="resultKuitansiList.length > 1" class="flex items-center gap-1 mr-1">
+              <button
+                v-for="(kw, idx) in resultKuitansiList"
+                :key="idx"
+                @click="activeKuitansiIndex = idx"
+                :class="[
+                  activeKuitansiIndex === idx
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                ]"
+                class="w-6 h-6 rounded-md text-[11px] font-mono transition cursor-pointer flex items-center justify-center"
+                :title="kw.nama_santri"
+              >
+                {{ idx + 1 }}
+              </button>
+            </div>
+
+            <!-- Tombol Close (X) di Pojok Kanan Atas Modal -->
             <button
-              v-for="(kw, idx) in resultKuitansiList"
-              :key="idx"
-              @click="activeKuitansiIndex = idx"
-              :class="[
-                activeKuitansiIndex === idx
-                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              ]"
-              class="w-7 h-7 rounded-lg text-xs font-mono transition cursor-pointer flex items-center justify-center"
-              :title="kw.nama_santri"
+              type="button"
+              @click="closeResultModal"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title="Tutup Modal"
             >
-              {{ idx + 1 }}
+              <BaseIcon name="x-circle" class="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <!-- Kuitansi Printable Area (Sesuai Standar Resmi Kop Yayasan & TPQ Nurul Mun'im) -->
-        <div
-          v-if="activeKuitansi"
-          id="inputCepatKuitansiArea"
-          class="relative border border-zinc-300 dark:border-zinc-700 rounded-2xl p-5 sm:p-6 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-3.5 print:border print:border-black print:text-black print:bg-white print:p-5"
-        >
-          <!-- Badge Cap Sah Lunas saat Dicetak -->
-          <div class="absolute right-4 top-24 pointer-events-none border-2 border-emerald-700 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded rotate-[-8deg] uppercase tracking-widest hidden print:block opacity-80">
-            LUNAS &bull; SAH
-          </div>
+        <!-- Kuitansi Printable Area (Scrollable di layar kecil agar tidak terpotong) -->
+        <div class="flex-1 overflow-y-auto my-2 pr-0.5 print:overflow-visible print:my-0 print:pr-0">
+          <div
+            v-if="activeKuitansi"
+            id="inputCepatKuitansiArea"
+            class="relative border border-zinc-200 dark:border-zinc-700 rounded-xl sm:rounded-2xl p-3 sm:p-5 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-2.5 sm:space-y-3.5 print:border print:border-black print:text-black print:bg-white print:p-5"
+          >
+            <!-- Badge Cap Sah Lunas saat Dicetak -->
+            <div class="absolute right-4 top-20 pointer-events-none border-2 border-emerald-700 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded rotate-[-8deg] uppercase tracking-widest hidden print:block opacity-80">
+              LUNAS &bull; SAH
+            </div>
 
-          <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
-          <div class="text-black dark:text-white print:text-black pb-1">
-            <div class="flex items-center justify-between gap-3 pb-1">
-              <!-- Logo Lembaga di Kiri -->
-              <div class="w-16 sm:w-20 shrink-0 flex items-center justify-center">
-                <img
-                  :src="appLogo || '/LOGOTPQ.png'"
-                  alt="Logo Lembaga"
-                  class="max-h-16 max-w-20 object-contain"
-                />
+            <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
+            <div class="text-black dark:text-white print:text-black pb-1">
+              <div class="flex items-center justify-between gap-2 pb-1">
+                <!-- Logo Lembaga di Kiri -->
+                <div class="w-12 h-12 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+                  <img
+                    :src="appLogo || '/LOGOTPQ.png'"
+                    alt="Logo Lembaga"
+                    class="max-h-12 max-w-12 sm:max-h-16 sm:max-w-16 object-contain"
+                  />
+                </div>
+
+                <!-- Teks Kop Surat di Tengah -->
+                <div class="flex-1 text-center px-0.5 min-w-0">
+                  <h1 class="text-[13px] sm:text-base font-serif font-bold text-[#7b95c0] tracking-wide uppercase leading-tight">
+                    YAYASAN NURUL JADID
+                  </h1>
+                  <h2 class="text-[10px] sm:text-xs font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-wide uppercase leading-tight mt-0.5">
+                    TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
+                  </h2>
+                  <h3 class="text-[9px] sm:text-[10px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-wider uppercase leading-tight mt-0.5">
+                    KARANGANYAR PAITON PROBOLINGGO
+                  </h3>
+                  <p class="text-[7.5px] sm:text-[8.5px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+                    Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291
+                  </p>
+                </div>
+
+                <!-- Spacer Kanan Penyeimbang -->
+                <div class="w-12 sm:w-16 shrink-0"></div>
               </div>
 
-              <!-- Teks Kop Surat di Tengah -->
-              <div class="flex-1 text-center px-1">
-                <h1 class="text-base sm:text-lg font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
-                  YAYASAN NURUL JADID
-                </h1>
-                <h2 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
-                  TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
-                </h2>
-                <h3 class="text-[10px] sm:text-[11px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
-                  KARANGANYAR PAITON PROBOLINGGO
-                </h3>
-                <p class="text-[8px] sm:text-[9px] font-serif italic text-[#cca843] leading-tight mt-0.5">
-                  Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
+              <!-- Garis Ganda Kop Surat Resmi -->
+              <div class="border-t-[2px] border-black dark:border-white print:border-black mt-1"></div>
+              <div class="border-t border-black dark:border-white print:border-black mt-[1px] mb-2"></div>
+
+              <!-- Judul Dokumen Kuitansi -->
+              <div class="text-center my-0.5">
+                <h4 class="text-[11px] sm:text-xs font-bold uppercase tracking-wider underline">
+                  KUITANSI PEMBAYARAN SPP RESMI
+                </h4>
+              </div>
+            </div>
+
+            <!-- Meta Kuitansi -->
+            <div class="grid grid-cols-2 gap-2 text-[10.5px] sm:text-[11px]">
+              <div>
+                <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">No. Kuitansi</span>
+                <span class="font-mono font-bold">{{ activeKuitansi.nomor_kuitansi }}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">Tanggal Bayar</span>
+                <span class="font-bold">{{ activeKuitansi.tanggal_bayar }}</span>
+              </div>
+            </div>
+
+            <!-- Rincian Kuitansi -->
+            <div class="p-2.5 sm:p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5 print:bg-white print:border-zinc-300">
+              <div class="flex justify-between">
+                <span class="text-zinc-500 print:text-zinc-600">Nama Santri:</span>
+                <span class="font-bold text-right">{{ activeKuitansi.nama_santri }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-500 print:text-zinc-600">NISN / Jilid:</span>
+                <span class="font-mono">{{ activeKuitansi.nisn }} &bull; {{ activeKuitansi.kelas }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
+                <span class="font-semibold text-right">{{ activeKuitansi.pembayaran_untuk }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-500 print:text-zinc-600">Metode Bayar:</span>
+                <span class="font-semibold">{{ activeKuitansi.metode }}</span>
+              </div>
+              <div v-if="activeKuitansi.catatan" class="flex justify-between">
+                <span class="text-zinc-500 print:text-zinc-600">Catatan:</span>
+                <span class="italic text-zinc-600 dark:text-zinc-300 print:text-zinc-700">{{ activeKuitansi.catatan }}</span>
+              </div>
+              <div class="flex justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-xs sm:text-sm font-bold text-emerald-600 print:text-black">
+                <span>Total Dibayar:</span>
+                <span>Rp {{ formatRupiah(activeKuitansi.jumlah_bayar) }}</span>
+              </div>
+              <div class="flex justify-between py-0.5">
+                <span class="text-zinc-500 print:text-zinc-600">Status Transaksi:</span>
+                <span class="font-extrabold uppercase text-[11px] text-emerald-600">LUNAS</span>
+              </div>
+            </div>
+
+            <!-- Blok Pengesahan Tanda Tangan Resmi Kuitansi -->
+            <div class="grid grid-cols-2 gap-2 text-center mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-[10px]">
+              <div>
+                <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600 text-[9px] sm:text-[10px]">Penyetor / Wali Santri,</p>
+                <div class="h-8 sm:h-10"></div>
+                <p class="font-semibold text-zinc-800 dark:text-zinc-200 print:text-black text-[9px] sm:text-[10px]">
+                  ( ............................. )
                 </p>
               </div>
-
-              <!-- Spacer Kanan Penyeimbang -->
-              <div class="w-16 sm:w-20 shrink-0"></div>
-            </div>
-
-            <!-- Garis Ganda Kop Surat Resmi -->
-            <div class="border-t-[2.5px] border-black dark:border-white print:border-black mt-1"></div>
-            <div class="border-t border-black dark:border-white print:border-black mt-[1.5px] mb-2"></div>
-
-            <!-- Judul Dokumen Kuitansi -->
-            <div class="text-center my-1">
-              <h4 class="text-xs font-bold uppercase tracking-wider underline">
-                KUITANSI PEMBAYARAN SPP RESMI
-              </h4>
-            </div>
-          </div>
-
-          <!-- Meta Kuitansi -->
-          <div class="grid grid-cols-2 gap-2 text-[11px]">
-            <div>
-              <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[10px]">No. Kuitansi</span>
-              <span class="font-mono font-bold">{{ activeKuitansi.nomor_kuitansi }}</span>
-            </div>
-            <div class="text-right">
-              <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[10px]">Tanggal Bayar</span>
-              <span class="font-bold">{{ activeKuitansi.tanggal_bayar }}</span>
-            </div>
-          </div>
-
-          <!-- Rincian Kuitansi -->
-          <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5 print:bg-white print:border-zinc-300">
-            <div class="flex justify-between">
-              <span class="text-zinc-500 print:text-zinc-600">Nama Santri:</span>
-              <span class="font-bold">{{ activeKuitansi.nama_santri }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-zinc-500 print:text-zinc-600">NISN / Jilid:</span>
-              <span class="font-mono">{{ activeKuitansi.nisn }} &bull; {{ activeKuitansi.kelas }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
-              <span class="font-semibold">{{ activeKuitansi.pembayaran_untuk }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-zinc-500 print:text-zinc-600">Metode Bayar:</span>
-              <span class="font-semibold">{{ activeKuitansi.metode }}</span>
-            </div>
-            <div v-if="activeKuitansi.catatan" class="flex justify-between">
-              <span class="text-zinc-500 print:text-zinc-600">Catatan:</span>
-              <span class="italic text-zinc-600 dark:text-zinc-300 print:text-zinc-700">{{ activeKuitansi.catatan }}</span>
-            </div>
-            <div class="flex justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-sm font-bold text-emerald-600 print:text-black">
-              <span>Total Dibayar:</span>
-              <span>Rp {{ formatRupiah(activeKuitansi.jumlah_bayar) }}</span>
-            </div>
-            <div class="flex justify-between py-0.5">
-              <span class="text-zinc-500 print:text-zinc-600">Status Transaksi:</span>
-              <span class="font-extrabold uppercase text-[11px] text-emerald-600">LUNAS</span>
-            </div>
-          </div>
-
-          <!-- Blok Pengesahan Tanda Tangan Resmi Kuitansi -->
-          <div class="grid grid-cols-2 gap-4 text-center mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-[10px]">
-            <div>
-              <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600">Penyetor / Wali Santri,</p>
-              <div class="h-10"></div>
-              <p class="font-semibold text-zinc-800 dark:text-zinc-200 print:text-black">( ........................................ )</p>
-            </div>
-            <div>
-              <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600">Paiton, {{ formatTanggalRingkas(activeKuitansi.tanggal_bayar) }}</p>
-              <p class="font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">Bendahara TPQ,</p>
-              <div class="h-10"></div>
-              <p class="font-bold underline tracking-wide text-zinc-900 dark:text-white print:text-black">
-                ( {{ activeKuitansi.nama_bendahara || namaBendahara }} )
-              </p>
-              <p class="text-[8px] text-zinc-500 dark:text-zinc-400 print:text-zinc-600 mt-0.5" v-if="activeKuitansi.petugas && activeKuitansi.petugas !== (activeKuitansi.nama_bendahara || namaBendahara)">
-                Petugas Input: {{ activeKuitansi.petugas }}
-              </p>
+              <div>
+                <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600 text-[9px] sm:text-[10px]">
+                  Paiton, {{ formatTanggalRingkas(activeKuitansi.tanggal_bayar) }}
+                </p>
+                <p class="font-semibold text-zinc-700 dark:text-zinc-300 print:text-black text-[9px] sm:text-[10px]">
+                  Bendahara TPQ,
+                </p>
+                <div class="h-8 sm:h-10"></div>
+                <p class="font-bold underline tracking-wide text-zinc-900 dark:text-white print:text-black text-[9px] sm:text-[10px]">
+                  ( {{ activeKuitansi.nama_bendahara || namaBendahara }} )
+                </p>
+                <p class="text-[8px] text-zinc-500 dark:text-zinc-400 print:text-zinc-600 mt-0.5" v-if="activeKuitansi.petugas && activeKuitansi.petugas !== (activeKuitansi.nama_bendahara || namaBendahara)">
+                  Petugas: {{ activeKuitansi.petugas }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Action Buttons (Hidden saat cetak) -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 print:hidden">
+        <!-- Action Buttons (Fixed Bottom, Always Visible in Mobile, Hidden saat cetak) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0 print:hidden">
           <button
             type="button"
             @click="sendKuitansiViaWa"
-            class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5 transition"
+            class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer order-1 sm:order-none"
             title="Kirim Kuitansi ke WhatsApp Wali Santri"
           >
-            <BaseIcon name="whatsapp" class="w-4 h-4" />
+            <BaseIcon name="whatsapp" class="w-3.5 h-3.5" />
             <span>Kirim WA ke Wali Santri</span>
           </button>
 
@@ -461,17 +480,17 @@
             <button
               type="button"
               @click="closeResultModal"
-              class="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition"
+              class="flex-1 sm:flex-none h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
             >
-              Tutup &amp; Lanjutkan
+              Tutup
             </button>
             <button
               type="button"
               @click="printKuitansi"
-              class="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition"
+              class="flex-1 sm:flex-none h-8 px-3.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-sm hover:opacity-90 transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <BaseIcon name="printer" class="w-4 h-4" />
-              <span>Cetak Kuitansi</span>
+              <BaseIcon name="printer" class="w-3.5 h-3.5" />
+              <span>Cetak</span>
             </button>
           </div>
         </div>

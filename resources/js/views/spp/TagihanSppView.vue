@@ -270,109 +270,113 @@
     <!-- Modal Pop-up Japri WhatsApp Santri Menunggak -->
     <div
       v-if="showJapriModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:hidden"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:hidden"
     >
-      <div class="w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 space-y-4 animate-slideUp text-xs">
+      <div class="w-full max-w-lg max-h-[92vh] flex flex-col rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-3.5 sm:p-6 text-xs animate-slideUp">
         <!-- Header Modal -->
-        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
-          <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <BaseIcon name="whatsapp" class="w-5 h-5" />
+        <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
+          <div class="flex items-center gap-2 sm:gap-2.5">
+            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <BaseIcon name="whatsapp" class="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 class="text-sm font-bold text-zinc-900 dark:text-white">Japri Pengingat SPP Santri</h3>
-              <p class="text-[11px] text-zinc-500">Kirim pesan langsung ke wali santri via Gateway Fonnte atau WhatsApp Web</p>
+              <h3 class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-tight">Japri Pengingat SPP Santri</h3>
+              <p class="text-[10px] sm:text-[11px] text-zinc-500 truncate max-w-[200px] sm:max-w-none">Kirim pesan langsung ke wali santri</p>
             </div>
           </div>
           <button
             type="button"
             @click="closeJapriModal"
-            class="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            title="Tutup Modal"
           >
             <X class="w-4 h-4" />
           </button>
         </div>
 
-        <!-- Info Ringkas Santri -->
-        <div v-if="selectedJapriSantri" class="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2">
-          <div class="flex items-center justify-between">
-            <div>
-              <h4 class="font-bold text-zinc-900 dark:text-white text-sm">{{ selectedJapriSantri.nama_lengkap }}</h4>
-              <p class="text-[11px] text-zinc-400 font-mono">NISN: {{ selectedJapriSantri.nisn }} &bull; {{ selectedJapriSantri.nama_kelas }}</p>
-            </div>
-            <div class="text-right">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                {{ selectedJapriSantri.total_bulan }} Bulan Nunggak
-              </span>
-              <p class="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
-                Rp {{ formatRupiah(selectedJapriSantri.total_tunggakan) }}
-              </p>
+        <!-- Body (Scrollable in mobile) -->
+        <div class="flex-1 overflow-y-auto my-2 pr-0.5 space-y-3 sm:space-y-4">
+          <!-- Info Ringkas Santri -->
+          <div v-if="selectedJapriSantri" class="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-zinc-900 dark:text-white text-xs sm:text-sm">{{ selectedJapriSantri.nama_lengkap }}</h4>
+                <p class="text-[10px] sm:text-[11px] text-zinc-400 font-mono">NISN: {{ selectedJapriSantri.nisn }} &bull; {{ selectedJapriSantri.nama_kelas }}</p>
+              </div>
+              <div class="text-right">
+                <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                  {{ selectedJapriSantri.total_bulan }} Bulan Nunggak
+                </span>
+                <p class="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                  Rp {{ formatRupiah(selectedJapriSantri.total_tunggakan) }}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Input No HP Ortu -->
-        <div>
-          <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-            Nomor WhatsApp Wali Santri *
-          </label>
-          <div class="relative">
-            <input
-              v-model="japriPhone"
-              type="text"
-              placeholder="Contoh: 08123456789 atau 628123456789"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            />
-          </div>
-          <p v-if="!japriPhone" class="text-[11px] text-rose-500 mt-1">
-            * Nomor belum terdaftar pada profil santri. Silakan ketik nomor tujuan.
-          </p>
-        </div>
-
-        <!-- Textarea Draft Pesan (WhatsApp Chat Bubble style) -->
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="font-bold text-zinc-700 dark:text-zinc-300">
-              Draft Pesan WhatsApp (Dapat Diedit)
+          <!-- Input No HP Ortu -->
+          <div>
+            <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+              Nomor WhatsApp Wali Santri *
             </label>
-            <span v-if="isLoadingJapriPreview" class="text-[10px] text-emerald-600 flex items-center gap-1">
-              <RefreshCw class="w-3 h-3 animate-spin" />
-              Menyiapkan draft...
-            </span>
+            <div class="relative">
+              <input
+                v-model="japriPhone"
+                type="text"
+                placeholder="Contoh: 08123456789 atau 628123456789"
+                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              />
+            </div>
+            <p v-if="!japriPhone" class="text-[10px] sm:text-[11px] text-rose-500 mt-1">
+              * Nomor belum terdaftar pada profil santri. Silakan ketik nomor tujuan.
+            </p>
           </div>
 
-          <div v-if="isLoadingJapriPreview" class="p-8 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-            <RefreshCw class="w-6 h-6 mx-auto mb-1 animate-spin text-emerald-600" />
-            <p class="text-[11px]">Membuat rincian pesan tunggakan santri...</p>
-          </div>
+          <!-- Textarea Draft Pesan (WhatsApp Chat Bubble style) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-bold text-zinc-700 dark:text-zinc-300">
+                Draft Pesan WhatsApp (Dapat Diedit)
+              </label>
+              <span v-if="isLoadingJapriPreview" class="text-[10px] text-emerald-600 flex items-center gap-1">
+                <RefreshCw class="w-3 h-3 animate-spin" />
+                Menyiapkan draft...
+              </span>
+            </div>
 
-          <textarea
-            v-else
-            v-model="japriMessage"
-            rows="7"
-            class="w-full p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 font-mono text-xs text-zinc-800 dark:text-zinc-200 leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-y"
-            placeholder="Draft pesan pengingat SPP..."
-          ></textarea>
+            <div v-if="isLoadingJapriPreview" class="p-8 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
+              <RefreshCw class="w-6 h-6 mx-auto mb-1 animate-spin text-emerald-600" />
+              <p class="text-[11px]">Membuat rincian pesan tunggakan santri...</p>
+            </div>
+
+            <textarea
+              v-else
+              v-model="japriMessage"
+              rows="6"
+              class="w-full p-3 rounded-xl sm:rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 font-mono text-xs text-zinc-800 dark:text-zinc-200 leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-y"
+              placeholder="Draft pesan pengingat SPP..."
+            ></textarea>
+          </div>
         </div>
 
-        <!-- Tombol Aksi -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-          <div class="flex items-center gap-1.5">
+        <!-- Tombol Aksi (Fixed Sticky Footer) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
+          <div class="flex items-center gap-1.5 order-2 sm:order-1">
             <button
               type="button"
               @click="copyJapriText"
               :disabled="!japriMessage"
-              class="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+              class="flex-1 sm:flex-none px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40"
               title="Salin isi pesan ke clipboard"
             >
               <Copy class="w-3.5 h-3.5" />
-              <span>Salin Teks</span>
+              <span>Salin</span>
             </button>
             <button
               type="button"
               @click="openJapriWhatsAppDirect"
               :disabled="!japriMessage || !japriPhone"
-              class="px-3 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              class="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
               title="Buka chat WhatsApp Web / Desktop"
             >
               <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-500" />
@@ -380,11 +384,11 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 order-1 sm:order-2">
             <button
               type="button"
               @click="closeJapriModal"
-              class="px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              class="flex-1 sm:flex-none px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             >
               Tutup
             </button>
@@ -392,11 +396,11 @@
               type="button"
               @click="sendJapriViaFonnte"
               :disabled="!japriMessage || !japriPhone || isSendingJapri"
-              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <RefreshCw v-if="isSendingJapri" class="w-3.5 h-3.5 animate-spin" />
               <Send v-else class="w-3.5 h-3.5" />
-              <span>Kirim Gateway (Fonnte)</span>
+              <span>Kirim Gateway</span>
             </button>
           </div>
         </div>
@@ -406,310 +410,362 @@
     <!-- Modal Pop-up Pembayaran SPP Multi-Bulan (Printable Kuitansi) -->
     <div
       v-if="showBayarModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:p-0 print:bg-white print:static"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn print:p-0 print:bg-white print:static"
     >
       <div
-        class="w-full max-w-xl rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 space-y-4 animate-slideUp text-xs print:border-none print:shadow-none print:p-0"
+        class="w-full max-w-xl max-h-[92vh] flex flex-col rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-3.5 sm:p-5 text-xs animate-slideUp print:border-none print:shadow-none print:p-0 print:max-w-none print:max-h-none"
       >
         <!-- STATE 2: BUKTI KUITANSI PEMBAYARAN RESMI -->
-        <div v-if="bayarSuccessResult" class="space-y-4">
-          <!-- Kuitansi Printable Card -->
-          <div
-            id="multiKuitansiArea"
-            class="border border-zinc-300 dark:border-zinc-700 rounded-2xl p-6 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 space-y-3 print:border print:p-4"
-          >
-            <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
-            <div class="text-black dark:text-white print:text-black pb-1 mb-2">
-              <div class="flex items-center justify-between gap-3 pb-1">
-                <!-- Logo Lembaga di Kiri -->
-                <div class="w-16 sm:w-20 shrink-0 flex items-center justify-center">
-                  <img
-                    :src="appLogo || '/LOGOTPQ.png'"
-                    alt="Logo Lembaga"
-                    class="max-h-16 max-w-20 object-contain"
-                  />
-                </div>
-
-                <!-- Teks Kop Surat di Tengah -->
-                <div class="flex-1 text-center px-1">
-                  <h1 class="text-base sm:text-lg font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
-                    YAYASAN NURUL JADID
-                  </h1>
-                  <h2 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
-                    TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
-                  </h2>
-                  <h3 class="text-[10px] sm:text-[11px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
-                    KARANGANYAR PAITON PROBOLINGGO
-                  </h3>
-                  <p class="text-[8px] sm:text-[9px] font-serif italic text-[#cca843] leading-tight mt-0.5">
-                    Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
-                  </p>
-                </div>
-
-                <!-- Spacer Kanan Penyeimbang -->
-                <div class="w-16 sm:w-20 shrink-0"></div>
-              </div>
-
-              <!-- Garis Ganda Kop Surat Resmi -->
-              <div class="border-t-[2.5px] border-black dark:border-white print:border-black mt-1"></div>
-              <div class="border-t border-black dark:border-white print:border-black mt-[1.5px] mb-2"></div>
-
-              <!-- Judul Dokumen Kuitansi -->
-              <div class="text-center my-1">
-                <h4 class="text-xs font-bold uppercase tracking-wider underline">
-                  KUITANSI PEMBAYARAN SPP RESMI
-                </h4>
-                <p class="text-[10px] text-zinc-500 font-mono mt-0.5">No: {{ bayarSuccessResult.nomor_kuitansi }} &bull; {{ bayarSuccessResult.tanggal_bayar }}</p>
-              </div>
-            </div>
-
-            <!-- Receipt Details Table -->
-            <div class="space-y-2 text-xs">
-              <div class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">Nama Santri:</span>
-                <span class="font-bold text-zinc-900 dark:text-white">{{ bayarSuccessResult.nama_santri }}</span>
-              </div>
-              <div class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">NISN / Kelas:</span>
-                <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ bayarSuccessResult.nisn }} / {{ bayarSuccessResult.kelas }}</span>
-              </div>
-              <div class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">Pembayaran Untuk:</span>
-                <span class="font-bold text-emerald-600 dark:text-emerald-400 text-right max-w-xs">
-                  {{ bayarSuccessResult.daftar_bulan_str || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.map(b => b.label || b).join(', ') : '-') }}
-                </span>
-              </div>
-              <div class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">Jumlah Bulan:</span>
-                <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ bayarSuccessResult.total_bulan || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.length : 1) }} Bulan</span>
-              </div>
-              <div class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">Metode Bayar:</span>
-                <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ bayarSuccessResult.metode }}</span>
-              </div>
-              <div v-if="bayarSuccessResult.catatan" class="flex justify-between py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span class="text-zinc-400">Catatan:</span>
-                <span class="text-zinc-600 dark:text-zinc-300 italic">{{ bayarSuccessResult.catatan }}</span>
-              </div>
-              <div class="flex justify-between py-2.5 border-b-2 border-zinc-300 dark:border-zinc-700 bg-emerald-50/50 dark:bg-emerald-950/20 px-2 rounded-lg">
-                <span class="font-bold text-xs uppercase text-zinc-700 dark:text-zinc-300">TOTAL DIBAYAR:</span>
-                <span class="font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">Rp {{ formatRupiah(bayarSuccessResult.total_bayar) }}</span>
-              </div>
-              <div class="flex justify-between py-1">
-                <span class="text-zinc-400">Status Transaksi:</span>
-                <span class="font-extrabold uppercase text-[11px] text-emerald-600">LUNAS</span>
-              </div>
-            </div>
-
-            <!-- Signatures Footer -->
-            <div class="grid grid-cols-2 gap-4 text-center mt-5 pt-3 border-t border-zinc-200 dark:border-zinc-800 text-[11px]">
-              <div>
-                <p class="text-zinc-500 dark:text-zinc-400">Wali Santri / Penyetor,</p>
-                <div class="h-10"></div>
-                <p class="font-semibold text-zinc-800 dark:text-zinc-200">( ........................................ )</p>
+        <template v-if="bayarSuccessResult">
+          <!-- Header Info Kuitansi (Fixed Top) -->
+          <div class="flex items-center justify-between pb-2.5 border-b border-zinc-100 dark:border-zinc-800 shrink-0 print:hidden">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                <CheckCircle2 class="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p class="text-zinc-500 dark:text-zinc-400">Paiton, {{ formatTanggalRingkas(bayarSuccessResult.tanggal_bayar) }}</p>
-                <p class="font-semibold text-zinc-700 dark:text-zinc-300">Bendahara TPQ,</p>
-                <div class="h-10"></div>
-                <p class="font-bold underline text-emerald-600 dark:text-emerald-400">( {{ bayarSuccessResult.nama_bendahara || namaBendahara }} )</p>
-                <p class="text-[9px] text-zinc-500 dark:text-zinc-400 mt-0.5" v-if="bayarSuccessResult.petugas && bayarSuccessResult.petugas !== (bayarSuccessResult.nama_bendahara || namaBendahara)">
-                  Petugas Input: {{ bayarSuccessResult.petugas }}
-                </p>
+                <h3 class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-tight">Bukti Kuitansi Pembayaran SPP</h3>
+                <p class="text-[10px] text-zinc-400">Kuitansi resmi terverifikasi sistem</p>
               </div>
             </div>
-          </div>
 
-          <!-- Action Buttons Post-Payment -->
-          <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 print:hidden">
-            <div class="flex items-center gap-1.5">
-              <button
-                type="button"
-                @click="printKuitansi"
-                class="px-3 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="Cetak Kuitansi Resmi"
-              >
-                <Printer class="w-3.5 h-3.5" />
-                <span>Cetak Kuitansi</span>
-              </button>
-              <button
-                type="button"
-                @click="sendKuitansiViaWa"
-                :disabled="!selectedBayarSantri?.no_hp_ortu"
-                class="px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-                title="Kirim Bukti Kuitansi ke WhatsApp Wali Santri"
-              >
-                <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Kirim Bukti WA</span>
-              </button>
-            </div>
             <button
               type="button"
               @click="closeBayarModal"
-              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition cursor-pointer shadow-md shadow-emerald-600/20"
-            >
-              Selesai &amp; Tutup
-            </button>
-          </div>
-        </div>
-
-        <!-- STATE 1: FORM PEMBAYARAN MULTI-BULAN -->
-        <div v-else class="space-y-4">
-          <!-- Header Modal -->
-          <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Wallet class="w-5 h-5" />
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-zinc-900 dark:text-white">Pembayaran SPP Santri</h3>
-                <p class="text-[11px] text-zinc-500">Pilih beberapa bulan sekaligus untuk pelunasan dalam satu transaksi</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              @click="closeBayarModal"
-              class="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title="Tutup Modal"
             >
               <X class="w-4 h-4" />
             </button>
           </div>
 
-          <!-- Info Ringkas Santri -->
-          <div v-if="selectedBayarSantri" class="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-between">
-            <div>
-              <h4 class="font-bold text-zinc-900 dark:text-white text-sm">{{ selectedBayarSantri.nama_lengkap }}</h4>
-              <p class="text-[11px] text-zinc-400 font-mono">NISN: {{ selectedBayarSantri.nisn }} &bull; {{ selectedBayarSantri.nama_kelas }}</p>
-            </div>
-            <div class="text-right">
-              <span v-if="selectedBayarSantri.no_hp_ortu" class="text-[11px] text-zinc-500 font-mono flex items-center gap-1 justify-end">
-                <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-500" />
-                {{ selectedBayarSantri.no_hp_ortu }}
-              </span>
-              <span v-else class="text-[10px] text-zinc-400 italic">No WA belum terdaftar</span>
+          <!-- Kuitansi Printable Body (Scrollable on small screens) -->
+          <div class="flex-1 overflow-y-auto my-2 pr-0.5 print:overflow-visible print:my-0 print:pr-0">
+            <div
+              id="multiKuitansiArea"
+              class="relative border border-zinc-200 dark:border-zinc-700 rounded-xl sm:rounded-2xl p-3 sm:p-5 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-2.5 sm:space-y-3.5 print:border print:border-black print:text-black print:bg-white print:p-5"
+            >
+              <!-- Badge Cap Sah Lunas saat Dicetak -->
+              <div class="absolute right-4 top-20 pointer-events-none border-2 border-emerald-700 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded rotate-[-8deg] uppercase tracking-widest hidden print:block opacity-80">
+                LUNAS &bull; SAH
+              </div>
+
+              <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
+              <div class="text-black dark:text-white print:text-black pb-1">
+                <div class="flex items-center justify-between gap-2 pb-1">
+                  <!-- Logo Lembaga di Kiri -->
+                  <div class="w-12 h-12 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center">
+                    <img
+                      :src="appLogo || '/LOGOTPQ.png'"
+                      alt="Logo Lembaga"
+                      class="max-h-12 max-w-12 sm:max-h-16 sm:max-w-16 object-contain"
+                    />
+                  </div>
+
+                  <!-- Teks Kop Surat di Tengah -->
+                  <div class="flex-1 text-center px-0.5 min-w-0">
+                    <h1 class="text-[13px] sm:text-base font-serif font-bold text-[#7b95c0] tracking-wide uppercase leading-tight">
+                      YAYASAN NURUL JADID
+                    </h1>
+                    <h2 class="text-[10px] sm:text-xs font-serif font-bold text-[#52525b] dark:text-zinc-300 print:text-[#52525b] tracking-wide uppercase leading-tight mt-0.5">
+                      TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
+                    </h2>
+                    <h3 class="text-[9px] sm:text-[10px] font-serif font-bold text-[#52525b] dark:text-zinc-400 print:text-[#52525b] tracking-wider uppercase leading-tight mt-0.5">
+                      KARANGANYAR PAITON PROBOLINGGO
+                    </h3>
+                    <p class="text-[7.5px] sm:text-[8.5px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+                      Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291
+                    </p>
+                  </div>
+
+                  <!-- Spacer Kanan Penyeimbang -->
+                  <div class="w-12 sm:w-16 shrink-0"></div>
+                </div>
+
+                <!-- Garis Ganda Kop Surat Resmi -->
+                <div class="border-t-[2px] border-black dark:border-white print:border-black mt-1"></div>
+                <div class="border-t border-black dark:border-white print:border-black mt-[1px] mb-2"></div>
+
+                <!-- Judul Dokumen Kuitansi -->
+                <div class="text-center my-0.5">
+                  <h4 class="text-[11px] sm:text-xs font-bold uppercase tracking-wider underline">
+                    KUITANSI PEMBAYARAN SPP RESMI
+                  </h4>
+                </div>
+              </div>
+
+              <!-- Meta Kuitansi -->
+              <div class="grid grid-cols-2 gap-2 text-[10.5px] sm:text-[11px]">
+                <div>
+                  <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">No. Kuitansi</span>
+                  <span class="font-mono font-bold">{{ bayarSuccessResult.nomor_kuitansi }}</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">Tanggal Bayar</span>
+                  <span class="font-bold">{{ bayarSuccessResult.tanggal_bayar }}</span>
+                </div>
+              </div>
+
+              <!-- Receipt Details Table -->
+              <div class="p-2.5 sm:p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5 print:bg-white print:border-zinc-300">
+                <div class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">Nama Santri:</span>
+                  <span class="font-bold text-right">{{ bayarSuccessResult.nama_santri }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">NISN / Jilid:</span>
+                  <span class="font-mono">{{ bayarSuccessResult.nisn }} &bull; {{ bayarSuccessResult.kelas }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
+                  <span class="font-bold text-emerald-600 dark:text-emerald-400 text-right max-w-[200px] truncate">
+                    {{ bayarSuccessResult.daftar_bulan_str || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.map(b => b.label || b).join(', ') : '-') }}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">Jumlah Bulan:</span>
+                  <span class="font-semibold">{{ bayarSuccessResult.total_bulan || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.length : 1) }} Bulan</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">Metode Bayar:</span>
+                  <span class="font-semibold">{{ bayarSuccessResult.metode }}</span>
+                </div>
+                <div v-if="bayarSuccessResult.catatan" class="flex justify-between">
+                  <span class="text-zinc-500 print:text-zinc-600">Catatan:</span>
+                  <span class="italic text-zinc-600 dark:text-zinc-300 print:text-zinc-700">{{ bayarSuccessResult.catatan }}</span>
+                </div>
+                <div class="flex justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-xs sm:text-sm font-bold text-emerald-600 print:text-black">
+                  <span>TOTAL DIBAYAR:</span>
+                  <span class="font-mono text-sm sm:text-base font-black">Rp {{ formatRupiah(bayarSuccessResult.total_bayar) }}</span>
+                </div>
+                <div class="flex justify-between text-[10px] text-zinc-500 print:text-zinc-600">
+                  <span>Status Transaksi:</span>
+                  <span class="font-bold text-emerald-600 dark:text-emerald-400 uppercase">LUNAS</span>
+                </div>
+              </div>
+
+              <!-- Signatures Footer -->
+              <div class="grid grid-cols-2 gap-2 text-center mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-[10px]">
+                <div>
+                  <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600 text-[9px] sm:text-[10px]">Penyetor / Wali Santri,</p>
+                  <div class="h-8 sm:h-10"></div>
+                  <p class="font-semibold text-zinc-800 dark:text-zinc-200 print:text-black text-[9px] sm:text-[10px]">
+                    ( ............................. )
+                  </p>
+                </div>
+                <div>
+                  <p class="text-zinc-500 dark:text-zinc-400 print:text-zinc-600 text-[9px] sm:text-[10px]">
+                    Paiton, {{ formatTanggalRingkas(bayarSuccessResult.tanggal_bayar) }}
+                  </p>
+                  <p class="font-semibold text-zinc-700 dark:text-zinc-300 print:text-black text-[9px] sm:text-[10px]">
+                    Bendahara TPQ,
+                  </p>
+                  <div class="h-8 sm:h-10"></div>
+                  <p class="font-bold underline tracking-wide text-zinc-900 dark:text-white print:text-black text-[9px] sm:text-[10px]">
+                    ( {{ bayarSuccessResult.nama_bendahara || namaBendahara }} )
+                  </p>
+                  <p class="text-[8px] text-zinc-500 dark:text-zinc-400 print:text-zinc-600 mt-0.5" v-if="bayarSuccessResult.petugas && bayarSuccessResult.petugas !== (bayarSuccessResult.nama_bendahara || namaBendahara)">
+                    Petugas Input: {{ bayarSuccessResult.petugas }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Checklist Bulan Tagihan -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="font-bold text-zinc-700 dark:text-zinc-300 text-xs">
-                Pilih Bulan Kewajiban ({{ selectedTagihanIds.length }} dari {{ bayarTagihanList.length }} Bulan)
-              </label>
-              <div class="flex items-center gap-1.5 text-[11px]">
-                <button
-                  type="button"
-                  @click="selectAllBulanBayar"
-                  class="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
-                >
-                  Pilih Semua
-                </button>
-                <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                <button
-                  type="button"
-                  @click="clearAllBulanBayar"
-                  class="text-zinc-500 hover:underline cursor-pointer"
-                >
-                  Kosongkan
-                </button>
+          <!-- Sticky Action Buttons Post-Payment -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0 print:hidden">
+            <button
+              type="button"
+              @click="sendKuitansiViaWa"
+              :disabled="!selectedBayarSantri?.no_hp_ortu"
+              class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer order-1 sm:order-none disabled:opacity-40"
+              title="Kirim Bukti Kuitansi ke WhatsApp Wali Santri"
+            >
+              <BaseIcon name="whatsapp" class="w-3.5 h-3.5" />
+              <span>Kirim WA ke Wali Santri</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="closeBayarModal"
+                class="flex-1 sm:flex-none h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                @click="printKuitansi"
+                class="flex-1 sm:flex-none h-8 px-3.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-sm hover:opacity-90 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Cetak Kuitansi Resmi"
+              >
+                <Printer class="w-3.5 h-3.5" />
+                <span>Cetak</span>
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- STATE 1: FORM PEMBAYARAN MULTI-BULAN -->
+        <template v-else>
+          <!-- Header Modal -->
+          <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
+            <div class="flex items-center gap-2 sm:gap-2.5">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Wallet class="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-tight">Pembayaran SPP Santri</h3>
+                <p class="text-[10px] sm:text-[11px] text-zinc-500 truncate max-w-[200px] sm:max-w-none">Pilih bulan kewajiban untuk pelunasan</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              @click="closeBayarModal"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- Body Scrollable -->
+          <div class="flex-1 overflow-y-auto my-2 pr-0.5 space-y-3">
+            <!-- Info Ringkas Santri -->
+            <div v-if="selectedBayarSantri" class="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-zinc-900 dark:text-white text-xs sm:text-sm">{{ selectedBayarSantri.nama_lengkap }}</h4>
+                <p class="text-[10px] sm:text-[11px] text-zinc-400 font-mono">NISN: {{ selectedBayarSantri.nisn }} &bull; {{ selectedBayarSantri.nama_kelas }}</p>
+              </div>
+              <div class="text-right">
+                <span v-if="selectedBayarSantri.no_hp_ortu" class="text-[10px] sm:text-[11px] text-zinc-500 font-mono flex items-center gap-1 justify-end">
+                  <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-500" />
+                  {{ selectedBayarSantri.no_hp_ortu }}
+                </span>
+                <span v-else class="text-[10px] text-zinc-400 italic">No WA belum ada</span>
               </div>
             </div>
 
-            <!-- Loading Bills -->
-            <div v-if="isLoadingBayarBills" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-              <RefreshCw class="w-5 h-5 mx-auto mb-1 animate-spin text-emerald-600" />
-              <p class="text-[11px]">Memuat daftar tagihan santri...</p>
-            </div>
+            <!-- Checklist Bulan Tagihan -->
+            <div class="space-y-1.5 sm:space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="font-bold text-zinc-700 dark:text-zinc-300 text-xs">
+                  Pilih Bulan Kewajiban ({{ selectedTagihanIds.length }} dari {{ bayarTagihanList.length }} Bulan)
+                </label>
+                <div class="flex items-center gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    @click="selectAllBulanBayar"
+                    class="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                  <button
+                    type="button"
+                    @click="clearAllBulanBayar"
+                    class="text-zinc-500 hover:underline cursor-pointer"
+                  >
+                    Kosongkan
+                  </button>
+                </div>
+              </div>
 
-            <!-- Empty Bills -->
-            <div v-else-if="bayarTagihanList.length === 0" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
-              <CheckCircle2 class="w-6 h-6 mx-auto mb-1 text-emerald-500" />
-              <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Santri tidak memiliki tunggakan tagihan aktif.</p>
-            </div>
+              <!-- Loading Bills -->
+              <div v-if="isLoadingBayarBills" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
+                <RefreshCw class="w-5 h-5 mx-auto mb-1 animate-spin text-emerald-600" />
+                <p class="text-[11px]">Memuat daftar tagihan santri...</p>
+              </div>
 
-            <!-- List of Months -->
-            <div v-else class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-              <div
-                v-for="b in bayarTagihanList"
-                :key="b.id_tagihan"
-                @click="toggleBulanItem(b.id_tagihan)"
-                :class="[
-                  selectedTagihanIds.includes(b.id_tagihan)
-                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/80 shadow-xs'
-                    : 'bg-white dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                ]"
-                class="flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer select-none"
-              >
-                <div class="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    :checked="selectedTagihanIds.includes(b.id_tagihan)"
-                    @click.stop="toggleBulanItem(b.id_tagihan)"
-                    class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300 dark:border-zinc-600 cursor-pointer"
-                  />
-                  <div>
-                    <span class="font-bold text-zinc-900 dark:text-zinc-100 text-xs">
-                      {{ b.label || (b.nama_bulan + ' ' + b.tahun) }}
-                    </span>
-                    <span v-if="b.sudah_dibayar && b.sudah_dibayar > 0" class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium">
-                      Kurang Bayar
+              <!-- Empty Bills -->
+              <div v-else-if="bayarTagihanList.length === 0" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
+                <CheckCircle2 class="w-6 h-6 mx-auto mb-1 text-emerald-500" />
+                <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Santri tidak memiliki tunggakan tagihan aktif.</p>
+              </div>
+
+              <!-- List of Months -->
+              <div v-else class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                <div
+                  v-for="b in bayarTagihanList"
+                  :key="b.id_tagihan"
+                  @click="toggleBulanItem(b.id_tagihan)"
+                  :class="[
+                    selectedTagihanIds.includes(b.id_tagihan)
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/80 shadow-xs'
+                      : 'bg-white dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  ]"
+                  class="flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer select-none"
+                >
+                  <div class="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      :checked="selectedTagihanIds.includes(b.id_tagihan)"
+                      @click.stop="toggleBulanItem(b.id_tagihan)"
+                      class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300 dark:border-zinc-600 cursor-pointer"
+                    />
+                    <div>
+                      <span class="font-bold text-zinc-900 dark:text-zinc-100 text-xs">
+                        {{ b.label || (b.nama_bulan + ' ' + b.tahun) }}
+                      </span>
+                      <span v-if="b.sudah_dibayar && b.sudah_dibayar > 0" class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium">
+                        Kurang Bayar
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-mono font-bold text-xs" :class="selectedTagihanIds.includes(b.id_tagihan) ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-700 dark:text-zinc-300'">
+                      Rp {{ formatRupiah(b.sisa || b.nominal_tagihan) }}
                     </span>
                   </div>
                 </div>
-                <div class="text-right">
-                  <span class="font-mono font-bold text-xs" :class="selectedTagihanIds.includes(b.id_tagihan) ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-700 dark:text-zinc-300'">
-                    Rp {{ formatRupiah(b.sisa || b.nominal_tagihan) }}
-                  </span>
-                </div>
+              </div>
+            </div>
+
+            <!-- Total Summary Card -->
+            <div class="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-bold text-emerald-800 dark:text-emerald-400">Total Yang Akan Dibayar</p>
+                <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  {{ selectedTagihanIds.length }} Bulan kewajiban SPP terpilih
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  Rp {{ formatRupiah(totalNominalBayarModal) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Form Metode & Catatan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+              <div>
+                <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Metode Pembayaran *
+                </label>
+                <select
+                  v-model="bayarMetode"
+                  class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  <option value="Tunai">Tunai (Cash)</option>
+                  <option value="Transfer">Transfer Bank</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Catatan Transaksi (Opsional)
+                </label>
+                <input
+                  v-model="bayarCatatan"
+                  type="text"
+                  placeholder="Contoh: Titipan orang tua / TF BCA"
+                  class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
               </div>
             </div>
           </div>
 
-          <!-- Total Summary Card -->
-          <div class="p-3.5 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
-            <div>
-              <p class="text-[11px] font-bold text-emerald-800 dark:text-emerald-400">Total Yang Akan Dibayar</p>
-              <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                {{ selectedTagihanIds.length }} Bulan kewajiban SPP terpilih
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                Rp {{ formatRupiah(totalNominalBayarModal) }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Form Metode & Catatan -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Metode Pembayaran *
-              </label>
-              <select
-                v-model="bayarMetode"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              >
-                <option value="Tunai">Tunai (Cash)</option>
-                <option value="Transfer">Transfer Bank</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Catatan Transaksi (Opsional)
-              </label>
-              <input
-                v-model="bayarCatatan"
-                type="text"
-                placeholder="Contoh: Titipan orang tua / TF BCA"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <!-- Footer Aksi -->
-          <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+          <!-- Footer Aksi (Sticky Bottom) -->
+          <div class="flex items-center justify-end gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
             <button
               type="button"
               @click="closeBayarModal"
@@ -730,7 +786,7 @@
               </span>
             </button>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
