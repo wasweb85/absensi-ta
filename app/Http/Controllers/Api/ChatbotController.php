@@ -325,41 +325,54 @@ class ChatbotController extends Controller
 
         $matchedAction = 'none';
         if ($log) {
-            if (
-                $stateVal === 'read' ||
+            $isRead = $stateVal === 'read' ||
                 $statusVal === 'read' ||
                 $msgStatusVal === 'read' ||
                 str_contains($stateVal, 'read') ||
-                str_contains($statusVal, 'read')
-            ) {
-                $log->markAsRead();
-                $matchedAction = 'read';
-            } elseif (
-                $stateVal === 'delivered' ||
+                str_contains($statusVal, 'read') ||
+                $stateVal === '3' ||
+                $stateId === '3';
+
+            $isDelivered = $stateVal === 'delivered' ||
                 $statusVal === 'delivered' ||
                 $msgStatusVal === 'delivered' ||
                 str_contains($stateVal, 'deliver') ||
-                str_contains($statusVal, 'deliver')
-            ) {
-                $log->markAsDelivered();
-                $matchedAction = 'delivered';
-            } elseif (
-                $stateVal === '0' ||
+                str_contains($statusVal, 'deliver') ||
+                $stateVal === '2' ||
+                $stateId === '2';
+
+            $isFailed = $stateVal === '0' ||
+                $stateId === '0' ||
                 in_array($stateVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
                 in_array($statusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
-                in_array($msgStatusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)
-            ) {
-                $reason = $data['reason'] ?? $data['detail'] ?? ($stateVal === '0' ? 'Pesan tidak terkirim (Fonnte state: 0 / limit WhatsApp)' : "Fonnte status: {$stateVal}/{$statusVal}");
-                $log->markAsFailed((string) $reason);
-                $matchedAction = 'failed';
-            } elseif (
-                $stateVal === 'sent' ||
+                in_array($msgStatusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true);
+
+            $isSent = $stateVal === 'sent' ||
                 $statusVal === 'sent' ||
                 $stateVal === 'success' ||
                 $statusVal === 'processing' ||
-                str_contains($statusVal, 'sent')
-            ) {
-                $log->markAsSent($msgId);
+                str_contains($statusVal, 'sent') ||
+                $stateVal === '1' ||
+                $stateId === '1';
+
+            if ($isRead) {
+                $log->markAsRead();
+                $matchedAction = 'read';
+            } elseif ($isDelivered) {
+                // Cegah penurunan jika status sudah read
+                if ($log->status !== 'read') {
+                    $log->markAsDelivered();
+                }
+                $matchedAction = 'delivered';
+            } elseif ($isFailed) {
+                $reason = $data['reason'] ?? $data['detail'] ?? ($stateVal === '0' ? 'Pesan tidak terkirim (Fonnte state: 0 / limit WhatsApp)' : "Fonnte status: {$stateVal}/{$statusVal}");
+                $log->markAsFailed((string) $reason);
+                $matchedAction = 'failed';
+            } elseif ($isSent) {
+                // Cegah penurunan jika status sudah delivered atau read
+                if (! in_array($log->status, ['delivered', 'read'], true)) {
+                    $log->markAsSent($msgId);
+                }
                 $matchedAction = 'sent';
             }
 

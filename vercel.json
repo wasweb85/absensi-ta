@@ -22,6 +22,10 @@
       "dest": "/api/index.php"
     },
     {
+      "src": "/webhook/(.*)",
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

@@ -271,22 +271,47 @@ class WhatsAppDeliveryLogTest extends TestCase
         $this->assertEquals('read', $log->status);
     }
 
-    public function test_webhook_handles_status_delivered_with_state_success(): void
+    public function test_webhook_handles_numeric_states_delivered_and_read(): void
     {
-        $log = WhatsAppLog::factory()->sent()->create([
-            'fonnte_id' => 'msg_state_success_01',
+        $log1 = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_numeric_state_01',
         ]);
 
-        $res = $this->postJson('/api/webhook/whatsapp/status', [
-            'id' => 'msg_state_success_01',
-            'status' => 'delivered',
-            'state' => 'success',
+        // Fonnte mengirim state: "2" atau stateid: "2" untuk Delivered
+        $resDelivered = $this->postJson('/api/webhook/whatsapp/status', [
+            'id' => 'msg_numeric_state_01',
+            'status' => 'sent',
+            'state' => '2',
+            'stateid' => '2',
+        ]);
+
+        $resDelivered->assertStatus(200);
+        $log1->refresh();
+        $this->assertEquals('delivered', $log1->status);
+
+        // Fonnte mengirim state: "3" atau stateid: "3" untuk Read
+        $resRead = $this->postJson('/api/webhook/whatsapp/status', [
+            'id' => 'msg_numeric_state_01',
+            'status' => 'sent',
+            'state' => '3',
             'stateid' => '3',
         ]);
 
-        $res->assertStatus(200);
-        $log->refresh();
-        $this->assertEquals('delivered', $log->status);
+        $resRead->assertStatus(200);
+        $log1->refresh();
+        $this->assertEquals('read', $log1->status);
+
+        // Callback terlambat state: "2" tidak boleh menurunkan status dari "read" ke "delivered"
+        $resLate = $this->postJson('/api/webhook/whatsapp/status', [
+            'id' => 'msg_numeric_state_01',
+            'status' => 'sent',
+            'state' => '2',
+            'stateid' => '2',
+        ]);
+
+        $resLate->assertStatus(200);
+        $log1->refresh();
+        $this->assertEquals('read', $log1->status);
     }
 
     public function test_api_sync_status_updates_logs_from_fonnte(): void

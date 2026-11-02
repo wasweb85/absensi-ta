@@ -532,13 +532,18 @@ class WhatsAppController extends Controller
                         $rawStatus = strtolower(trim((string) $json['status']));
                     }
 
-                    if (str_contains($rawStatus, 'read')) {
+                    $stateVal = strtolower(trim((string) ($json['state'] ?? '')));
+                    $stateId = trim((string) ($json['stateid'] ?? ''));
+
+                    if (str_contains($rawStatus, 'read') || $rawStatus === '3' || $stateVal === '3' || $stateId === '3') {
                         $log->markAsRead();
                         $syncedCount++;
-                    } elseif (str_contains($rawStatus, 'deliver')) {
-                        $log->markAsDelivered();
-                        $syncedCount++;
-                    } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
+                    } elseif (str_contains($rawStatus, 'deliver') || $rawStatus === '2' || $stateVal === '2' || $stateId === '2') {
+                        if ($log->status !== 'read') {
+                            $log->markAsDelivered();
+                            $syncedCount++;
+                        }
+                    } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) || $rawStatus === '0' || $stateVal === '0' || $stateId === '0') {
                         $log->markAsFailed($json['reason'] ?? "Fonnte status: {$rawStatus}");
                         $syncedCount++;
                     }
@@ -595,11 +600,16 @@ class WhatsAppController extends Controller
                     $rawStatus = strtolower(trim((string) $json['status']));
                 }
 
-                if (str_contains($rawStatus, 'read')) {
+                $stateVal = strtolower(trim((string) ($json['state'] ?? '')));
+                $stateId = trim((string) ($json['stateid'] ?? ''));
+
+                if (str_contains($rawStatus, 'read') || $rawStatus === '3' || $stateVal === '3' || $stateId === '3') {
                     $log->markAsRead();
-                } elseif (str_contains($rawStatus, 'deliver')) {
-                    $log->markAsDelivered();
-                } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
+                } elseif (str_contains($rawStatus, 'deliver') || $rawStatus === '2' || $stateVal === '2' || $stateId === '2') {
+                    if ($log->status !== 'read') {
+                        $log->markAsDelivered();
+                    }
+                } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) || $rawStatus === '0' || $stateVal === '0' || $stateId === '0') {
                     $log->markAsFailed($json['reason'] ?? "Fonnte status: {$rawStatus}");
                 }
 
