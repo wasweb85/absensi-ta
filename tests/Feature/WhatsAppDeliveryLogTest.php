@@ -252,4 +252,98 @@ class WhatsAppDeliveryLogTest extends TestCase
         $log->refresh();
         $this->assertEquals('delivered', $log->status);
     }
+
+    public function test_webhook_status_works_without_api_prefix_and_bypasses_csrf(): void
+    {
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_no_api_prefix_01',
+        ]);
+
+        $res = $this->postJson('/webhook/whatsapp/status', [
+            'id' => 'msg_no_api_prefix_01',
+            'state' => 'read',
+        ]);
+
+        $res->assertStatus(200);
+        $res->assertJson(['success' => true]);
+
+        $log->refresh();
+        $this->assertEquals('read', $log->status);
+    }
+
+    public function test_webhook_handles_status_delivered_with_state_success(): void
+    {
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_state_success_01',
+        ]);
+
+        $res = $this->postJson('/api/webhook/whatsapp/status', [
+            'id' => 'msg_state_success_01',
+            'status' => 'delivered',
+            'state' => 'success',
+            'stateid' => '3',
+        ]);
+
+        $res->assertStatus(200);
+        $log->refresh();
+        $this->assertEquals('delivered', $log->status);
+    }
+
+    public function test_api_sync_status_updates_logs_from_fonnte(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_sync_test_888',
+        ]);
+
+        Http::fake([
+            'https://api.fonnte.com/status' => Http::response([
+                'status' => true,
+                'id' => 'msg_sync_test_888',
+                'message_status' => 'delivered',
+            ], 200),
+        ]);
+
+        $res = $this->postJson('/api/wa/logs/sync-status');
+
+        $res->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'synced_count' => 1,
+            ]);
+
+        $log->refresh();
+        $this->assertEquals('delivered', $log->status);
+    }
+
+    public function test_api_sync_single_status(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_single_sync_999',
+        ]);
+
+        Http::fake([
+            'https://api.fonnte.com/status' => Http::response([
+                'status' => true,
+                'id' => 'msg_single_sync_999',
+                'message_status' => 'read',
+            ], 200),
+        ]);
+
+        $res = $this->postJson("/api/wa/logs/{$log->id}/sync-status");
+
+        $res->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'status' => 'read',
+                ],
+            ]);
+
+        $log->refresh();
+        $this->assertEquals('read', $log->status);
+    }
 }

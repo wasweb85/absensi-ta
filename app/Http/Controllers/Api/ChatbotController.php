@@ -240,13 +240,21 @@ class ChatbotController extends Controller
             ]);
         }
 
-        $device = (string) ($request->input('device') ?? '');
-        $status = strtolower(trim((string) ($request->input('status') ?? '')));
+        $data = $request->all();
+        if (empty($data)) {
+            $rawContent = $request->getContent();
+            if (! empty($rawContent)) {
+                $data = json_decode($rawContent, true) ?: [];
+            }
+        }
+
+        $device = (string) ($data['device'] ?? $request->input('device') ?? '');
+        $status = strtolower(trim((string) ($data['status'] ?? $request->input('status') ?? '')));
 
         Log::info('Fonnte Webhook Connect Event', [
             'device' => $device,
             'status' => $status,
-            'payload' => $request->all(),
+            'payload' => $data,
         ]);
 
         return response()->json([
@@ -262,44 +270,104 @@ class ChatbotController extends Controller
      */
     protected function processMessageStatusUpdate(Request $request): ?JsonResponse
     {
-        $rawId = $request->input('id');
+        $data = $request->all();
+        if (empty($data)) {
+            $rawContent = $request->getContent();
+            if (! empty($rawContent)) {
+                $data = json_decode($rawContent, true) ?: [];
+            }
+        }
+
+        $rawId = $data['id'] ?? $request->input('id');
         if (empty($rawId)) {
             return null;
         }
 
-        $msgId = is_array($rawId) ? (string) ($rawId[0] ?? '') : (string) $rawId;
-        $stateRaw = $request->input('state') ?: $request->input('status');
-        $state = strtolower(trim((string) $stateRaw));
+        $msgId = trim((string) (is_array($rawId) ? ($rawId[0] ?? '') : $rawId));
+        $stateVal = strtolower(trim((string) ($data['state'] ?? $request->input('state') ?? '')));
+        $statusVal = strtolower(trim((string) ($data['status'] ?? $request->input('status') ?? '')));
+        $msgStatusVal = strtolower(trim((string) ($data['message_status'] ?? $request->input('message_status') ?? '')));
+        $stateId = trim((string) ($data['stateid'] ?? $request->input('stateid') ?? ''));
 
-        if (empty($state)) {
+        if (empty($stateVal) && empty($statusVal) && empty($msgStatusVal) && empty($stateId)) {
             return null;
         }
 
         Log::info('Fonnte Webhook Message Status update received', [
             'id' => $msgId,
-            'state' => $state,
-            'status' => $request->input('status'),
-            'stateid' => $request->input('stateid'),
-            'payload' => $request->all(),
+            'state' => $stateVal,
+            'status' => $statusVal,
+            'message_status' => $msgStatusVal,
+            'stateid' => $stateId,
+            'payload' => $data,
         ]);
 
         $log = WhatsAppLog::where('fonnte_id', $msgId)
             ->orWhere('id', is_numeric($msgId) ? (int) $msgId : -1)
             ->first();
 
-        if ($log) {
-            if ($state === 'read') {
-                $log->markAsRead();
-            } elseif ($state === 'delivered') {
-                $log->markAsDelivered();
-            } elseif ($state === 'sent') {
-                $log->markAsSent($msgId);
-            } elseif (in_array($state, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
-                $reason = $request->input('reason') ?: $request->input('detail') ?: "Fonnte status: {$state}";
-                $log->markAsFailed((string) $reason);
+        // Fallback pencarian: jika fonnte_id belum cocok, cocokkan dengan nomor tujuan terbaru
+        if (! $log) {
+            $target = $data['target'] ?? $data['device'] ?? null;
+            if ($target) {
+                $targetNorm = WhatsAppService::normalizePhone((string) $target);
+                if (! empty($targetNorm)) {
+                    $log = WhatsAppLog::where('nomor_tujuan', $targetNorm)
+                        ->where('status', '!=', 'read')
+                        ->latest('id')
+                        ->first();
+                    if ($log && empty($log->fonnte_id)) {
+                        $log->update(['fonnte_id' => $msgId]);
+                    }
+                }
             }
+        }
+
+        $matchedAction = 'none';
+        if ($log) {
+            if (
+                $stateVal === 'read' ||
+                $statusVal === 'read' ||
+                $msgStatusVal === 'read' ||
+                str_contains($stateVal, 'read') ||
+                str_contains($statusVal, 'read')
+            ) {
+                $log->markAsRead();
+                $matchedAction = 'read';
+            } elseif (
+                $stateVal === 'delivered' ||
+                $statusVal === 'delivered' ||
+                $msgStatusVal === 'delivered' ||
+                str_contains($stateVal, 'deliver') ||
+                str_contains($statusVal, 'deliver')
+            ) {
+                $log->markAsDelivered();
+                $matchedAction = 'delivered';
+            } elseif (
+                $stateVal === '0' ||
+                in_array($stateVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
+                in_array($statusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
+                in_array($msgStatusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)
+            ) {
+                $reason = $data['reason'] ?? $data['detail'] ?? ($stateVal === '0' ? 'Pesan tidak terkirim (Fonnte state: 0 / limit WhatsApp)' : "Fonnte status: {$stateVal}/{$statusVal}");
+                $log->markAsFailed((string) $reason);
+                $matchedAction = 'failed';
+            } elseif (
+                $stateVal === 'sent' ||
+                $statusVal === 'sent' ||
+                $stateVal === 'success' ||
+                $statusVal === 'processing' ||
+                str_contains($statusVal, 'sent')
+            ) {
+                $log->markAsSent($msgId);
+                $matchedAction = 'sent';
+            }
+
+            Log::info("Fonnte Webhook Status: WhatsAppLog #{$log->id} updated to '{$log->status}' via action '{$matchedAction}'");
         } else {
-            Log::warning("Fonnte Webhook Status: WhatsAppLog not found for fonnte_id '{$msgId}'");
+            Log::warning("Fonnte Webhook Status: WhatsAppLog not found for ID '{$msgId}'", [
+                'payload' => $data,
+            ]);
         }
 
         return response()->json([
@@ -307,7 +375,9 @@ class ChatbotController extends Controller
             'message' => 'Status pesan berhasil diperbarui.',
             'matched' => (bool) $log,
             'fonnte_id' => $msgId,
-            'state' => $state,
+            'state' => $stateVal ?: $statusVal,
+            'action' => $matchedAction,
+            'current_status' => $log?->status,
         ]);
     }
 }

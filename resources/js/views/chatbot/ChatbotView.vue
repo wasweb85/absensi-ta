@@ -534,6 +534,17 @@
           </div>
         </div>
 
+        <!-- WARNING AUTO-READ OFF DARI DASHBOARD FONNTE -->
+        <div class="p-3.5 rounded-xl border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/40 space-y-1.5 shadow-sm text-xs">
+          <div class="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold">
+            <span class="size-2 rounded-full bg-amber-600 animate-ping"></span>
+            <span>LANGKAH WAJIB: Aktifkan "autoread" di Dashboard Fonnte!</span>
+          </div>
+          <p class="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+            Di dashboard Fonnte tepat di bawah form Webhook, pastikan toggle <b>autoread</b> diubah ke posisi <b>ON</b>. Jika bernilai <b>Off</b>, WhatsApp tidak akan meneruskan event status terbaca (Centang 2 Biru) ke Fonnte.
+          </p>
+        </div>
+
         <div class="rounded-lg border p-4 bg-muted/20 space-y-2 text-xs">
           <p class="font-semibold text-foreground">Langkah Pemasangan di Dashboard Fonnte:</p>
           <ol class="list-decimal list-inside space-y-1.5 text-muted-foreground">
@@ -546,6 +557,7 @@
                 <li>Kolom <b>Webhook Message Status ?</b>: Tempelkan URL #3 (agar centang dua terdeteksi)</li>
               </ul>
             </li>
+            <li>Geser toggle <b>autoread</b> di bagian bawah menjadi <b>ON</b>.</li>
             <li>Klik tombol <b>Save</b> di Fonnte.</li>
           </ol>
         </div>

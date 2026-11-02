@@ -12,7 +12,19 @@
         </Badge>
       </div>
 
-      <div v-if="canManageWaLogs" class="flex items-center gap-2">
+      <div v-if="canManageWaLogs" class="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 text-xs text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/40"
+          :disabled="isSyncingStatus"
+          @click="handleSyncStatus"
+        >
+          <RefreshCw v-if="isSyncingStatus" class="size-3.5 animate-spin" />
+          <RefreshCw v-else class="size-3.5" />
+          <span>Sinkron Status Fonnte</span>
+        </Button>
+
         <Button
           variant="outline"
           size="sm"
@@ -541,11 +553,24 @@
           </div>
         </div>
 
-        <DialogFooter class="pt-2">
+        <DialogFooter class="pt-2 flex items-center justify-between sm:justify-between">
+          <Button
+            v-if="selectedItem?.fonnte_id"
+            variant="outline"
+            size="sm"
+            class="text-xs gap-1.5 text-sky-600 dark:text-sky-400"
+            :disabled="isSyncingSingleId === selectedItem?.id"
+            @click="syncSingle(selectedItem?.id)"
+          >
+            <RefreshCw v-if="isSyncingSingleId === selectedItem?.id" class="size-3.5 animate-spin" />
+            <RefreshCw v-else class="size-3.5" />
+            <span>Cek Status Fonnte</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
-            class="text-xs"
+            class="text-xs ml-auto"
             @click="detailModalOpen = false"
           >
             Tutup
@@ -568,6 +593,31 @@
         </DialogHeader>
 
         <div class="space-y-3.5 text-xs pt-1 max-h-[65vh] overflow-y-auto pr-1">
+          <!-- WARNING AUTO-READ OFF DARI DASHBOARD FONNTE -->
+          <div class="p-3.5 rounded-xl border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/40 space-y-1.5 shadow-sm">
+            <div class="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
+              <AlertTriangle class="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>LANGKAH WAJIB: Aktifkan "autoread" di Dashboard Fonnte!</span>
+            </div>
+            <p class="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+              Di dashboard Fonnte tepat di bawah kolom Webhook (seperti yang terlihat pada tangkapan layar Anda), toggle <b>autoread</b> saat ini berstatus <span class="px-1.5 py-0.5 rounded bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 font-bold">Off</span>.
+              <br />
+              👉 <b>Wajib geser toggle "autoread" menjadi ON (Aktif)</b>. Dokumentasi resmi Fonnte mewajibkan Auto Read aktif agar Fonnte dapat mendeteksi dan mengirimkan webhook status <b>Tersampaikan (✓✓)</b> dan <b>Dibaca (✓✓ Biru)</b> ke sistem!
+            </p>
+          </div>
+
+          <!-- LOCALHOST NOTICE -->
+          <div class="p-3 rounded-xl border border-sky-200 dark:border-sky-900 bg-sky-50/60 dark:bg-sky-950/30 space-y-1 text-sky-900 dark:text-sky-300">
+            <div class="font-semibold flex items-center gap-1.5 text-xs">
+              <Info class="size-3.5 text-sky-600 dark:text-sky-400" />
+              <span>Untuk Komputer Lokal (Localhost / Laragon)</span>
+            </div>
+            <p class="text-[11px] leading-relaxed text-sky-800/90 dark:text-sky-300/90">
+              Server Fonnte di cloud internet tidak bisa menjangkau domain <code class="bg-sky-100 dark:bg-sky-900/60 px-1 py-0.5 rounded font-mono">localhost</code> secara langsung kecuali menggunakan tunnel (Ngrok / Cloudflare).
+              Sebagai solusinya, gunakan tombol <b>"Sinkron Status Fonnte"</b> di atas untuk menarik update centang pesan secara langsung kapan saja!
+            </p>
+          </div>
+
           <!-- Kolom 1 -->
           <div class="p-3 rounded-xl border bg-muted/20 space-y-1.5">
             <div class="flex items-center justify-between">
@@ -639,6 +689,8 @@ import {
   CheckCheck,
   Check,
   RotateCw,
+  RefreshCw,
+  AlertTriangle,
   Send,
   AlertCircle,
   ExternalLink,
@@ -681,6 +733,8 @@ const { canManageWaLogs } = useAuth();
 const logs = ref([]);
 const isLoading = ref(false);
 const isRetryingBulk = ref(false);
+const isSyncingStatus = ref(false);
+const isSyncingSingleId = ref(null);
 const retryingId = ref(null);
 
 const summary = ref({
@@ -785,6 +839,45 @@ function resetFilters() {
   startDate.value = '';
   endDate.value = '';
   fetchLogs(1);
+}
+
+async function handleSyncStatus() {
+  isSyncingStatus.value = true;
+  try {
+    const res = await api.post('/wa/logs/sync-status');
+    if (res.data?.success) {
+      toast.success(res.data.message || 'Pemeriksaan status Fonnte selesai.');
+      await fetchLogs(pagination.value.current_page);
+    } else {
+      toast.error(res.data?.message || 'Gagal memeriksa status Fonnte.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Terjadi kesalahan saat memeriksa status ke server Fonnte.';
+    toast.error(msg);
+  } finally {
+    isSyncingStatus.value = false;
+  }
+}
+
+async function syncSingle(id) {
+  if (!id) return;
+  isSyncingSingleId.value = id;
+  try {
+    const res = await api.post(`/wa/logs/${id}/sync-status`);
+    if (res.data?.success) {
+      toast.success(res.data.message || 'Status pesan berhasil disinkronkan.');
+      if (selectedItem.value && selectedItem.value.id === id) {
+        selectedItem.value = res.data.data;
+      }
+      await fetchLogs(pagination.value.current_page);
+    } else {
+      toast.error(res.data?.message || 'Gagal sinkron status.');
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Gagal menghubungi gateway Fonnte.');
+  } finally {
+    isSyncingSingleId.value = null;
+  }
 }
 
 async function retryMessage(item) {

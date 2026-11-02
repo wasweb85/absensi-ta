@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppController extends Controller
 {
@@ -480,5 +481,148 @@ class WhatsAppController extends Controller
             'success' => true,
             'message' => 'Catatan log berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * Sinkronisasi status pesan pengiriman secara proaktif dari server Fonnte
+     */
+    public function syncStatus(Request $request): JsonResponse
+    {
+        $token = Pengaturan::getValue('fonnte_token');
+        if (empty($token)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token API Fonnte belum dikonfigurasi di Pengaturan.',
+            ], 422);
+        }
+
+        $logs = WhatsAppLog::query()
+            ->whereIn('status', ['sent', 'pending'])
+            ->whereNotNull('fonnte_id')
+            ->where('fonnte_id', '!=', '')
+            ->latest('id')
+            ->take(30)
+            ->get();
+
+        if ($logs->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua status pesan sudah final atau belum ada ID pesan gateway.',
+                'synced_count' => 0,
+            ]);
+        }
+
+        $syncedCount = 0;
+        foreach ($logs as $log) {
+            try {
+                $response = Http::withoutVerifying()->timeout(8)->withHeaders([
+                    'Authorization' => $token,
+                ])->post('https://api.fonnte.com/status', [
+                    'id' => $log->fonnte_id,
+                ]);
+
+                if ($response->successful()) {
+                    $json = $response->json();
+                    $rawStatus = '';
+                    if (! empty($json['message_status'])) {
+                        $rawStatus = strtolower(trim((string) $json['message_status']));
+                    } elseif (! empty($json['state'])) {
+                        $rawStatus = strtolower(trim((string) $json['state']));
+                    } elseif (isset($json['status']) && ! is_bool($json['status'])) {
+                        $rawStatus = strtolower(trim((string) $json['status']));
+                    }
+
+                    if (str_contains($rawStatus, 'read')) {
+                        $log->markAsRead();
+                        $syncedCount++;
+                    } elseif (str_contains($rawStatus, 'deliver')) {
+                        $log->markAsDelivered();
+                        $syncedCount++;
+                    } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
+                        $log->markAsFailed($json['reason'] ?? "Fonnte status: {$rawStatus}");
+                        $syncedCount++;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Gagal query status Fonnte ID {$log->fonnte_id}: ".$e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Pemeriksaan status Fonnte selesai. {$syncedCount} pesan berhasil diperbarui.",
+            'synced_count' => $syncedCount,
+        ]);
+    }
+
+    /**
+     * Sinkronisasi status satu pesan spesifik berdasarkan ID
+     */
+    public function syncSingleStatus(int $id): JsonResponse
+    {
+        $log = WhatsAppLog::findOrFail($id);
+
+        if (empty($log->fonnte_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesan ini belum memiliki ID pesan dari Fonnte.',
+            ], 422);
+        }
+
+        $token = Pengaturan::getValue('fonnte_token');
+        if (empty($token)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token API Fonnte belum dikonfigurasi.',
+            ], 422);
+        }
+
+        try {
+            $response = Http::withoutVerifying()->timeout(10)->withHeaders([
+                'Authorization' => $token,
+            ])->post('https://api.fonnte.com/status', [
+                'id' => $log->fonnte_id,
+            ]);
+
+            if ($response->successful()) {
+                $json = $response->json();
+                $rawStatus = '';
+                if (! empty($json['message_status'])) {
+                    $rawStatus = strtolower(trim((string) $json['message_status']));
+                } elseif (! empty($json['state'])) {
+                    $rawStatus = strtolower(trim((string) $json['state']));
+                } elseif (isset($json['status']) && ! is_bool($json['status'])) {
+                    $rawStatus = strtolower(trim((string) $json['status']));
+                }
+
+                if (str_contains($rawStatus, 'read')) {
+                    $log->markAsRead();
+                } elseif (str_contains($rawStatus, 'deliver')) {
+                    $log->markAsDelivered();
+                } elseif (in_array($rawStatus, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
+                    $log->markAsFailed($json['reason'] ?? "Fonnte status: {$rawStatus}");
+                }
+
+                $log->refresh();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Status pesan berhasil diperbarui: {$log->status}",
+                    'data' => $log,
+                    'gateway_response' => $json,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Fonnte tidak mengembalikan status valid.',
+                'response' => $response->json() ?: $response->body(),
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghubungi gateway Fonnte: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }
