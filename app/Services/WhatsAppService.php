@@ -226,7 +226,7 @@ class WhatsAppService
         try {
             $payload = [
                 'target' => $target,
-                'message' => $message,
+                'message' => $message ?: '',
                 'countryCode' => '62',
             ];
 
@@ -234,23 +234,63 @@ class WhatsAppService
                 $payload['delay'] = (string) $metadata['delay'];
             }
 
-            $request = Http::timeout(25)->withHeaders([
-                'Authorization' => $token,
-            ]);
-
             if ($filePath && file_exists($filePath)) {
-                $request = $request->attach(
-                    'file',
-                    file_get_contents($filePath),
-                    $filename ?: basename($filePath)
-                );
+                // Di environment live, gunakan PHP cURL resmi Fonnte dengan CURLFile agar file gambar terkirim murni
+                if (! app()->runningUnitTests() && function_exists('curl_init')) {
+                    $curl = curl_init();
+                    $postData = [
+                        'target' => $target,
+                        'message' => $message ?: '',
+                        'file' => new \CURLFile($filePath, 'image/png', $filename ?: basename($filePath)),
+                        'countryCode' => '62',
+                    ];
+
+                    if (! empty($metadata['delay'])) {
+                        $postData['delay'] = (string) $metadata['delay'];
+                    }
+
+                    curl_setopt_array($curl, [
+                        CURLOPT_URL => 'https://api.fonnte.com/send',
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_POSTFIELDS => $postData,
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: '.$token,
+                        ],
+                        CURLOPT_TIMEOUT => 30,
+                    ]);
+
+                    $responseBody = curl_exec($curl);
+                    $curlErr = curl_error($curl);
+                    curl_close($curl);
+
+                    if ($curlErr) {
+                        throw new \Exception('Koneksi Fonnte cURL gagal: '.$curlErr);
+                    }
+
+                    $json = json_decode($responseBody, true) ?: [];
+                } else {
+                    $request = Http::timeout(25)->withHeaders([
+                        'Authorization' => $token,
+                    ])->attach(
+                        'file',
+                        file_get_contents($filePath),
+                        $filename ?: basename($filePath),
+                        ['Content-Type' => 'image/png']
+                    );
+
+                    $response = $request->post('https://api.fonnte.com/send', $payload);
+                    $json = $response->json();
+                }
+            } else {
+                $response = Http::timeout(10)->withHeaders([
+                    'Authorization' => $token,
+                ])->post('https://api.fonnte.com/send', $payload);
+
+                $json = $response->json();
             }
 
-            $response = $request->post('https://api.fonnte.com/send', $payload);
-
-            $json = $response->json();
-
-            if ($response->successful() && isset($json['status']) && $json['status'] == true) {
+            if (isset($json['status']) && $json['status'] == true) {
                 $fonnteId = null;
                 if (isset($json['id'])) {
                     $fonnteId = is_array($json['id']) ? ($json['id'][0] ?? null) : (string) $json['id'];

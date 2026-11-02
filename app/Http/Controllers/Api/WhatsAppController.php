@@ -207,7 +207,7 @@ class WhatsAppController extends Controller
     {
         $request->validate([
             'phone' => 'required|string',
-            'message' => 'required|string',
+            'message' => 'nullable|string',
             'image' => 'nullable|file|mimes:jpeg,png,jpg|max:5120',
             'image_base64' => 'nullable|string',
             'nama_penerima' => 'nullable|string|max:100',
@@ -215,7 +215,7 @@ class WhatsAppController extends Controller
         ]);
 
         $phone = (string) $request->input('phone');
-        $message = (string) $request->input('message');
+        $message = (string) ($request->input('message') ?? '');
         $nomorKuitansi = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) $request->input('nomor_kuitansi', 'SPP'));
         $filename = 'Kuitansi-'.($nomorKuitansi ?: 'SPP').'.png';
 

@@ -83,7 +83,7 @@ class WhatsAppKuitansiImageTest extends TestCase
 
         $response = $this->postJson('/api/wa/send-kuitansi-image', [
             'phone' => '08123456789',
-            'message' => 'Bukti Pembayaran SPP Resmi',
+            'message' => '',
             'nomor_kuitansi' => 'KW-202611-0002',
             'nama_penerima' => 'Khowas',
             'image_base64' => $dummyPngBase64,
@@ -93,6 +93,34 @@ class WhatsAppKuitansiImageTest extends TestCase
         $response->assertJson([
             'success' => true,
             'fonnte_id' => 'kw_msg_002',
+        ]);
+    }
+
+    public function test_send_kuitansi_image_without_message(): void
+    {
+        Http::fake([
+            'https://api.fonnte.com/send' => Http::response([
+                'status' => true,
+                'id' => ['kw_msg_003'],
+                'target' => ['628123456789'],
+            ], 200),
+        ]);
+
+        Sanctum::actingAs($this->bendahara);
+
+        $dummyPngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        $response = $this->postJson('/api/wa/send-kuitansi-image', [
+            'phone' => '08123456789',
+            'nomor_kuitansi' => 'KW-202611-0003',
+            'nama_penerima' => 'Khowas',
+            'image_base64' => $dummyPngBase64,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'fonnte_id' => 'kw_msg_003',
         ]);
     }
 }
