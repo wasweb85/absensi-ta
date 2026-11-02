@@ -1,34 +1,36 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+  <div class="space-y-4 animate-fadeIn">
+    <!-- Header Page: Clean, Proportional & Tanpa Card Berlebihan -->
+    <div class="flex flex-wrap items-center justify-between gap-2.5 print:hidden">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <BaseIcon name="megaphone" class="w-5 h-5" />
-          </div>
-          <span>Broadcast & Pengingat WhatsApp SPP</span>
+        <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
+          Himbauan WhatsApp SPP
         </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Kirim notifikasi tagihan SPP langsung ke nomor WhatsApp orang tua atau wali kelas via Gateway Fonnte & tautan wa.me
-        </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2">
         <button
           @click="testGateway"
           :disabled="isTesting"
-          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
         >
-          <BaseIcon v-if="isTesting" name="refresh" class="w-4 h-4 animate-spin text-emerald-600" />
-          <BaseIcon v-else name="antenna" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>Tes Gateway Fonnte</span>
+          <BaseIcon v-if="isTesting" name="refresh" class="w-3.5 h-3.5 animate-spin text-emerald-600" />
+          <BaseIcon v-else name="antenna" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Tes Gateway</span>
         </button>
+
+        <router-link
+          to="/spp/tagihan"
+          class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition flex items-center gap-1.5 shadow-sm"
+        >
+          <BaseIcon name="document-text" class="w-3.5 h-3.5 text-zinc-400" />
+          <span>Tagihan &rarr;</span>
+        </router-link>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="flex border-b border-zinc-200 dark:border-zinc-800 space-x-2">
+    <!-- Navigation Tabs: Compact & Proporsional -->
+    <div class="flex border-b border-zinc-200 dark:border-zinc-800 space-x-1 sm:space-x-2">
       <button
         @click="activeTab = 'grup'"
         :class="[
@@ -36,9 +38,9 @@
             ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
             : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium'
         ]"
-        class="pb-3 px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+        class="pb-2.5 px-3 text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition cursor-pointer"
       >
-        <BaseIcon name="guru" class="w-4 h-4" />
+        <BaseIcon name="guru" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         <span>Himbauan Grup Jilid</span>
       </button>
 
@@ -49,27 +51,30 @@
             ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 font-bold border-b-2'
             : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium'
         ]"
-        class="pb-3 px-4 text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+        class="pb-2.5 px-3 text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition cursor-pointer"
       >
-        <BaseIcon name="user" class="w-4 h-4" />
+        <BaseIcon name="user" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         <span>Rekap ke Wali Jilid</span>
       </button>
     </div>
 
     <!-- TAB 1: BROADCAST GRUP JILID -->
-    <div v-if="activeTab === 'grup'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-5 space-y-4">
-        <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Pilih Jilid & Periode
+    <div v-if="activeTab === 'grup'" class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+      <div class="lg:col-span-5 space-y-3">
+        <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-2.5 sm:space-y-3">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <BaseIcon name="filter" class="w-3.5 h-3.5" />
+            <span>Pilih Jilid & Periode</span>
           </h3>
 
           <div>
-            <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Jilid / Kelas *</label>
+            <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+              Jilid / Kelas *
+            </label>
             <select
               v-model="grupKelasId"
               @change="fetchGrupPreview"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
               <option value="">-- Pilih Kelas --</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">
@@ -78,23 +83,27 @@
             </select>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
             <div>
-              <label class="block font-medium text-zinc-600 dark:text-zinc-400 mb-1">Bulan</label>
+              <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+                Bulan
+              </label>
               <select
                 v-model="grupBulan"
                 @change="fetchGrupPreview"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
               </select>
             </div>
             <div>
-              <label class="block font-medium text-zinc-600 dark:text-zinc-400 mb-1">Tahun</label>
+              <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+                Tahun
+              </label>
               <select
                 v-model="grupTahun"
                 @change="fetchGrupPreview"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
               </select>
@@ -103,25 +112,28 @@
         </div>
       </div>
 
-      <div class="lg:col-span-7 space-y-4">
-        <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-3">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Preview Pesan Himbauan Grup Jilid
-          </h3>
+      <div class="lg:col-span-7 space-y-3">
+        <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-2.5 sm:space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <BaseIcon name="message-square" class="w-3.5 h-3.5" />
+              <span>Preview Pesan Himbauan Grup Jilid</span>
+            </h3>
+          </div>
 
-          <div class="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 font-mono text-xs text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed min-h-[160px]">
+          <div class="p-3 sm:p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/60 font-mono text-xs text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed min-h-[160px] max-h-[380px] overflow-y-auto">
             <span v-if="isLoadingGrup" class="text-zinc-400 italic">Menyiapkan pengumuman grup...</span>
-            <span v-else-if="!grupMessage" class="text-zinc-400 italic">Pilih Jilid/Kelas untuk melihat preview pesan siaran grup.</span>
+            <span v-else-if="!grupMessage" class="text-zinc-400 italic">Pilih Jilid / Kelas untuk melihat preview pesan siaran grup.</span>
             <span v-else>{{ grupMessage }}</span>
           </div>
 
-          <div class="flex items-center gap-2 pt-2">
+          <div class="flex items-center gap-2 pt-1">
             <button
               @click="copyText(grupMessage)"
               :disabled="!grupMessage"
-              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              class="h-8 px-3 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
             >
-              <BaseIcon name="copy" class="w-4 h-4" />
+              <BaseIcon name="copy" class="w-3.5 h-3.5" />
               <span>Salin Pesan untuk Grup WA</span>
             </button>
           </div>
@@ -129,20 +141,23 @@
       </div>
     </div>
 
-    <!-- TAB 3: REKAP KE WALI JILID -->
-    <div v-else-if="activeTab === 'wali_jilid'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-5 space-y-4">
-        <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Pilih Jilid & Wali Kelas
+    <!-- TAB 2: REKAP KE WALI JILID -->
+    <div v-else-if="activeTab === 'wali_jilid'" class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+      <div class="lg:col-span-5 space-y-3">
+        <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-2.5 sm:space-y-3">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <BaseIcon name="filter" class="w-3.5 h-3.5" />
+            <span>Pilih Jilid & Wali Kelas</span>
           </h3>
 
           <div>
-            <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Jilid / Kelas *</label>
+            <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+              Jilid / Kelas *
+            </label>
             <select
               v-model="waliKelasId"
               @change="fetchWaliPreview"
-              class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
               <option value="">-- Pilih Kelas --</option>
               <option v-for="k in kelasList" :key="k.id" :value="k.id">
@@ -151,23 +166,27 @@
             </select>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
             <div>
-              <label class="block font-medium text-zinc-600 dark:text-zinc-400 mb-1">Bulan</label>
+              <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+                Bulan
+              </label>
               <select
                 v-model="waliBulan"
                 @change="fetchWaliPreview"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option v-for="(nama, num) in bulanList" :key="num" :value="num">{{ nama }}</option>
               </select>
             </div>
             <div>
-              <label class="block font-medium text-zinc-600 dark:text-zinc-400 mb-1">Tahun</label>
+              <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+                Tahun
+              </label>
               <select
                 v-model="waliTahun"
                 @change="fetchWaliPreview"
-                class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
               </select>
@@ -176,31 +195,32 @@
         </div>
       </div>
 
-      <div class="lg:col-span-7 space-y-4">
-        <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-3">
+      <div class="lg:col-span-7 space-y-3">
+        <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-2.5 sm:space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Preview Laporan Rekap ke Wali Jilid
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <BaseIcon name="message-square" class="w-3.5 h-3.5" />
+              <span>Preview Laporan Rekap ke Wali Jilid</span>
             </h3>
             <span v-if="waliTargetPhone" class="text-[11px] font-mono font-semibold text-zinc-500">
-              WA Wali: {{ waliTargetPhone }}
+              WA: {{ waliTargetPhone }}
             </span>
           </div>
 
-          <div class="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 font-mono text-xs text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed min-h-[160px]">
+          <div class="p-3 sm:p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/60 font-mono text-xs text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed min-h-[160px] max-h-[380px] overflow-y-auto">
             <span v-if="isLoadingWali" class="text-zinc-400 italic">Mengkalkulasi rekap santri menunggak...</span>
-            <span v-else-if="!waliMessage" class="text-zinc-400 italic">Pilih Jilid/Kelas untuk melihat rekap santri menunggak yang siap dikirimkan ke Ustadz/Ustadzah Wali.</span>
+            <span v-else-if="!waliMessage" class="text-zinc-400 italic">Pilih Jilid / Kelas untuk melihat rekap santri menunggak yang siap dikirimkan ke Ustadz/Ustadzah Wali.</span>
             <span v-else>{{ waliMessage }}</span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 pt-2">
+          <div class="flex flex-wrap items-center gap-2 pt-1">
             <button
               @click="sendViaFonnte(waliTargetPhone, waliMessage)"
               :disabled="!waliMessage || !waliTargetPhone || isSending"
-              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="h-8 px-3 sm:px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <BaseIcon v-if="isSending" name="refresh" class="w-4 h-4 animate-spin" />
-              <BaseIcon v-else name="send" class="w-4 h-4" />
+              <BaseIcon v-if="isSending" name="refresh" class="w-3.5 h-3.5 animate-spin" />
+              <BaseIcon v-else name="send" class="w-3.5 h-3.5" />
               <span>Kirim ke Wali (Fonnte API)</span>
             </button>
 
@@ -208,18 +228,18 @@
               v-if="waliWaMeLink"
               :href="waliWaMeLink"
               target="_blank"
-              class="px-4 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 font-bold text-xs transition flex items-center gap-1.5"
+              class="h-8 px-3 sm:px-3.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 font-bold text-xs transition flex items-center gap-1.5 shadow-sm"
             >
-              <BaseIcon name="whatsapp" class="w-4 h-4 text-emerald-500" />
-              <span>Buka di WA Web / App</span>
+              <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-500" />
+              <span>Buka di WA</span>
             </a>
 
             <button
               @click="copyText(waliMessage)"
               :disabled="!waliMessage"
-              class="px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-sm"
             >
-              <BaseIcon name="copy" class="w-4 h-4" />
+              <BaseIcon name="copy" class="w-3.5 h-3.5" />
               <span>Salin Teks</span>
             </button>
           </div>
