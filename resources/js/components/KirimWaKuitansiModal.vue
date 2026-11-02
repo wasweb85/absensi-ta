@@ -102,11 +102,15 @@
         </div>
 
         <!-- Info Card Singkat -->
-        <div class="p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
-          <span class="font-bold text-xs">ℹ</span>
-          <p class="leading-relaxed">
-            Hanya <b>gambar kuitansi resmi</b> yang dikirimkan (tanpa teks penjelasan). Gunakan <b>Kirim via Gateway</b> untuk kirim gambar otomatis dari server, atau klik <b>Unduh PNG</b> bila ingin menyimpan gambar ke perangkat.
-          </p>
+        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1.5">
+          <div class="flex items-start gap-1.5 font-bold">
+            <span>💡</span>
+            <span>Panduan Pengiriman di HP:</span>
+          </div>
+          <ul class="list-disc pl-5 space-y-0.5 text-[10.5px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+            <li><b>Kirim via Gateway (Paling Praktis):</b> Otomatis terkirim dari server ke WhatsApp wali santri tanpa perlu membuka WhatsApp atau paste.</li>
+            <li><b>Bagikan ke WA (Bawaan HP):</b> Menempelkan gambar kuitansi langsung ke WhatsApp via menu bagikan HP tanpa perlu simpan ke galeri atau paste.</li>
+          </ul>
         </div>
 
       </div>
@@ -117,7 +121,7 @@
           <button
             type="button"
             @click="emit('close')"
-            class="h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
+            class="h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
           >
             Tutup
           </button>
@@ -127,7 +131,7 @@
             v-if="imageUrl"
             type="button"
             @click="downloadImage"
-            class="h-8 px-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+            class="h-8 px-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
             title="Unduh file gambar kuitansi ke perangkat"
           >
             <Download class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
@@ -135,13 +139,13 @@
           </button>
         </div>
 
-        <div class="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <!-- Tombol Kirim Gateway (Fonnte API) Mengirimkan Gambar Murni -->
+        <div class="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
+          <!-- Tombol Kirim Gateway (Fonnte API) Mengirimkan Gambar Murni Langsung ke Wali Santri -->
           <button
             type="button"
             @click="sendViaGateway"
             :disabled="!targetPhone || isSendingGateway || isGenerating"
-            class="h-8 px-3.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+            class="h-8 px-3 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
             title="Kirim gambar kuitansi langsung ke WhatsApp wali santri via gateway server"
           >
             <RefreshCw v-if="isSendingGateway" class="w-3.5 h-3.5 animate-spin" />
@@ -149,16 +153,29 @@
             <span>{{ isSendingGateway ? 'Mengirim...' : 'Kirim via Gateway' }}</span>
           </button>
 
-          <!-- Tombol Utama: Buka Chat Langsung ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak & TANPA auto download) -->
+          <!-- Tombol Bagikan Gambar HP (Web Share API - Langsung Nempel Gambar Tanpa Paste & Tanpa Galeri) -->
+          <button
+            v-if="canShareMobile"
+            type="button"
+            @click="shareViaMobile"
+            :disabled="isGenerating || !imageFile"
+            class="h-8 px-3.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md shadow-teal-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Bagikan kuitansi langsung ke WhatsApp via menu HP (tanpa paste)"
+          >
+            <Share2 class="w-3.5 h-3.5" />
+            <span>Bagikan ke WA (HP)</span>
+          </button>
+
+          <!-- Tombol Buka Chat WhatsApp Langsung ke Nomor Wali Santri -->
           <button
             type="button"
             @click="sendDirectWhatsApp"
             :disabled="!targetPhone || isGenerating"
-            class="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Buka obrolan WhatsApp langsung ke nomor wali santri"
+            class="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            :title="canShareMobile ? 'Buka ruang obrolan nomor wali santri' : 'Buka obrolan WhatsApp langsung ke nomor wali santri'"
           >
             <BaseIcon name="whatsapp" class="w-3.5 h-3.5" />
-            <span>Kirim ke WA Wali Santri</span>
+            <span>{{ canShareMobile ? 'Buka Chat WA' : 'Kirim ke WA Wali Santri' }}</span>
           </button>
         </div>
       </div>
@@ -167,9 +184,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import BaseIcon from './BaseIcon.vue';
-import { X, RefreshCw, Send, Download } from '@lucide/vue';
+import { X, RefreshCw, Send, Download, Share2 } from '@lucide/vue';
 import { generateKuitansiCanvas } from '../utils/kuitansiCanvas';
 import api from '../services/api';
 import { useToast } from '../composables/useToast';
@@ -194,6 +211,18 @@ const imageUrl = ref('');
 const imageBlob = ref(null);
 const imageFile = ref(null);
 const targetPhone = ref('');
+
+// Cek apakah browser mendukung Web Share dengan file (fitur bawaan smartphone Android & iOS)
+const canShareMobile = computed(() => {
+  if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare || !imageFile.value) {
+    return false;
+  }
+  try {
+    return navigator.canShare({ files: [imageFile.value] });
+  } catch (e) {
+    return false;
+  }
+});
 
 // Format nomor internasional (62...)
 function cleanPhoneNumber(phone) {
@@ -249,6 +278,27 @@ function downloadImage() {
   link.click();
   document.body.removeChild(link);
   toast.success('Gambar kuitansi berhasil diunduh ke perangkat.');
+}
+
+// Fitur Bagikan Bawaan Smartphone (Web Share API: Langsung nempel di WA tanpa copy-paste dan tanpa galeri)
+async function shareViaMobile() {
+  if (!imageFile.value) {
+    toast.warning('Gambar kuitansi belum siap.');
+    return;
+  }
+
+  try {
+    await navigator.share({
+      files: [imageFile.value],
+      title: 'Kuitansi Pembayaran SPP',
+    });
+    toast.success('Membuka menu bagikan. Pilih WhatsApp untuk langsung mengirim kuitansi.');
+    emit('sent');
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.warn('Gagal membagikan kuitansi via Web Share:', err);
+    }
+  }
 }
 
 // 1. Pengiriman Langsung Mengarah Otomatis ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak & TANPA auto download)
