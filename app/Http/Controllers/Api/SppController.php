@@ -352,6 +352,17 @@ class SppController extends Controller
             });
         }
 
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('nomor_kuitansi', 'like', "%{$search}%")
+                    ->orWhereHas('siswa', function ($sq) use ($search) {
+                        $sq->where('nama_lengkap', 'like', "%{$search}%")
+                            ->orWhere('nisn', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         $pembayaran = $query->orderBy('id', 'desc')->paginate(30);
 
         return response()->json([

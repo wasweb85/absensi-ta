@@ -1,94 +1,131 @@
 <template>
-  <div class="space-y-6 animate-fadeIn">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm print:hidden">
+  <div class="space-y-4 animate-fadeIn">
+    <!-- Header Page: Clean, Proportional & Tanpa Card Berlebihan -->
+    <div class="flex flex-wrap items-center justify-between gap-2.5 print:hidden">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <BaseIcon name="riwayat" class="w-5 h-5" />
-          </div>
-          <span>Riwayat Transaksi Pembayaran SPP</span>
+        <h2 class="text-sm sm:text-base md:text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
+          Riwayat Transaksi SPP
         </h2>
-        <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Daftar seluruh kuitansi penerimaan SPP, cetak ulang bukti pembayaran, dan audit pembatalan transaksi
-        </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2">
         <button
           @click="printLaporan"
           :disabled="pembayaranList.length === 0"
-          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-sm"
           title="Cetak Laporan Rekapitulasi Pembayaran SPP"
         >
-          <BaseIcon name="printer" class="w-4 h-4" />
-          <span>Cetak Laporan</span>
+          <BaseIcon name="printer" class="w-3.5 h-3.5 text-zinc-400" />
+          <span class="hidden xs:inline sm:inline">Cetak Laporan</span>
+          <span class="inline xs:hidden sm:hidden">Cetak</span>
         </button>
 
         <button
           @click="exportCsv"
           :disabled="pembayaranList.length === 0"
-          class="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-sm"
         >
-          <BaseIcon name="download" class="w-4 h-4" />
-          <span>Ekspor CSV</span>
+          <BaseIcon name="download" class="w-3.5 h-3.5 text-zinc-400" />
+          <span class="hidden xs:inline sm:inline">Ekspor CSV</span>
+          <span class="inline xs:hidden sm:hidden">CSV</span>
         </button>
 
         <router-link
           to="/spp/input-cepat"
-          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+          class="h-8 px-2.5 sm:px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5"
         >
-          <BaseIcon name="wallet" class="w-4 h-4" />
-          <span>Input Pembayaran</span>
+          <BaseIcon name="wallet" class="w-3.5 h-3.5" />
+          <span>Bayar &rarr;</span>
         </router-link>
       </div>
     </div>
 
-    <!-- Filters Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-xs print:hidden">
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Dari Tanggal</label>
-        <input
-          v-model="filters.tanggal_mulai"
-          type="date"
-          @change="loadRiwayat(1)"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        />
+    <!-- Filter Card: Responsive Mobile 2 Kolom Sejajar & Proposional -->
+    <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-2.5 sm:space-y-3 print:hidden">
+      <!-- Baris 1: Dari Tanggal & Sampai Tanggal Sejajar 2 Kolom -->
+      <div class="grid grid-cols-2 gap-2 sm:gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+            Dari Tanggal
+          </label>
+          <input
+            v-model="filters.tanggal_mulai"
+            type="date"
+            @change="loadRiwayat(1)"
+            class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+            Sampai Tanggal
+          </label>
+          <input
+            v-model="filters.tanggal_selesai"
+            type="date"
+            @change="loadRiwayat(1)"
+            class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          />
+        </div>
       </div>
 
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Sampai Tanggal</label>
-        <input
-          v-model="filters.tanggal_selesai"
-          type="date"
-          @change="loadRiwayat(1)"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        />
+      <!-- Baris 2: Jilid/Kelas & Status Transaksi Sejajar 2 Kolom -->
+      <div class="grid grid-cols-2 gap-2 sm:gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+            Jilid / Kelas
+          </label>
+          <select
+            v-model="filters.id_kelas"
+            @change="loadRiwayat(1)"
+            class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
+            <option value="">Semua Kelas</option>
+            <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+            Status Transaksi
+          </label>
+          <select
+            v-model="filters.status_transaksi"
+            @change="loadRiwayat(1)"
+            class="w-full h-9 px-2.5 sm:px-3 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
+            <option value="">Semua Status</option>
+            <option value="valid">Valid / Sukses</option>
+            <option value="dibatalkan">Dibatalkan</option>
+          </select>
+        </div>
       </div>
 
+      <!-- Baris 3: Kolom Pencarian Nama Santri / No. Kuitansi -->
       <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Jilid / Kelas</label>
-        <select
-          v-model="filters.id_kelas"
-          @change="loadRiwayat(1)"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option value="">Semua Kelas</option>
-          <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-bold text-zinc-500 mb-1">Status Transaksi</label>
-        <select
-          v-model="filters.status_transaksi"
-          @change="loadRiwayat(1)"
-          class="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-        >
-          <option value="">Semua Status</option>
-          <option value="valid">Valid / Sukses</option>
-          <option value="dibatalkan">Dibatalkan</option>
-        </select>
+        <label class="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
+          Pencarian Santri / No. Kuitansi
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none text-zinc-400">
+            <BaseIcon name="search" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </span>
+          <input
+            v-model="filters.search"
+            @input="onSearchInput"
+            type="text"
+            placeholder="Ketik nama santri, NISN, atau no. kuitansi..."
+            class="w-full h-9 pl-8 sm:pl-9 pr-8 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+          />
+          <button
+            v-if="filters.search"
+            @click="clearSearch"
+            type="button"
+            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+          >
+            <BaseIcon name="x-circle" class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -150,7 +187,7 @@
 
     <!-- Table Card -->
     <div
-      class="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden"
+      class="rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden"
       :class="showKuitansiModal ? 'print:hidden' : 'print:border-none print:shadow-none print:p-0 print:overflow-visible'"
     >
       <!-- Loading State -->
@@ -170,16 +207,16 @@
         <table class="w-full text-left text-xs print:text-[10px]">
           <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200/80 dark:border-zinc-800 print:bg-transparent print:text-black print:border-b-2 print:border-black">
             <tr>
-              <th class="p-3 print:p-1.5 font-bold">No. Kuitansi</th>
-              <th class="p-3 print:p-1.5 font-bold">Tanggal</th>
-              <th class="p-3 print:p-1.5 font-bold">Santri</th>
-              <th class="p-3 print:p-1.5 font-bold">Kelas</th>
-              <th class="p-3 print:p-1.5 font-bold">Tagihan</th>
-              <th class="p-3 print:p-1.5 text-right font-bold">Nominal Bayar</th>
-              <th class="p-3 print:p-1.5 font-bold">Metode</th>
-              <th class="p-3 print:p-1.5 font-bold">Petugas</th>
-              <th class="p-3 print:p-1.5 text-center font-bold">Status</th>
-              <th class="p-3 text-center print:hidden">Aksi</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">No. Kuitansi</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Tanggal</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Santri</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Kelas</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Tagihan</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 text-right font-bold">Nominal</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Metode</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 font-bold">Petugas</th>
+              <th class="p-2.5 sm:p-3 print:p-1.5 text-center font-bold">Status</th>
+              <th class="p-2.5 sm:p-3 text-center print:hidden">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800 print:divide-zinc-300">
@@ -189,34 +226,34 @@
               :class="p.status_transaksi === 'dibatalkan' ? 'bg-rose-50/40 dark:bg-rose-950/20 opacity-70' : 'hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40'"
               class="transition print:text-black"
             >
-              <td class="p-3 print:p-1.5 font-mono font-bold text-zinc-900 dark:text-zinc-100 print:text-black whitespace-nowrap">
+              <td class="p-2.5 sm:p-3 print:p-1.5 font-mono font-bold text-zinc-900 dark:text-zinc-100 print:text-black whitespace-nowrap">
                 {{ p.nomor_kuitansi }}
               </td>
-              <td class="p-3 print:p-1.5 text-zinc-500 print:text-black whitespace-nowrap">
+              <td class="p-2.5 sm:p-3 print:p-1.5 text-zinc-500 print:text-black whitespace-nowrap">
                 {{ formatTanggal(p.tanggal_bayar) }}
               </td>
-              <td class="p-3 print:p-1.5 min-w-[140px] sm:min-w-[180px] max-w-[220px]">
+              <td class="p-2.5 sm:p-3 print:p-1.5 min-w-[140px] sm:min-w-[180px] max-w-[220px]">
                 <p class="font-bold text-zinc-900 dark:text-white print:text-black whitespace-normal break-words leading-tight">
                   {{ p.siswa?.nama_lengkap || '-' }}
                 </p>
                 <p class="text-[10px] text-zinc-400 print:text-zinc-600 font-mono truncate">NISN: {{ p.siswa?.nisn || '-' }}</p>
               </td>
-              <td class="p-3 print:p-1.5 font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">
+              <td class="p-2.5 sm:p-3 print:p-1.5 font-semibold text-zinc-700 dark:text-zinc-300 print:text-black">
                 {{ p.siswa?.kelas?.nama_kelas || '-' }}
               </td>
-              <td class="p-3 print:p-1.5 font-medium text-zinc-600 dark:text-zinc-400 print:text-black">
+              <td class="p-2.5 sm:p-3 print:p-1.5 font-medium text-zinc-600 dark:text-zinc-400 print:text-black">
                 {{ getNamaBulan(p.tagihan?.bulan) }} {{ p.tagihan?.tahun }}
               </td>
-              <td class="p-3 print:p-1.5 text-right font-bold text-emerald-600 dark:text-emerald-400 print:text-black whitespace-nowrap">
+              <td class="p-2.5 sm:p-3 print:p-1.5 text-right font-bold text-emerald-600 dark:text-emerald-400 print:text-black whitespace-nowrap">
                 Rp {{ formatRupiah(p.jumlah_bayar) }}
               </td>
-              <td class="p-3 print:p-1.5 text-zinc-600 dark:text-zinc-400 print:text-black font-medium">
+              <td class="p-2.5 sm:p-3 print:p-1.5 text-zinc-600 dark:text-zinc-400 print:text-black font-medium">
                 {{ p.metode_pembayaran }}
               </td>
-              <td class="p-3 print:p-1.5 text-zinc-500 print:text-black text-[11px] print:text-[10px]">
+              <td class="p-2.5 sm:p-3 print:p-1.5 text-zinc-500 print:text-black text-[11px] print:text-[10px]">
                 {{ p.petugas?.name || '-' }}
               </td>
-              <td class="p-3 print:p-1.5 text-center whitespace-nowrap">
+              <td class="p-2.5 sm:p-3 print:p-1.5 text-center whitespace-nowrap">
                 <span
                   v-if="p.status_transaksi === 'valid' || p.status_transaksi === 'sukses'"
                   class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 print:bg-transparent print:text-black print:border print:border-black"
@@ -231,7 +268,7 @@
                   &cross; Dibatalkan
                 </span>
               </td>
-              <td class="p-3 text-center whitespace-nowrap print:hidden">
+              <td class="p-2.5 sm:p-3 text-center whitespace-nowrap print:hidden">
                 <div class="flex items-center justify-center gap-1.5">
                   <button
                     @click="previewKuitansi(p)"
@@ -263,22 +300,22 @@
       </div>
 
       <!-- Pagination Footer -->
-      <div v-if="totalPages > 1" class="p-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500 print:hidden">
+      <div v-if="totalPages > 1" class="p-3 sm:p-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500 print:hidden">
         <div>
-          Menampilkan halaman {{ currentPage }} dari {{ totalPages }} (Total {{ totalRecords }} transaksi)
+          Halaman {{ currentPage }} dari {{ totalPages }} ({{ totalRecords }} data)
         </div>
         <div class="flex items-center gap-1">
           <button
             :disabled="currentPage <= 1"
             @click="loadRiwayat(currentPage - 1)"
-            class="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 cursor-pointer"
+            class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 disabled:opacity-40 cursor-pointer hover:bg-zinc-50 text-xs"
           >
             &larr; Prev
           </button>
           <button
             :disabled="currentPage >= totalPages"
             @click="loadRiwayat(currentPage + 1)"
-            class="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40 cursor-pointer"
+            class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 disabled:opacity-40 cursor-pointer hover:bg-zinc-50 text-xs"
           >
             Next &rarr;
           </button>
@@ -537,7 +574,21 @@ const filters = ref({
   tanggal_selesai: '',
   id_kelas: '',
   status_transaksi: '',
+  search: '',
 });
+
+let searchDebounceTimer = null;
+function onSearchInput() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    loadRiwayat(1);
+  }, 350);
+}
+
+function clearSearch() {
+  filters.value.search = '';
+  loadRiwayat(1);
+}
 
 // Modal Kuitansi
 const showKuitansiModal = ref(false);
