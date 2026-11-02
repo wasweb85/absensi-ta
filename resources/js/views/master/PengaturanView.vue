@@ -320,19 +320,67 @@
         </CardContent>
       </Card>
 
-      <!-- Card 4: Notifikasi Telegram (Opsional) -->
+      <!-- Card 4: Notifikasi Telegram (Pengingat H-1 Kegiatan Kalender) -->
       <Card class="flex flex-col justify-between">
         <CardHeader class="pb-3 border-b">
-          <div class="flex items-center gap-2">
-            <Send class="size-4 text-primary" />
-            <CardTitle class="text-sm font-semibold">4. Bot Telegram (Opsional)</CardTitle>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Send class="size-4 text-primary" />
+              <CardTitle class="text-sm font-semibold">4. Bot Telegram (Pengingat H-1 Kegiatan)</CardTitle>
+            </div>
+            <Badge
+              variant="outline"
+              :class="settings.telegram_notif_agenda_aktif === '1' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-zinc-400 bg-zinc-500/10 border-zinc-500/30'"
+              class="text-[10px] font-semibold"
+            >
+              {{ settings.telegram_notif_agenda_aktif === '1' ? 'Pengingat Aktif' : 'Non-Aktif' }}
+            </Badge>
           </div>
           <CardDescription class="text-xs">
-            Notifikasi rekapitulasi ringkasan ke grup telegram admin atau pengurus TPQ.
+            Notifikasi otomatis H-1 agenda kegiatan kalender & pesan pengurus ke grup Telegram.
           </CardDescription>
         </CardHeader>
 
         <CardContent class="space-y-4 pt-4">
+          <!-- Toggle Aktifkan Pengingat H-1 -->
+          <div class="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
+            <div>
+              <Label class="text-xs font-semibold cursor-pointer">Pengingat H-1 Kegiatan</Label>
+              <p class="text-[11px] text-muted-foreground">Kirim notifikasi otomatis 1 hari sebelum agenda berlangsung</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="settings.telegram_notif_agenda_aktif"
+                true-value="1"
+                false-value="0"
+                class="sr-only peer"
+              />
+              <div class="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-600 peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          <!-- Pengaturan Jam Pengiriman Notifikasi H-1 -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <Label for="teleJamNotif" class="text-xs font-medium flex items-center gap-1.5">
+                <Clock class="size-3.5 text-primary" />
+                <span>Jam Pengiriman Notifikasi (H-1)</span>
+              </Label>
+              <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">WIB</span>
+            </div>
+            <Input
+              id="teleJamNotif"
+              v-model="settings.telegram_notif_agenda_jam"
+              type="time"
+              class="h-9 font-mono text-xs"
+            />
+            <p class="text-[10.5px] text-muted-foreground">
+              Sistem mengecek kalender dan mengirim notifikasi kegiatan besok pada jam ini setiap hari.
+            </p>
+          </div>
+
+          <!-- Bot Token -->
           <div class="space-y-1.5">
             <Label for="teleBotToken" class="text-xs font-medium">Bot Token</Label>
             <Input
@@ -342,17 +390,50 @@
               placeholder="Contoh: 123456:ABC-DEF1234ghIkl..."
               class="h-9 font-mono text-xs"
             />
+            <p class="text-[10px] text-muted-foreground">Didapatkan dari @BotFather saat membuat bot di Telegram.</p>
           </div>
 
+          <!-- Chat ID -->
           <div class="space-y-1.5">
             <Label for="teleChatId" class="text-xs font-medium">Chat ID Admin / Grup</Label>
             <Input
               id="teleChatId"
               v-model="settings.telegram_chat_id"
               type="text"
-              placeholder="Contoh: -100123456789 atau ID Chat Anda"
+              placeholder="Contoh: -100123456789 atau ID akun Anda"
               class="h-9 font-mono text-xs"
             />
+            <p class="text-[10px] text-muted-foreground">Gunakan @userinfobot atau invite bot ke grup pengurus.</p>
+          </div>
+
+          <!-- Tombol Aksi Uji Coba -->
+          <div class="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="w-full sm:w-auto flex-1 h-8 text-xs gap-1.5"
+              :disabled="isTestingTelegram || !settings.telegram_bot_token || !settings.telegram_chat_id"
+              @click="handleTestTelegram"
+            >
+              <LoaderCircle v-if="isTestingTelegram" class="size-3.5 animate-spin" />
+              <Send v-else class="size-3.5" />
+              <span>{{ isTestingTelegram ? 'Mengirim Tes...' : 'Uji Bot' }}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              class="w-full sm:w-auto flex-1 h-8 text-xs gap-1.5"
+              :disabled="isTriggeringAgenda || !settings.telegram_bot_token || !settings.telegram_chat_id"
+              @click="handleTriggerAgendaTelegram"
+              title="Kirim notifikasi pengingat kegiatan besok (H-1) sekarang juga untuk pengujian"
+            >
+              <LoaderCircle v-if="isTriggeringAgenda" class="size-3.5 animate-spin" />
+              <Clock v-else class="size-3.5" />
+              <span>{{ isTriggeringAgenda ? 'Memeriksa...' : 'Cek H-1 Sekarang' }}</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -603,6 +684,8 @@ const { isInstallable, isInstalled, installApp } = usePwa();
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isTestingWa = ref(false);
+const isTestingTelegram = ref(false);
+const isTriggeringAgenda = ref(false);
 const isTestingSpreadsheet = ref(false);
 const isMigrating = ref(false);
 const migrationOutput = ref('');
@@ -627,6 +710,8 @@ const settings = ref({
   spreadsheet_absensi_webhook_url: "",
   telegram_bot_token: "",
   telegram_chat_id: "",
+  telegram_notif_agenda_aktif: "1",
+  telegram_notif_agenda_jam: "07:00",
 });
 
 const activeDays = ref(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']);
@@ -765,6 +850,57 @@ async function testWaGateway() {
     toast.error(msg);
   } finally {
     isTestingWa.value = false;
+  }
+}
+
+async function handleTestTelegram() {
+  if (!settings.value.telegram_bot_token || !settings.value.telegram_chat_id) {
+    toast.warning('Token Bot dan Chat ID Telegram wajib diisi terlebih dahulu.');
+    return;
+  }
+
+  isTestingTelegram.value = true;
+  try {
+    const res = await api.post('/pengaturan/test-telegram', {
+      bot_token: settings.value.telegram_bot_token,
+      chat_id: settings.value.telegram_chat_id,
+    });
+    if (res.data?.success) {
+      toast.success(res.data?.message || 'Uji koneksi Telegram berhasil! Pesan tes telah masuk ke Telegram.');
+    } else {
+      toast.error(res.data?.message || 'Uji koneksi Telegram gagal.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message || 'Gagal menghubungi server Telegram.';
+    toast.error(`Uji Telegram Gagal: ${msg}`);
+  } finally {
+    isTestingTelegram.value = false;
+  }
+}
+
+async function handleTriggerAgendaTelegram() {
+  if (!settings.value.telegram_bot_token || !settings.value.telegram_chat_id) {
+    toast.warning('Token Bot dan Chat ID Telegram wajib diisi terlebih dahulu.');
+    return;
+  }
+
+  isTriggeringAgenda.value = true;
+  try {
+    const res = await api.post('/pengaturan/trigger-agenda-telegram', { force: true });
+    if (res.data?.success) {
+      if (res.data?.sent) {
+        toast.success(res.data?.message || 'Pengingat kegiatan besok (H-1) berhasil dikirim ke Telegram!');
+      } else {
+        toast.info(res.data?.message || 'Tidak ada agenda kegiatan besok untuk dikirimkan.');
+      }
+    } else {
+      toast.error(res.data?.message || 'Gagal mengirim pengingat agenda ke Telegram.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message || 'Gagal memproses pengingat agenda.';
+    toast.error(`Error: ${msg}`);
+  } finally {
+    isTriggeringAgenda.value = false;
   }
 }
 

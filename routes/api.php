@@ -138,6 +138,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [SettingController::class, 'getSettings']);
             Route::post('/', [SettingController::class, 'updateSettings']);
             Route::post('/test-wa', [WhatsAppController::class, 'testKoneksi']);
+            Route::post('/test-telegram', [SettingController::class, 'testTelegramConnection']);
+            Route::post('/trigger-agenda-telegram', [SettingController::class, 'triggerAgendaReminder']);
             Route::post('/test-spreadsheet', [SettingController::class, 'testSpreadsheetWebhook']);
             Route::post('/migrate', [SettingController::class, 'runMigrations']);
         });

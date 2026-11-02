@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaturan;
 use App\Models\User;
+use App\Services\TelegramService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,8 @@ class SettingController extends Controller
         }
 
         $settings['nama_bendahara'] = User::getNamaBendahara();
+        $settings['telegram_notif_agenda_aktif'] = $settings['telegram_notif_agenda_aktif'] ?? '1';
+        $settings['telegram_notif_agenda_jam'] = $settings['telegram_notif_agenda_jam'] ?? '07:00';
 
         return response()->json([
             'success' => true,
@@ -143,6 +146,44 @@ class SettingController extends Controller
                 'message' => 'Gagal menghubungi Google Apps Script: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Uji koneksi bot Telegram dengan mengirim pesan tes
+     */
+    public function testTelegramConnection(Request $request, TelegramService $telegramService): JsonResponse
+    {
+        $botToken = $request->input('bot_token') ?: Pengaturan::getValue('telegram_bot_token');
+        $chatId = $request->input('chat_id') ?: Pengaturan::getValue('telegram_chat_id');
+
+        if (empty($botToken)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token Bot Telegram belum diisi. Silakan masukkan token bot dari @BotFather.',
+            ], 422);
+        }
+
+        if (empty($chatId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chat ID Telegram belum diisi. Silakan masukkan Chat ID tujuan.',
+            ], 422);
+        }
+
+        $result = $telegramService->testConnection($chatId, $botToken);
+
+        return response()->json($result, ($result['success'] ?? false) ? 200 : 422);
+    }
+
+    /**
+     * Picu pengiriman notifikasi pengingat kegiatan H-1 secara manual
+     */
+    public function triggerAgendaReminder(Request $request, TelegramService $telegramService): JsonResponse
+    {
+        $force = $request->boolean('force', true);
+        $result = $telegramService->sendAgendaReminderHMinus1($force);
+
+        return response()->json($result, ($result['success'] ?? false) ? 200 : 422);
     }
 
     /**

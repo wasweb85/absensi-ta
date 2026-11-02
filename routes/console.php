@@ -5,6 +5,7 @@ use App\Models\HariLibur;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Services\GoogleSheetSyncService;
+use App\Services\TelegramService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -87,5 +88,28 @@ Artisan::command('santri:sync-sheets {url}', function (string $url, GoogleSheetS
     }
 })->purpose('Sinkronisasi data santri secara otomatis langsung dari link Google Spreadsheet');
 
+Artisan::command('agenda:remind-telegram {--force : Paksa kirim meskipun sudah pernah dikirim hari ini}', function (TelegramService $telegramService) {
+    $this->info('Memeriksa agenda kegiatan H-1 untuk notifikasi Telegram...');
+    $force = (bool) $this->option('force');
+    $result = $telegramService->sendAgendaReminderHMinus1($force);
+
+    if ($result['sent'] ?? false) {
+        $this->info($result['message']);
+    } else {
+        $this->comment($result['message']);
+    }
+})->purpose('Mengirimkan notifikasi pengingat agenda kegiatan H-1 sesuai kalender ke bot Telegram');
+
 // Jadwal Cron Otomatis
 Schedule::command('absensi:close-daily')->dailyAt('17:00');
+
+// Jadwal Pengingat Kegiatan H-1 ke Telegram sesuai jam di Pengaturan (Default: 07:00 WIB)
+Schedule::command('agenda:remind-telegram')
+    ->everyMinute()
+    ->when(function () {
+        $now = Carbon::now('Asia/Jakarta');
+        $jamTarget = Pengaturan::getValue('telegram_notif_agenda_jam', '07:00');
+        $cleanJam = substr(trim($jamTarget ?: '07:00'), 0, 5);
+
+        return $now->format('H:i') === $cleanJam;
+    });
