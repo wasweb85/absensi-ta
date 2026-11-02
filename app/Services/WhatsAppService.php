@@ -235,15 +235,22 @@ class WhatsAppService
             }
 
             if ($filePath && file_exists($filePath)) {
-                // Di environment live, gunakan PHP cURL resmi Fonnte dengan CURLFile agar file gambar terkirim murni
+                // Di environment live, gunakan PHP cURL resmi Fonnte dengan penanganan SSL Windows aman
                 if (! app()->runningUnitTests() && function_exists('curl_init')) {
                     $curl = curl_init();
                     $postData = [
                         'target' => $target,
-                        'message' => $message ?: '',
                         'file' => new \CURLFile($filePath, 'image/png', $filename ?: basename($filePath)),
                         'countryCode' => '62',
                     ];
+
+                    if (! empty($message)) {
+                        $postData['message'] = $message;
+                    }
+
+                    if (! empty($filename)) {
+                        $postData['filename'] = $filename;
+                    }
 
                     if (! empty($metadata['delay'])) {
                         $postData['delay'] = (string) $metadata['delay'];
@@ -257,7 +264,9 @@ class WhatsAppService
                         CURLOPT_HTTPHEADER => [
                             'Authorization: '.$token,
                         ],
-                        CURLOPT_TIMEOUT => 30,
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => 0,
+                        CURLOPT_TIMEOUT => 35,
                     ]);
 
                     $responseBody = curl_exec($curl);
@@ -265,12 +274,23 @@ class WhatsAppService
                     curl_close($curl);
 
                     if ($curlErr) {
-                        throw new \Exception('Koneksi Fonnte cURL gagal: '.$curlErr);
-                    }
+                        \Log::warning('cURL Fonnte gagal: '.$curlErr.'. Menjalankan fallback Guzzle HTTP.');
+                        $response = Http::withoutVerifying()->timeout(35)->withHeaders([
+                            'Authorization' => $token,
+                        ])->attach(
+                            'file',
+                            file_get_contents($filePath),
+                            $filename ?: basename($filePath),
+                            ['Content-Type' => 'image/png']
+                        )->post('https://api.fonnte.com/send', $payload);
 
-                    $json = json_decode($responseBody, true) ?: [];
+                        $json = $response->json();
+                        $responseBody = $response->body();
+                    } else {
+                        $json = json_decode((string) $responseBody, true) ?: [];
+                    }
                 } else {
-                    $request = Http::timeout(25)->withHeaders([
+                    $request = Http::withoutVerifying()->timeout(35)->withHeaders([
                         'Authorization' => $token,
                     ])->attach(
                         'file',
@@ -281,14 +301,22 @@ class WhatsAppService
 
                     $response = $request->post('https://api.fonnte.com/send', $payload);
                     $json = $response->json();
+                    $responseBody = $response->body();
                 }
             } else {
-                $response = Http::timeout(10)->withHeaders([
+                $response = Http::withoutVerifying()->timeout(15)->withHeaders([
                     'Authorization' => $token,
                 ])->post('https://api.fonnte.com/send', $payload);
 
                 $json = $response->json();
+                $responseBody = $response->body();
             }
+
+            \Log::info('Fonnte send response', [
+                'target' => $target,
+                'has_file' => (bool) $filePath,
+                'response' => $json ?: substr((string) ($responseBody ?? ''), 0, 300),
+            ]);
 
             if (isset($json['status']) && $json['status'] == true) {
                 $fonnteId = null;
@@ -307,12 +335,29 @@ class WhatsAppService
                 ];
             }
 
-            $reason = $json['reason'] ?? $json['detail'] ?? 'Gagal mengirim pesan melalui Fonnte.';
-            $log->markAsFailed($reason);
+            $rawReason = $json['reason'] ?? $json['message'] ?? $json['detail'] ?? null;
+            if (empty($rawReason) && ! empty($responseBody)) {
+                $rawReason = strip_tags(substr((string) $responseBody, 0, 150));
+            }
+            if (empty($rawReason)) {
+                $rawReason = 'Gagal mengirim pesan melalui Fonnte (server tidak mengembalikan respon valid).';
+            }
+
+            $reasonStr = strtolower(trim((string) $rawReason));
+            $friendlyReason = match (true) {
+                str_contains($reasonStr, 'device disconnected') => 'Perangkat WhatsApp belum terhubung ke Fonnte (Device Disconnected). Silakan scan QR code di dashboard Fonnte.',
+                str_contains($reasonStr, 'invalid token') => 'Token API Fonnte tidak valid. Silakan periksa kembali konfigurasi token di Pengaturan.',
+                str_contains($reasonStr, 'invalid target') => 'Nomor WhatsApp tujuan tidak valid atau belum terdaftar di WhatsApp.',
+                str_contains($reasonStr, 'country code') => 'Kode negara nomor telepon tidak didukung.',
+                str_contains($reasonStr, 'out of quota') || str_contains($reasonStr, 'quota') => 'Kuota pesan gateway Fonnte telah habis.',
+                default => (string) $rawReason,
+            };
+
+            $log->markAsFailed($friendlyReason);
 
             return [
                 'success' => false,
-                'message' => $reason,
+                'message' => $friendlyReason,
                 'log_id' => $log->id,
                 'response' => $json,
             ];

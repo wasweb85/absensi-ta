@@ -105,7 +105,7 @@
         <div class="p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
           <span class="font-bold text-xs">ℹ</span>
           <p class="leading-relaxed">
-            Hanya <b>gambar kuitansi resmi</b> yang dikirimkan (tanpa teks penjelasan panjang). Penerima akan langsung melihat kuitansi bersih dan sah.
+            Hanya <b>gambar kuitansi resmi</b> yang dikirimkan (tanpa teks penjelasan). Gunakan <b>Kirim via Gateway</b> untuk kirim gambar otomatis dari server, atau klik <b>Unduh PNG</b> bila ingin menyimpan gambar ke perangkat.
           </p>
         </div>
 
@@ -113,13 +113,27 @@
 
       <!-- Action Buttons (Sticky Footer) -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
-        <button
-          type="button"
-          @click="emit('close')"
-          class="order-3 sm:order-1 h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
-        >
-          Tutup
-        </button>
+        <div class="flex items-center gap-2 order-3 sm:order-1">
+          <button
+            type="button"
+            @click="emit('close')"
+            class="h-8 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
+          >
+            Tutup
+          </button>
+
+          <!-- Tombol Unduh PNG Eksplisit (HANYA unduh bila tombol ini diklik) -->
+          <button
+            v-if="imageUrl"
+            type="button"
+            @click="downloadImage"
+            class="h-8 px-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+            title="Unduh file gambar kuitansi ke perangkat"
+          >
+            <Download class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+            <span>Unduh PNG</span>
+          </button>
+        </div>
 
         <div class="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <!-- Tombol Kirim Gateway (Fonnte API) Mengirimkan Gambar Murni -->
@@ -127,7 +141,7 @@
             type="button"
             @click="sendViaGateway"
             :disabled="!targetPhone || isSendingGateway || isGenerating"
-            class="h-8 px-3 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+            class="h-8 px-3.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
             title="Kirim gambar kuitansi langsung ke WhatsApp wali santri via gateway server"
           >
             <RefreshCw v-if="isSendingGateway" class="w-3.5 h-3.5 animate-spin" />
@@ -135,7 +149,7 @@
             <span>{{ isSendingGateway ? 'Mengirim...' : 'Kirim via Gateway' }}</span>
           </button>
 
-          <!-- Tombol Utama: Buka Chat Langsung ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak) -->
+          <!-- Tombol Utama: Buka Chat Langsung ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak & TANPA auto download) -->
           <button
             type="button"
             @click="sendDirectWhatsApp"
@@ -225,7 +239,7 @@ watch(
   { immediate: true }
 );
 
-// Download Gambar Kuitansi
+// Download Gambar Kuitansi (HANYA dijalankan saat tombol 'Unduh PNG' diklik secara eksplisit)
 function downloadImage() {
   if (!imageUrl.value) return;
   const link = document.createElement('a');
@@ -234,9 +248,10 @@ function downloadImage() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  toast.success('Gambar kuitansi berhasil diunduh ke perangkat.');
 }
 
-// 1. Pengiriman Langsung Mengarah Otomatis ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak)
+// 1. Pengiriman Langsung Mengarah Otomatis ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak & TANPA auto download)
 async function sendDirectWhatsApp() {
   const cleanPhone = cleanPhoneNumber(targetPhone.value);
   if (!cleanPhone) {
@@ -244,7 +259,7 @@ async function sendDirectWhatsApp() {
     return;
   }
 
-  // A. Salin gambar kuitansi ke Clipboard secara otomatis (Bila di desktop/PC bisa langsung Ctrl+V)
+  // A. Salin gambar kuitansi ke Clipboard secara otomatis (jika didukung peramban desktop untuk Ctrl+V)
   try {
     if (imageBlob.value && navigator.clipboard && window.ClipboardItem) {
       await navigator.clipboard.write([
@@ -252,18 +267,17 @@ async function sendDirectWhatsApp() {
       ]);
     }
   } catch (err) {
-    console.warn('Gagal salin gambar ke clipboard:', err);
+    // Graceful ignore jika peramban membatasi akses clipboard image
   }
 
-  // B. Unduh otomatis gambar ke perangkat agar langsung berada di urutan teratas galeri/file
-  downloadImage();
+  // PENTING: TIDAK ADA downloadImage() di sini!
+  // Unduh kuitansi HANYA berjalan jika user secara sengaja mengklik tombol 'Unduh PNG'.
 
-  // C. Buka WhatsApp LANGSUNG ke nomor tujuan wali santri tanpa perlu mencari/memilih kontak
-  // Format https://api.whatsapp.com/send?phone=... langsung membuka room chat nomor tersebut
+  // B. Buka WhatsApp LANGSUNG ke nomor tujuan wali santri tanpa perlu mencari/memilih kontak
   const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}`;
   window.open(waUrl, '_blank');
 
-  toast.success('Membuka chat nomor wali santri. Gambar kuitansi telah siap ditempelkan.');
+  toast.success('Membuka chat nomor wali santri. Gambar telah disalin ke clipboard (Ctrl+V jika di komputer).');
   emit('sent');
 }
 

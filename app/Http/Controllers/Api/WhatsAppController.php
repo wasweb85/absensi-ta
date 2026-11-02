@@ -318,9 +318,9 @@ class WhatsAppController extends Controller
         }
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::withoutVerifying()->withHeaders([
                 'Authorization' => $token,
-            ])->timeout(8)->post('https://api.fonnte.com/device');
+            ])->timeout(10)->post('https://api.fonnte.com/device');
 
             $data = $response->json();
 
