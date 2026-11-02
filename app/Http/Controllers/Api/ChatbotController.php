@@ -11,6 +11,7 @@ use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
@@ -53,29 +54,9 @@ class ChatbotController extends Controller
         }
 
         // 1. Deteksi Callback Status Pesan (Delivery Status: sent, delivered, read, failed)
-        if ($request->filled('id') && $request->filled('state')) {
-            $msgId = (string) $request->input('id');
-            $state = strtolower(trim((string) $request->input('state')));
-            $log = WhatsAppLog::where('fonnte_id', $msgId)->first();
-
-            if ($log) {
-                if ($state === 'read') {
-                    $log->markAsRead();
-                } elseif ($state === 'delivered') {
-                    $log->markAsDelivered();
-                } elseif ($state === 'sent') {
-                    $log->markAsSent($msgId);
-                } elseif (in_array($state, ['failed', 'invalid', 'expired', 'error'], true)) {
-                    $log->markAsFailed("Fonnte status: {$state}");
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Status pesan berhasil diperbarui.',
-                'matched' => (bool) $log,
-                'state' => $state,
-            ]);
+        $statusResponse = $this->processMessageStatusUpdate($request);
+        if ($statusResponse !== null) {
+            return $statusResponse;
         }
 
         // 2. Fonnte mengirimkan pesan masuk chatbot: sender & message
@@ -221,6 +202,112 @@ class ChatbotController extends Controller
                     'unregistered' => (int) ($agg->unregistered_count ?? 0),
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * Endpoint khusus Webhook Message Status dari Fonnte (Kolom: Webhook Message Status ?)
+     */
+    public function messageStatusWebhook(Request $request): JsonResponse
+    {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Fonnte message status webhook endpoint is active and ready.',
+            ]);
+        }
+
+        $statusResponse = $this->processMessageStatusUpdate($request);
+        if ($statusResponse !== null) {
+            return $statusResponse;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Message status event acknowledged.',
+        ]);
+    }
+
+    /**
+     * Endpoint khusus Webhook Connect dari Fonnte (Kolom: Webhook Connect ?)
+     */
+    public function connectWebhook(Request $request): JsonResponse
+    {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Fonnte connect webhook endpoint is active.',
+            ]);
+        }
+
+        $device = (string) ($request->input('device') ?? '');
+        $status = strtolower(trim((string) ($request->input('status') ?? '')));
+
+        Log::info('Fonnte Webhook Connect Event', [
+            'device' => $device,
+            'status' => $status,
+            'payload' => $request->all(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status koneksi perangkat berhasil diterima.',
+            'device' => $device,
+            'status' => $status,
+        ]);
+    }
+
+    /**
+     * Logika internal pemrosesan status pesan Fonnte (Delivery Log)
+     */
+    protected function processMessageStatusUpdate(Request $request): ?JsonResponse
+    {
+        $rawId = $request->input('id');
+        if (empty($rawId)) {
+            return null;
+        }
+
+        $msgId = is_array($rawId) ? (string) ($rawId[0] ?? '') : (string) $rawId;
+        $stateRaw = $request->input('state') ?: $request->input('status');
+        $state = strtolower(trim((string) $stateRaw));
+
+        if (empty($state)) {
+            return null;
+        }
+
+        Log::info('Fonnte Webhook Message Status update received', [
+            'id' => $msgId,
+            'state' => $state,
+            'status' => $request->input('status'),
+            'stateid' => $request->input('stateid'),
+            'payload' => $request->all(),
+        ]);
+
+        $log = WhatsAppLog::where('fonnte_id', $msgId)
+            ->orWhere('id', is_numeric($msgId) ? (int) $msgId : -1)
+            ->first();
+
+        if ($log) {
+            if ($state === 'read') {
+                $log->markAsRead();
+            } elseif ($state === 'delivered') {
+                $log->markAsDelivered();
+            } elseif ($state === 'sent') {
+                $log->markAsSent($msgId);
+            } elseif (in_array($state, ['failed', 'invalid', 'expired', 'error', 'rejected'], true)) {
+                $reason = $request->input('reason') ?: $request->input('detail') ?: "Fonnte status: {$state}";
+                $log->markAsFailed((string) $reason);
+            }
+        } else {
+            Log::warning("Fonnte Webhook Status: WhatsAppLog not found for fonnte_id '{$msgId}'");
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status pesan berhasil diperbarui.',
+            'matched' => (bool) $log,
+            'fonnte_id' => $msgId,
+            'state' => $state,
         ]);
     }
 }

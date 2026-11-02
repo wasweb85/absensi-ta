@@ -14,6 +14,16 @@
 
       <div v-if="canManageWaLogs" class="flex items-center gap-2">
         <Button
+          variant="outline"
+          size="sm"
+          class="h-8 gap-1.5 text-xs border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+          @click="showWebhookGuideModal = true"
+        >
+          <Info class="size-3.5" />
+          <span>Panduan Webhook Fonnte</span>
+        </Button>
+
+        <Button
           variant="destructive"
           size="sm"
           class="h-8 gap-1.5 text-xs"
@@ -544,6 +554,82 @@
       </DialogContent>
     </Dialog>
 
+    <!-- DIALOG: PANDUAN WEBHOOK FONNTE (3 KOLOM) -->
+    <Dialog :open="showWebhookGuideModal" @update:open="(val) => showWebhookGuideModal = val">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold flex items-center gap-2 text-foreground">
+            <Info class="size-4 text-emerald-600" />
+            <span>Panduan Webhook Fonnte (3 Kolom Webhook)</span>
+          </DialogTitle>
+          <DialogDescription class="text-xs text-muted-foreground leading-relaxed">
+            Di dashboard Fonnte terdapat 3 kolom webhook utama. Kolom <b>Webhook Message Status ?</b> adalah kunci agar status centang dua (✓✓) otomatis terdeteksi di Delivery Log ini.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-3.5 text-xs pt-1 max-h-[65vh] overflow-y-auto pr-1">
+          <!-- Kolom 1 -->
+          <div class="p-3 rounded-xl border bg-muted/20 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-foreground">1. Kolom "Webhook ?" (Pesan Masuk Chatbot)</span>
+              <Badge variant="outline" class="text-[10px]">Chatbot</Badge>
+            </div>
+            <p class="text-[11px] text-muted-foreground">Untuk menerima pesan yang diketik oleh wali santri ke nomor WhatsApp TPQ.</p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input :value="webhookIncomingUrl" readonly class="font-mono text-xs select-all bg-background h-8" />
+              <Button size="sm" class="h-8 text-xs shrink-0" @click="copyUrl(webhookIncomingUrl, 'incoming')">
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'incoming' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
+
+          <!-- Kolom 2 -->
+          <div class="p-3 rounded-xl border bg-muted/20 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-foreground">2. Kolom "Webhook Connect ?" (Status Sambungan)</span>
+              <Badge variant="outline" class="text-[10px]">Device</Badge>
+            </div>
+            <p class="text-[11px] text-muted-foreground">Untuk memantau status perangkat WhatsApp (terhubung / disconnect).</p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input :value="webhookConnectUrl" readonly class="font-mono text-xs select-all bg-background h-8" />
+              <Button size="sm" variant="outline" class="h-8 text-xs shrink-0" @click="copyUrl(webhookConnectUrl, 'connect')">
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'connect' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
+
+          <!-- Kolom 3 - KUNCI DELIVERY LOG -->
+          <div class="p-3.5 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span>3. Kolom "Webhook Message Status ?" (Delivery Log)</span>
+              </span>
+              <Badge class="text-[10px] bg-emerald-600 text-white">KUNCI CENTANG DUA</Badge>
+            </div>
+            <p class="text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
+              👉 <b>Tempelkan URL di bawah ini ke kolom ketiga Fonnte ("Webhook Message Status ?")</b>. Inilah yang mengirimkan update otomatis saat pesan <b>Tersampaikan (✓✓ Abu)</b> dan <b>Dibaca (✓✓ Biru)</b> oleh wali santri.
+            </p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input :value="webhookStatusUrl" readonly class="font-mono text-xs select-all bg-background font-semibold text-emerald-700 dark:text-emerald-300 h-8" />
+              <Button size="sm" class="h-8 text-xs shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white" @click="copyUrl(webhookStatusUrl, 'status')">
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'status' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter class="pt-2 flex items-center justify-end">
+          <Button variant="outline" size="sm" class="text-xs" @click="showWebhookGuideModal = false">
+            Tutup
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
   </div>
 </template>
 
@@ -624,6 +710,21 @@ let searchTimer = null;
 const previewModalOpen = ref(false);
 const detailModalOpen = ref(false);
 const selectedItem = ref(null);
+const showWebhookGuideModal = ref(false);
+const copiedKey = ref('');
+
+const webhookIncomingUrl = ref(`${window.location.origin}/api/webhook/whatsapp`);
+const webhookConnectUrl = ref(`${window.location.origin}/api/webhook/whatsapp/connect`);
+const webhookStatusUrl = ref(`${window.location.origin}/api/webhook/whatsapp/status`);
+
+function copyUrl(url, key) {
+  navigator.clipboard.writeText(url);
+  copiedKey.value = key;
+  toast.success('URL Webhook berhasil disalin!');
+  setTimeout(() => {
+    copiedKey.value = '';
+  }, 2500);
+}
 
 const hasActiveFilter = computed(() => {
   return statusFilter.value !== 'all' || tipeFilter.value !== 'all' || searchQuery.value !== '' || startDate.value !== '' || endDate.value !== '';

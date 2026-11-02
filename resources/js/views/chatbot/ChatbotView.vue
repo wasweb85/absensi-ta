@@ -433,40 +433,120 @@
     <!-- TAB 3: WEBHOOK FONNTE & KONFIGURASI -->
     <!-- ================================================================= -->
     <div v-if="activeTab === 'config'" class="space-y-6">
-      <Card class="p-6 space-y-4">
+      <Card class="p-6 space-y-5">
         <div>
           <h3 class="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
             <Settings class="size-4 text-primary" />
-            <span>URL Webhook WhatsApp Gateway Fonnte</span>
+            <span>Konfigurasi Webhook Fonnte (3 Kolom Webhook)</span>
           </h3>
           <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-            Salin alamat endpoint di bawah ini dan tempelkan pada kolom <b>Webhook URL</b> di akun <b>Fonnte.com</b> Anda. Setiap kali wali santri mengirim pesan ke WhatsApp TPQ, Fonnte akan otomatis meneruskannya ke server sistem ini.
+            Di dashboard Fonnte terdapat 3 kolom webhook utama. Masukkan URL endpoint berikut ke masing-masing kolom di Fonnte agar <b>pesan masuk (Chatbot)</b> dan <b>status centang dua (Delivery Log)</b> terdeteksi secara otomatis.
           </p>
         </div>
 
-        <div class="flex items-center gap-2">
-          <Input
-            :value="webhookUrl"
-            readonly
-            class="font-mono text-xs select-all bg-muted/40"
-          />
-          <Button
-            size="sm"
-            class="text-xs gap-1.5 shrink-0"
-            @click="copyWebhookUrl"
-          >
-            <Copy class="size-3.5" />
-            <span>{{ copied ? 'Tersalin!' : 'Salin URL' }}</span>
-          </Button>
+        <div class="space-y-4">
+          <!-- Kolom 1: Webhook (Pesan Masuk / Chatbot) -->
+          <div class="p-3.5 rounded-xl border bg-muted/20 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-emerald-500"></span>
+                <span>1. Kolom "Webhook ?" (Pesan Masuk / Chatbot)</span>
+              </span>
+              <Badge variant="outline" class="text-[10px] text-emerald-600 dark:text-emerald-400">Incoming Messages</Badge>
+            </div>
+            <p class="text-[11px] text-muted-foreground">
+              Menerima pesan yang diketik oleh wali santri ke WhatsApp TPQ untuk dijawab otomatis oleh Chatbot.
+            </p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input
+                :value="webhookIncomingUrl"
+                readonly
+                class="font-mono text-xs select-all bg-background"
+              />
+              <Button
+                size="sm"
+                class="text-xs gap-1.5 shrink-0"
+                @click="copyUrl(webhookIncomingUrl, 'incoming')"
+              >
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'incoming' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
+
+          <!-- Kolom 2: Webhook Connect (Status Perangkat) -->
+          <div class="p-3.5 rounded-xl border bg-muted/20 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-sky-500"></span>
+                <span>2. Kolom "Webhook Connect ?" (Status Sambungan WhatsApp)</span>
+              </span>
+              <Badge variant="outline" class="text-[10px] text-sky-600 dark:text-sky-400">Device Events</Badge>
+            </div>
+            <p class="text-[11px] text-muted-foreground">
+              Memantau status perangkat WhatsApp (apakah sedang terhubung atau terputus/disconnect).
+            </p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input
+                :value="webhookConnectUrl"
+                readonly
+                class="font-mono text-xs select-all bg-background"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                class="text-xs gap-1.5 shrink-0"
+                @click="copyUrl(webhookConnectUrl, 'connect')"
+              >
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'connect' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
+
+          <!-- Kolom 3: Webhook Message Status (KUNCI DELIVERY LOG) -->
+          <div class="p-3.5 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span>3. Kolom "Webhook Message Status ?" (Delivery Log: Centang ✓✓ &amp; Dibaca)</span>
+              </span>
+              <Badge class="text-[10px] bg-emerald-600 text-white">Wajib untuk Delivery Log</Badge>
+            </div>
+            <p class="text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              <b>PENTING:</b> Masukkan URL ini ke kolom ketiga di Fonnte agar sistem otomatis mencatat kapan pesan <b>Tersampaikan (✓✓ Abu)</b> di HP wali dan kapan <b>Dibaca (✓✓ Biru)</b> oleh wali santri.
+            </p>
+            <div class="flex items-center gap-2 pt-1">
+              <Input
+                :value="webhookStatusUrl"
+                readonly
+                class="font-mono text-xs select-all bg-background font-semibold text-emerald-700 dark:text-emerald-300"
+              />
+              <Button
+                size="sm"
+                class="text-xs gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
+                @click="copyUrl(webhookStatusUrl, 'status')"
+              >
+                <Copy class="size-3.5" />
+                <span>{{ copiedKey === 'status' ? 'Tersalin!' : 'Salin' }}</span>
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div class="rounded-lg border p-4 bg-muted/20 space-y-2 text-xs">
-          <p class="font-semibold text-foreground">Panduan Pemasangan Webhook Fonnte:</p>
-          <ol class="list-decimal list-inside space-y-1 text-muted-foreground">
+          <p class="font-semibold text-foreground">Langkah Pemasangan di Dashboard Fonnte:</p>
+          <ol class="list-decimal list-inside space-y-1.5 text-muted-foreground">
             <li>Buka dashboard akun Fonnte Anda di <code class="text-foreground">https://fonnte.com</code></li>
             <li>Masuk ke menu <b>Device Setting</b> &gt; tab <b>Webhook</b></li>
-            <li>Tempelkan URL Webhook di atas pada kolom Webhook URL</li>
-            <li>Pilih opsi kirim pesan masuk (Incoming Message) lalu klik <b>Save</b></li>
+            <li>Tempelkan masing-masing URL di atas ke kolom yang sesuai:
+              <ul class="list-disc pl-5 mt-1 space-y-0.5 text-[11px]">
+                <li>Kolom <b>Webhook ?</b>: Tempelkan URL #1</li>
+                <li>Kolom <b>Webhook Connect ?</b>: Tempelkan URL #2</li>
+                <li>Kolom <b>Webhook Message Status ?</b>: Tempelkan URL #3 (agar centang dua terdeteksi)</li>
+              </ul>
+            </li>
+            <li>Klik tombol <b>Save</b> di Fonnte.</li>
           </ol>
         </div>
       </Card>
@@ -576,8 +656,10 @@ import { useToast } from '@/composables/useToast';
 const toast = useToast();
 
 const activeTab = ref('logs');
-const copied = ref(false);
-const webhookUrl = ref(`${window.location.origin}/api/webhook/whatsapp`);
+const copiedKey = ref('');
+const webhookIncomingUrl = ref(`${window.location.origin}/api/webhook/whatsapp`);
+const webhookConnectUrl = ref(`${window.location.origin}/api/webhook/whatsapp/connect`);
+const webhookStatusUrl = ref(`${window.location.origin}/api/webhook/whatsapp/status`);
 
 // KPI Stats
 const stats = ref({
@@ -763,12 +845,12 @@ function formatDateTime(val) {
   });
 }
 
-function copyWebhookUrl() {
-  navigator.clipboard.writeText(webhookUrl.value);
-  copied.value = true;
+function copyUrl(url, key) {
+  navigator.clipboard.writeText(url);
+  copiedKey.value = key;
   toast.success('URL Webhook berhasil disalin!');
   setTimeout(() => {
-    copied.value = false;
+    copiedKey.value = '';
   }, 2500);
 }
 

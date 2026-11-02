@@ -228,4 +228,28 @@ class WhatsAppDeliveryLogTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseMissing('whatsapp_logs', ['id' => $log->id]);
     }
+
+    public function test_dedicated_status_webhook_endpoint(): void
+    {
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'msg_dedicated_status_01',
+        ]);
+
+        // Uji GET request untuk verifikasi Fonnte
+        $getRes = $this->getJson('/api/webhook/whatsapp/status');
+        $getRes->assertStatus(200);
+
+        // Uji POST callback dengan parameter status
+        $postRes = $this->postJson('/api/webhook/whatsapp/status', [
+            'id' => 'msg_dedicated_status_01',
+            'status' => 'delivered',
+            'stateid' => '99',
+        ]);
+
+        $postRes->assertStatus(200);
+        $postRes->assertJson(['success' => true]);
+
+        $log->refresh();
+        $this->assertEquals('delivered', $log->status);
+    }
 }
