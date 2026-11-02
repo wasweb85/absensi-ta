@@ -176,7 +176,9 @@ class WhatsAppService
         string $phone,
         string $message,
         ?string $customToken = null,
-        array $metadata = []
+        array $metadata = [],
+        ?string $filePath = null,
+        ?string $filename = null
     ): array {
         $log = null;
         if (! empty($metadata['log_id'])) {
@@ -232,10 +234,19 @@ class WhatsAppService
                 $payload['delay'] = (string) $metadata['delay'];
             }
 
-            $response = Http::timeout(10)
-                ->withHeaders([
-                    'Authorization' => $token,
-                ])->post('https://api.fonnte.com/send', $payload);
+            $request = Http::timeout(25)->withHeaders([
+                'Authorization' => $token,
+            ]);
+
+            if ($filePath && file_exists($filePath)) {
+                $request = $request->attach(
+                    'file',
+                    file_get_contents($filePath),
+                    $filename ?: basename($filePath)
+                );
+            }
+
+            $response = $request->post('https://api.fonnte.com/send', $payload);
 
             $json = $response->json();
 

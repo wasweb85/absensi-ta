@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('role:admin,sekretaris,bendahara')->group(function () {
             Route::get('/preview', [WhatsAppController::class, 'preview']);
             Route::post('/send', [WhatsAppController::class, 'send']);
+            Route::post('/send-kuitansi-image', [WhatsAppController::class, 'sendKuitansiImage']);
             Route::post('/test', [WhatsAppController::class, 'testKoneksi']);
             Route::post('/logs/retry-failed', [WhatsAppController::class, 'retryFailed']);
             Route::post('/logs/{id}/retry', [WhatsAppController::class, 'retry']);

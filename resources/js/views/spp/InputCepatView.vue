@@ -496,6 +496,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Kirim Kuitansi WhatsApp Gambar -->
+    <KirimWaKuitansiModal
+      :show="showKirimWaModal"
+      :kuitansi-data="kuitansiDataForWa"
+      @close="showKirimWaModal = false"
+    />
   </div>
 </template>
 
@@ -504,6 +511,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
+import KirimWaKuitansiModal from '../../components/KirimWaKuitansiModal.vue';
 
 const route = useRoute();
 const toast = useToast();
@@ -542,12 +550,22 @@ const appLogo = ref('/LOGOTPQ.png');
 
 // Modal Result / Kuitansi
 const showResultModal = ref(false);
+const showKirimWaModal = ref(false);
 const resultMessage = ref('');
 const resultKuitansiList = ref([]);
 const activeKuitansiIndex = ref(0);
 
 const activeKuitansi = computed(() => {
   return resultKuitansiList.value[activeKuitansiIndex.value] || null;
+});
+
+const kuitansiDataForWa = computed(() => {
+  if (!activeKuitansi.value) return null;
+  return {
+    ...activeKuitansi.value,
+    appLogo: appLogo.value,
+    nama_bendahara: activeKuitansi.value.nama_bendahara || namaBendahara.value,
+  };
 });
 
 function formatRupiah(val) {
@@ -751,53 +769,7 @@ function printKuitansi() {
 
 function sendKuitansiViaWa() {
   if (!activeKuitansi.value) return;
-  const kw = activeKuitansi.value;
-
-  let phone = kw.no_hp_ortu || '';
-  if (!phone) {
-    phone = prompt(`Nomor WhatsApp wali santri belum terdaftar. Masukkan nomor WhatsApp untuk ananda ${kw.nama_santri} (contoh: 08123456789):`);
-  }
-  if (!phone) return;
-
-  let clean = phone.replace(/[^0-9]/g, '');
-  if (clean.startsWith('0')) {
-    clean = '62' + clean.slice(1);
-  }
-
-  const bendaharaName = kw.nama_bendahara || namaBendahara.value;
-  const tglLengkap = kw.tanggal_bayar ? `${kw.tanggal_bayar} WIB` : '-';
-
-  const text = `*BUKTI PEMBAYARAN RESMI SPP*
-*TPQ NURUL MUN'IM PAITON*
-━━━━━━━━━━━━━━━━━━━━━━━
-
-_Assalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Yth. Bapak/Ibu Wali dari ananda:
-👤 *${kw.nama_santri}* (NISN: ${kw.nisn})
-📚 Kelas / Jilid: *${kw.kelas}*
-
-Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
-
-🧾 *No. Kuitansi* : ${kw.nomor_kuitansi}
-🗓 *Tanggal Bayar*: ${tglLengkap}
-📌 *Keperluan*    : ${kw.pembayaran_untuk}
-💳 *Metode Bayar* : ${kw.metode}
-💰 *Jumlah Bayar* : *Rp ${formatRupiah(kw.jumlah_bayar)}*
-✅ *Status*       : *LUNAS (SAH)*
-${kw.catatan ? '📝 *Catatan*      : ' + kw.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
-
-_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
-
-_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Hormat kami,
-*Bendahara TPQ Nurul Mun'im*
-(${bendaharaName})
-_Karanganyar, Paiton, Probolinggo_`;
-
-  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
+  showKirimWaModal.value = true;
 }
 
 onMounted(async () => {

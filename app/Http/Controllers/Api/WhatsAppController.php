@@ -200,6 +200,72 @@ class WhatsAppController extends Controller
     }
 
     /**
+     * Kirim kuitansi pembayaran format gambar via gateway WhatsApp (Fonnte)
+     * Gambar diproses secara temporary dan TIDAK disimpan permanen di database (TiDB)
+     */
+    public function sendKuitansiImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => 'required|string',
+            'message' => 'required|string',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg|max:5120',
+            'image_base64' => 'nullable|string',
+            'nama_penerima' => 'nullable|string|max:100',
+            'nomor_kuitansi' => 'nullable|string|max:50',
+        ]);
+
+        $phone = (string) $request->input('phone');
+        $message = (string) $request->input('message');
+        $nomorKuitansi = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) $request->input('nomor_kuitansi', 'SPP'));
+        $filename = 'Kuitansi-'.($nomorKuitansi ?: 'SPP').'.png';
+
+        $tempPath = null;
+        $isCreatedTemp = false;
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $tempPath = $file->getRealPath();
+        } elseif ($request->filled('image_base64')) {
+            $base64 = $request->input('image_base64');
+            if (str_contains($base64, ',')) {
+                $base64 = explode(',', $base64)[1];
+            }
+            $decoded = base64_decode($base64);
+            if ($decoded !== false) {
+                $tempDir = storage_path('app/temp');
+                if (! is_dir($tempDir)) {
+                    @mkdir($tempDir, 0755, true);
+                }
+                $tempPath = $tempDir.'/temp_kw_'.uniqid().'.png';
+                file_put_contents($tempPath, $decoded);
+                $isCreatedTemp = true;
+            }
+        }
+
+        $metadata = [
+            'nama_penerima' => $request->input('nama_penerima'),
+            'tipe_pesan' => 'kuitansi_spp',
+        ];
+
+        try {
+            $result = $this->waService->sendViaFonnte(
+                $phone,
+                $message,
+                null,
+                $metadata,
+                $tempPath,
+                $filename
+            );
+        } finally {
+            if ($isCreatedTemp && $tempPath && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
+        }
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    /**
      * Kirim pesan broadcast ke banyak nomor via queue job
      */
     public function broadcast(Request $request): JsonResponse

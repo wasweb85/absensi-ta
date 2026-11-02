@@ -577,8 +577,7 @@
             <button
               type="button"
               @click="sendKuitansiViaWa"
-              :disabled="!selectedBayarSantri?.no_hp_ortu"
-              class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer order-1 sm:order-none disabled:opacity-40"
+              class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer order-1 sm:order-none"
               title="Kirim Bukti Kuitansi ke WhatsApp Wali Santri"
             >
               <BaseIcon name="whatsapp" class="w-3.5 h-3.5" />
@@ -790,6 +789,13 @@
       </div>
     </div>
 
+    <!-- Modal Kirim Kuitansi WhatsApp Gambar -->
+    <KirimWaKuitansiModal
+      :show="showKirimWaModal"
+      :kuitansi-data="kuitansiDataForWa"
+      @close="showKirimWaModal = false"
+    />
+
   </div>
 </template>
 
@@ -800,6 +806,7 @@ import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
 import { useAuth } from '../../composables/useAuth';
 import BaseIcon from '../../components/BaseIcon.vue';
+import KirimWaKuitansiModal from '../../components/KirimWaKuitansiModal.vue';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -940,6 +947,27 @@ const bayarCatatan = ref('');
 const isSubmittingBayar = ref(false);
 const isLoadingBayarBills = ref(false);
 const bayarSuccessResult = ref(null);
+const showKirimWaModal = ref(false);
+
+const kuitansiDataForWa = computed(() => {
+  if (!bayarSuccessResult.value) return null;
+  const k = bayarSuccessResult.value;
+  const bulanStr = k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
+  return {
+    nomor_kuitansi: k.nomor_kuitansi,
+    tanggal_bayar: k.tanggal_bayar,
+    nama_santri: k.nama_santri,
+    nisn: k.nisn,
+    kelas: k.kelas,
+    pembayaran_untuk: `SPP ${bulanStr}`.trim(),
+    metode: k.metode,
+    jumlah_bayar: k.total_bayar,
+    catatan: k.catatan,
+    nama_bendahara: k.nama_bendahara || namaBendahara.value,
+    no_hp_ortu: selectedBayarSantri.value?.no_hp_ortu || k.no_hp_ortu || '',
+    appLogo: appLogo.value,
+  };
+});
 
 const totalNominalBayarModal = computed(() => {
   return bayarTagihanList.value
@@ -1048,53 +1076,7 @@ const printKuitansi = () => {
 
 const sendKuitansiViaWa = () => {
   if (!bayarSuccessResult.value) return;
-  let phone = selectedBayarSantri.value?.no_hp_ortu || bayarSuccessResult.value.no_hp_ortu || '';
-  if (!phone) {
-    phone = prompt('Nomor WhatsApp wali santri belum terdaftar. Masukkan nomor WhatsApp tujuan (contoh: 08123456789):');
-  }
-  if (!phone) return;
-
-  let clean = phone.replace(/[^0-9]/g, '');
-  if (clean.startsWith('0')) {
-    clean = '62' + clean.slice(1);
-  }
-
-  const k = bayarSuccessResult.value;
-  const bendaharaName = k.nama_bendahara || namaBendahara.value;
-  const bulanStr = k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
-  const tglLengkap = k.tanggal_bayar ? `${k.tanggal_bayar} WIB` : '-';
-
-  const text = `*BUKTI PEMBAYARAN RESMI SPP*
-*TPQ NURUL MUN'IM PAITON*
-━━━━━━━━━━━━━━━━━━━━━━━
-
-_Assalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Yth. Bapak/Ibu Wali dari ananda:
-👤 *${k.nama_santri}* (NISN: ${k.nisn})
-📚 Kelas / Jilid: *${k.kelas}*
-
-Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
-
-🧾 *No. Kuitansi* : ${k.nomor_kuitansi}
-🗓 *Tanggal Bayar*: ${tglLengkap}
-📌 *Keperluan*    : SPP ${bulanStr}
-💳 *Metode Bayar* : ${k.metode}
-💰 *Jumlah Bayar* : *Rp ${formatRupiah(k.total_bayar)}*
-✅ *Status*       : *LUNAS (SAH)*
-${k.catatan ? '📝 *Catatan*      : ' + k.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
-
-_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
-
-_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Hormat kami,
-*Bendahara TPQ Nurul Mun'im*
-(${bendaharaName})
-_Karanganyar, Paiton, Probolinggo_`;
-
-  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
+  showKirimWaModal.value = true;
 };
 
 // State Modal Pop-up Japri WhatsApp

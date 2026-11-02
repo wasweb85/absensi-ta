@@ -614,6 +614,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Kirim Kuitansi WhatsApp Gambar -->
+    <KirimWaKuitansiModal
+      :show="showKirimWaModal"
+      :kuitansi-data="kuitansiDataForWa"
+      @close="showKirimWaModal = false"
+    />
   </div>
 </template>
 
@@ -622,6 +629,7 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
 import { useAuth } from '../../composables/useAuth';
+import KirimWaKuitansiModal from '../../components/KirimWaKuitansiModal.vue';
 
 const toast = useToast();
 const { canManageSpp } = useAuth();
@@ -665,7 +673,28 @@ function clearSearch() {
 
 // Modal Kuitansi
 const showKuitansiModal = ref(false);
+const showKirimWaModal = ref(false);
 const activeKuitansi = ref(null);
+
+const kuitansiDataForWa = computed(() => {
+  if (!activeKuitansi.value) return null;
+  const k = activeKuitansi.value;
+  const bulanTagihan = k.tagihan ? `${getNamaBulan(k.tagihan?.bulan)} ${k.tagihan?.tahun || ''}`.trim() : (k.catatan || 'SPP');
+  return {
+    nomor_kuitansi: k.nomor_kuitansi,
+    tanggal_bayar: formatTanggal(k.tanggal_bayar),
+    nama_santri: k.siswa?.nama_lengkap || '-',
+    nisn: k.siswa?.nisn || '-',
+    kelas: k.siswa?.kelas?.nama_kelas || '-',
+    pembayaran_untuk: `SPP ${bulanTagihan}`.trim(),
+    metode: k.metode_pembayaran || 'Tunai',
+    jumlah_bayar: k.jumlah_bayar,
+    catatan: k.catatan,
+    nama_bendahara: namaBendahara.value,
+    no_hp_ortu: k.siswa?.no_hp_ortu || '',
+    appLogo: appLogo.value,
+  };
+});
 
 // Modal Pembatalan
 const showBatalModal = ref(false);
@@ -812,58 +841,7 @@ async function printBukuKas() {
 
 function sendKuitansiViaWa() {
   if (!activeKuitansi.value) return;
-  const k = activeKuitansi.value;
-
-  let phone = k.siswa?.no_hp_ortu;
-  if (!phone) {
-    phone = prompt('Nomor WhatsApp wali santri belum terdaftar. Masukkan nomor WhatsApp tujuan (contoh: 08123456789):');
-  }
-  if (!phone) return;
-
-  let clean = phone.replace(/[^0-9]/g, '');
-  if (clean.startsWith('0')) {
-    clean = '62' + clean.slice(1);
-  }
-
-  const namaSantri = k.siswa?.nama_lengkap || '-';
-  const nisn = k.siswa?.nisn || '-';
-  const kelas = k.siswa?.kelas?.nama_kelas || '-';
-  const bulanTagihan = `${getNamaBulan(k.tagihan?.bulan)} ${k.tagihan?.tahun || ''}`.trim();
-  const tgl = `${formatTanggal(k.tanggal_bayar)} WIB`;
-  const nominal = formatRupiah(k.jumlah_bayar);
-  const metode = k.metode_pembayaran || 'Tunai';
-
-  const text = `*BUKTI PEMBAYARAN RESMI SPP*
-*TPQ NURUL MUN'IM PAITON*
-━━━━━━━━━━━━━━━━━━━━━━━
-
-_Assalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Yth. Bapak/Ibu Wali dari ananda:
-👤 *${namaSantri}* (NISN: ${nisn})
-📚 Kelas / Jilid: *${kelas}*
-
-Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
-
-🧾 *No. Kuitansi* : ${k.nomor_kuitansi}
-🗓 *Tanggal Bayar*: ${tgl}
-📌 *Keperluan*    : SPP ${bulanTagihan}
-💳 *Metode Bayar* : ${metode}
-💰 *Jumlah Bayar* : *Rp ${nominal}*
-✅ *Status*       : *LUNAS (SAH)*
-${k.catatan ? '📝 *Catatan*      : ' + k.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
-
-_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
-
-_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
-
-Hormat kami,
-*Bendahara TPQ Nurul Mun'im*
-(${namaBendahara.value})
-_Karanganyar, Paiton, Probolinggo_`;
-
-  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
+  showKirimWaModal.value = true;
 }
 
 function openBatalModal(p) {
