@@ -61,7 +61,16 @@ class ChatbotController extends Controller
 
         // 2. Fonnte mengirimkan pesan masuk chatbot: sender & message
         $sender = $request->input('sender') ?: $request->input('from');
-        $message = $request->input('message') ?: $request->input('body') ?: '';
+        $message = $request->input('message') ?: $request->input('body');
+
+        // Jika request kosong (Fonnte ping verifikasi webhook saat disimpan)
+        if (empty($sender) && empty($message)) {
+            return response()->json([
+                'status' => true,
+                'success' => true,
+                'message' => 'Fonnte webhook endpoint is active and ready (ping acknowledged).',
+            ], 200);
+        }
 
         if (! $sender) {
             return response()->json([
@@ -308,7 +317,7 @@ class ChatbotController extends Controller
 
         // Fallback pencarian: jika fonnte_id belum cocok, cocokkan dengan nomor tujuan terbaru
         if (! $log) {
-            $target = $data['target'] ?? $data['device'] ?? null;
+            $target = $data['target'] ?? $data['recipient'] ?? $data['to'] ?? $request->input('target') ?? null;
             if ($target) {
                 $targetNorm = WhatsAppService::normalizePhone((string) $target);
                 if (! empty($targetNorm)) {

@@ -86,6 +86,14 @@ class ChatbotWebhookTest extends TestCase
             ->assertJson(['success' => false]);
     }
 
+    public function test_webhook_empty_ping_returns_200(): void
+    {
+        $response = $this->postJson('/api/webhook/whatsapp', []);
+
+        $response->assertStatus(200)
+            ->assertJson(['status' => true]);
+    }
+
     public function test_webhook_responds_spp_notice_for_registered_student(): void
     {
         // Berikan nomor unik khusus siswa1 untuk tes single student
