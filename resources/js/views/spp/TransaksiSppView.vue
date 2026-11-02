@@ -402,25 +402,36 @@ const sendKuitansiViaWa = () => {
   }
 
   const bendaharaName = k.nama_bendahara || namaBendahara.value;
-  const petugasInput = k.petugas || bendaharaName;
+  const tglLengkap = k.tanggal_bayar ? `${k.tanggal_bayar} WIB` : '-';
 
-  const text = `*BUKTI PEMBAYARAN SPP TPQ*
----------------------------------------
-No. Kuitansi : ${k.nomor_kuitansi}
-Tanggal      : ${k.tanggal_bayar}
-Nama Santri  : ${k.nama_santri}
-NISN / Kelas : ${k.nisn} / ${k.kelas}
-Pembayaran   : ${k.pembayaran_untuk}
-Metode Bayar : ${k.metode}
-Status       : ${k.status_tagihan?.toUpperCase() || 'LUNAS'}
----------------------------------------
-*TOTAL DIBAYAR: Rp ${formatRupiah(k.jumlah_bayar)}*
-Bendahara    : ${bendaharaName}
-${petugasInput !== bendaharaName ? 'Petugas Input: ' + petugasInput + '\n' : ''}${k.catatan ? 'Catatan: ' + k.catatan + '\n' : ''}---------------------------------------
-Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan membawa barokah bagi ananda serta keluarga tercinta.
+  const text = `*BUKTI PEMBAYARAN RESMI SPP*
+*TPQ NURUL MUN'IM PAITON*
+━━━━━━━━━━━━━━━━━━━━━━━
 
-*TPQ Nurul Mun'im*
-Karanganyar Paiton Probolinggo`;
+_Assalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Yth. Bapak/Ibu Wali dari ananda:
+👤 *${k.nama_santri}* (NISN: ${k.nisn})
+📚 Kelas / Jilid: *${k.kelas}*
+
+Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
+
+🧾 *No. Kuitansi* : ${k.nomor_kuitansi}
+🗓 *Tanggal Bayar*: ${tglLengkap}
+📌 *Keperluan*    : ${k.pembayaran_untuk}
+💳 *Metode Bayar* : ${k.metode}
+💰 *Jumlah Bayar* : *Rp ${formatRupiah(k.jumlah_bayar)}*
+✅ *Status*       : *LUNAS (SAH)*
+${k.catatan ? '📝 *Catatan*      : ' + k.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
+
+_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
+
+_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Hormat kami,
+*Bendahara TPQ Nurul Mun'im*
+(${bendaharaName})
+_Karanganyar, Paiton, Probolinggo_`;
 
   const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');

@@ -99,3 +99,4 @@ _Karanganyar, Paiton, Probolinggo_
 2. **Format Pesan WA:** Menguji pembentukan tautan `https://wa.me/...` dengan teks terenkripsi UTF-8, memastikan emoji dan line breaks rapi.
 3. **Cetak Buku Kas:** Menguji pratinjau cetak browser (`window.print()`) bahwa tabel buku kas rapi, tidak terpotong ke samping, dan kolom aksi tidak muncul.
 4. **Cetak Kuitansi:** Memastikan kuitansi saat dicetak tidak menyisakan halaman kosong berlebih.
+

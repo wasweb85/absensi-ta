@@ -10,14 +10,15 @@
 
       <div class="flex items-center gap-1.5 sm:gap-2">
         <button
-          @click="printLaporan"
-          :disabled="pembayaranList.length === 0"
+          @click="printBukuKas"
+          :disabled="isLoadingBukuKas || totalRecords === 0"
           class="h-8 px-2.5 sm:px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shadow-sm"
-          title="Cetak Laporan Rekapitulasi Pembayaran SPP"
+          title="Cetak Buku Kas Penerimaan SPP"
         >
-          <BaseIcon name="printer" class="w-3.5 h-3.5 text-zinc-400" />
-          <span class="hidden xs:inline sm:inline">Cetak Laporan</span>
-          <span class="inline xs:hidden sm:hidden">Cetak</span>
+          <BaseIcon v-if="isLoadingBukuKas" name="refresh" class="w-3.5 h-3.5 animate-spin text-emerald-600" />
+          <BaseIcon v-else name="printer" class="w-3.5 h-3.5 text-zinc-400" />
+          <span class="hidden xs:inline sm:inline">Cetak Buku Kas</span>
+          <span class="inline xs:hidden sm:hidden">Buku Kas</span>
         </button>
 
         <button
@@ -129,50 +130,47 @@
       </div>
     </div>
 
-    <!-- KOP RESMI LAPORAN REKAPITULASI PEMBAYARAN SPP (Tampil saat cetak laporan rekap) -->
-    <div v-if="!showKuitansiModal" class="hidden print:block mb-2 text-black">
+    <!-- SECTION KHUSUS CETAK BUKU KAS (Hanya muncul saat print dokumen buku kas) -->
+    <div v-if="!showKuitansiModal" class="hidden print:block text-black font-sans">
+      <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
       <div class="flex items-center justify-between gap-3 pb-1">
-        <!-- Logo Lembaga di Kiri -->
-        <div class="w-20 sm:w-24 shrink-0 flex items-center justify-center">
+        <div class="w-20 shrink-0 flex items-center justify-center">
           <img
             :src="appLogo || '/LOGOTPQ.png'"
             alt="Logo Lembaga"
-            class="max-h-16 max-w-20 sm:max-h-20 sm:max-w-24 object-contain"
+            class="max-h-16 max-w-20 object-contain"
           />
         </div>
 
-        <!-- Teks Kop Surat di Tengah -->
         <div class="flex-1 text-center px-1">
-          <h1 class="text-xl sm:text-2xl font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
+          <h1 class="text-xl font-serif font-bold text-[#7b95c0] tracking-[0.16em] uppercase leading-none">
             YAYASAN NURUL JADID
           </h1>
-          <h2 class="text-sm sm:text-[15px] font-serif font-bold text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
+          <h2 class="text-sm font-serif font-bold text-[#52525b] tracking-[0.06em] uppercase leading-tight mt-1">
             TAMAN PENDIDIKAN AL-QUR'AN NURUL MUN'IM
           </h2>
-          <h3 class="text-xs sm:text-[13px] font-serif font-bold text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
+          <h3 class="text-xs font-serif font-bold text-[#52525b] tracking-[0.1em] uppercase leading-tight mt-0.5">
             KARANGANYAR PAITON PROBOLINGGO
           </h3>
-          <p class="text-[9px] sm:text-[10px] font-serif italic text-[#cca843] leading-tight mt-0.5">
+          <p class="text-[9px] font-serif italic text-[#cca843] leading-tight mt-0.5">
             Alamat: PP. Nurul Jadid PO. Box 1 Paiton Probolinggo 67291 Email: tpqnm.nurja@gmail.com
           </p>
         </div>
 
-        <!-- Spacer Kanan Penyeimbang -->
-        <div class="w-20 sm:w-24 shrink-0"></div>
+        <div class="w-20 shrink-0"></div>
       </div>
 
-      <!-- Garis Ganda Kop Surat Resmi -->
       <div class="border-t-[2.5px] border-black mt-1"></div>
       <div class="border-t border-black mt-[1.5px] mb-2"></div>
 
-      <!-- Judul Dokumen & Periode Laporan -->
-      <div class="text-center my-1">
+      <!-- Judul Dokumen & Periode Buku Kas -->
+      <div class="text-center my-1.5">
         <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider underline">
-          LAPORAN REKAPITULASI TRANSAKSI PEMBAYARAN SPP
+          BUKU KAS PENERIMAAN SPP SANTRI
         </h2>
         <div class="flex justify-between items-center text-[10px] mt-1 px-1 font-medium text-black">
           <div>
-            <span><strong>Filter:</strong> {{ filters.tanggal_mulai ? filters.tanggal_mulai : 'Awal' }} s/d {{ filters.tanggal_selesai ? filters.tanggal_selesai : 'Sekarang' }}</span>
+            <span><strong>Periode:</strong> {{ filters.tanggal_mulai ? filters.tanggal_mulai : 'Semua Periode' }} s/d {{ filters.tanggal_selesai ? filters.tanggal_selesai : 'Sekarang' }}</span>
             <span class="mx-2">&bull;</span>
             <span><strong>Jilid:</strong> {{ getNamaKelas(filters.id_kelas) }}</span>
             <span class="mx-2" v-if="filters.status_transaksi">&bull;</span>
@@ -183,12 +181,76 @@
           </div>
         </div>
       </div>
+
+      <!-- Tabel Cetak Khusus Buku Kas (A4 Portrait, 8 Kolom Rapi) -->
+      <table class="w-full text-left text-[9.5px] border-collapse border border-black text-black mt-2">
+        <thead>
+          <tr class="bg-neutral-100 border-b border-black text-black">
+            <th class="p-1.5 border border-black text-center font-bold w-8">No</th>
+            <th class="p-1.5 border border-black font-bold whitespace-nowrap">No. Kuitansi</th>
+            <th class="p-1.5 border border-black font-bold whitespace-nowrap">Tanggal</th>
+            <th class="p-1.5 border border-black font-bold">Nama Santri</th>
+            <th class="p-1.5 border border-black font-bold text-center">Jilid</th>
+            <th class="p-1.5 border border-black font-bold">Tagihan</th>
+            <th class="p-1.5 border border-black text-right font-bold whitespace-nowrap">Nominal</th>
+            <th class="p-1.5 border border-black text-center font-bold">Metode</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(p, idx) in printDataset"
+            :key="p.id"
+            class="border-b border-black"
+          >
+            <td class="p-1.5 border border-black text-center">{{ idx + 1 }}</td>
+            <td class="p-1.5 border border-black font-mono font-bold whitespace-nowrap">{{ p.nomor_kuitansi }}</td>
+            <td class="p-1.5 border border-black whitespace-nowrap">{{ formatTanggal(p.tanggal_bayar) }}</td>
+            <td class="p-1.5 border border-black">
+              <span class="font-bold block">{{ p.siswa?.nama_lengkap || '-' }}</span>
+              <span class="text-[8.5px] text-neutral-600 block">NISN: {{ p.siswa?.nisn || '-' }}</span>
+            </td>
+            <td class="p-1.5 border border-black text-center font-semibold">{{ p.siswa?.kelas?.nama_kelas || '-' }}</td>
+            <td class="p-1.5 border border-black">{{ getNamaBulan(p.tagihan?.bulan) }} {{ p.tagihan?.tahun }}</td>
+            <td class="p-1.5 border border-black text-right font-bold whitespace-nowrap">Rp {{ formatRupiah(p.jumlah_bayar) }}</td>
+            <td class="p-1.5 border border-black text-center">{{ p.metode_pembayaran }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="bg-neutral-100 font-bold border-t-2 border-black">
+            <td colspan="6" class="p-1.5 border border-black text-right uppercase">
+              Total Kas Penerimaan ({{ printDataset.length }} Transaksi):
+            </td>
+            <td class="p-1.5 border border-black text-right font-mono font-bold whitespace-nowrap">
+              Rp {{ formatRupiah(totalNominalPrint) }}
+            </td>
+            <td class="p-1.5 border border-black text-center">-</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Blok Pengesahan Tanda Tangan Resmi Buku Kas -->
+      <div class="flex justify-between items-start mt-6 pt-2 text-black text-[10px] break-inside-avoid">
+        <div class="text-center min-w-[180px]">
+          <p class="font-normal">Mengetahui,</p>
+          <p class="font-semibold">Kepala TPQ</p>
+          <div class="h-14"></div>
+          <p class="font-bold underline tracking-wide">( Ny. Shofiyah )</p>
+          <p class="text-[9px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
+        </div>
+
+        <div class="text-center min-w-[180px]">
+          <p class="font-normal">Paiton, {{ formattedCurrentDate }}</p>
+          <p class="font-semibold">Bendahara TPQ</p>
+          <div class="h-14"></div>
+          <p class="font-bold underline tracking-wide">( {{ namaBendahara }} )</p>
+          <p class="text-[9px] text-neutral-600 mt-0.5">Bendahara TPQ Nurul Mun'im</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Table Card -->
+    <!-- Table Card (Layar Web - Disembunyikan saat mencetak dokumen) -->
     <div
-      class="rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden"
-      :class="showKuitansiModal ? 'print:hidden' : 'print:border-none print:shadow-none print:p-0 print:overflow-visible'"
+      class="rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden print:hidden"
     >
       <!-- Loading State -->
       <div v-if="isLoading" class="p-12 text-center text-zinc-400 print:hidden">
@@ -293,12 +355,6 @@
         </table>
       </div>
 
-      <!-- Total Akumulasi (Hanya tampil saat dicetak laporan) -->
-      <div v-if="!showKuitansiModal && pembayaranList.length > 0" class="hidden print:flex justify-between items-center px-4 py-2 border-t-2 border-black text-xs font-bold text-black">
-        <span>Total Penerimaan Terbayar ({{ pembayaranList.length }} transaksi):</span>
-        <span class="font-mono text-sm">Rp {{ formatRupiah(totalNominalHalaman) }}</span>
-      </div>
-
       <!-- Pagination Footer -->
       <div v-if="totalPages > 1" class="p-3 sm:p-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500 print:hidden">
         <div>
@@ -323,27 +379,6 @@
       </div>
     </div>
 
-    <!-- Blok Pengesahan Tanda Tangan Resmi Laporan Pembayaran (Cetak) -->
-    <div v-if="!showKuitansiModal && pembayaranList.length > 0" class="hidden print:flex justify-between items-start mt-6 pt-2 text-black text-[10px] break-inside-avoid">
-      <!-- Sisi Kiri: Mengetahui Kepala TPQ -->
-      <div class="text-center min-w-[180px]">
-        <p class="font-normal">Mengetahui,</p>
-        <p class="font-semibold">Kepala TPQ</p>
-        <div class="h-12"></div>
-        <p class="font-bold underline tracking-wide">( Ny. Shofiyah )</p>
-        <p class="text-[9px] text-neutral-600 mt-0.5">Kepala TPQ Nurul Mun'im</p>
-      </div>
-
-      <!-- Sisi Kanan: Bendahara TPQ -->
-      <div class="text-center min-w-[180px]">
-        <p class="font-normal">Paiton, {{ formattedCurrentDate }}</p>
-        <p class="font-semibold">Bendahara TPQ</p>
-        <div class="h-12"></div>
-        <p class="font-bold underline tracking-wide">( {{ namaBendahara }} )</p>
-        <p class="text-[9px] text-neutral-600 mt-0.5">Bendahara TPQ Nurul Mun'im</p>
-      </div>
-    </div>
-
     <!-- Kuitansi Modal Ready for Print -->
     <div
       v-if="showKuitansiModal && activeKuitansi"
@@ -351,7 +386,12 @@
     >
       <div class="w-full max-w-xl p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4 print:border-none print:shadow-none print:p-0 print:max-w-none">
         <!-- Printable Area -->
-        <div id="printKuitansiArea" class="border border-zinc-300 dark:border-zinc-700 p-6 rounded-2xl bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-4 text-xs font-sans print:border print:border-black print:text-black print:bg-white print:p-5">
+        <div id="printKuitansiArea" class="relative border border-zinc-300 dark:border-zinc-700 p-6 rounded-2xl bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-4 text-xs font-sans print:border print:border-black print:text-black print:bg-white print:p-5">
+          <!-- Badge Cap Sah Lunas saat Dicetak -->
+          <div class="absolute right-4 top-24 pointer-events-none border-2 border-emerald-700 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded rotate-[-8deg] uppercase tracking-widest hidden print:block opacity-80">
+            LUNAS &bull; SAH
+          </div>
+
           <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
           <div class="text-black dark:text-white print:text-black pb-1">
             <div class="flex items-center justify-between gap-3 pb-1">
@@ -545,7 +585,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import api from '../../services/api';
 import { useToast } from '../../composables/useToast';
 import { useAuth } from '../../composables/useAuth';
@@ -600,8 +640,17 @@ const targetBatal = ref(null);
 const alasanBatal = ref('');
 const isCancelling = ref(false);
 
-const totalNominalHalaman = computed(() => {
-  return pembayaranList.value.reduce((acc, curr) => {
+// Buku Kas Print State
+const isLoadingBukuKas = ref(false);
+const bukuKasList = ref([]);
+const isPrintingBukuKas = ref(false);
+
+const printDataset = computed(() => {
+  return bukuKasList.value.length > 0 ? bukuKasList.value : pembayaranList.value;
+});
+
+const totalNominalPrint = computed(() => {
+  return printDataset.value.reduce((acc, curr) => {
     if (curr.status_transaksi === 'valid' || curr.status_transaksi === 'sukses') {
       return acc + (Number(curr.jumlah_bayar) || 0);
     }
@@ -704,9 +753,28 @@ function printKuitansi() {
   window.print();
 }
 
-function printLaporan() {
+async function printBukuKas() {
+  isLoadingBukuKas.value = true;
   showKuitansiModal.value = false;
-  window.print();
+  try {
+    const res = await api.get('/spp/riwayat', {
+      params: {
+        semua: 1,
+        ...filters.value,
+      }
+    });
+    bukuKasList.value = res.data?.data?.data || [];
+    isPrintingBukuKas.value = true;
+    await nextTick();
+    window.print();
+  } catch (err) {
+    toast.error('Gagal memuat seluruh data buku kas.');
+  } finally {
+    isLoadingBukuKas.value = false;
+    setTimeout(() => {
+      isPrintingBukuKas.value = false;
+    }, 1000);
+  }
 }
 
 function sendKuitansiViaWa() {
@@ -728,27 +796,38 @@ function sendKuitansiViaWa() {
   const nisn = k.siswa?.nisn || '-';
   const kelas = k.siswa?.kelas?.nama_kelas || '-';
   const bulanTagihan = `${getNamaBulan(k.tagihan?.bulan)} ${k.tagihan?.tahun || ''}`.trim();
-  const tgl = formatTanggal(k.tanggal_bayar);
+  const tgl = `${formatTanggal(k.tanggal_bayar)} WIB`;
   const nominal = formatRupiah(k.jumlah_bayar);
-  const petugasInput = k.petugas?.name || namaBendahara.value;
+  const metode = k.metode_pembayaran || 'Tunai';
 
-  const text = `*BUKTI PEMBAYARAN SPP TPQ*
----------------------------------------
-No. Kuitansi : ${k.nomor_kuitansi}
-Tanggal      : ${tgl}
-Nama Santri  : ${namaSantri}
-NISN / Jilid : ${nisn} / ${kelas}
-Pembayaran   : SPP ${bulanTagihan}
-Metode Bayar : ${k.metode_pembayaran || 'Tunai'}
-Status       : ${k.status_transaksi?.toUpperCase() || 'LUNAS'}
----------------------------------------
-*TOTAL DIBAYAR: Rp ${nominal}*
-Bendahara    : ${namaBendahara.value}
-${petugasInput !== namaBendahara.value ? 'Petugas Input: ' + petugasInput + '\n' : ''}${k.catatan ? 'Catatan      : ' + k.catatan + '\n' : ''}---------------------------------------
-Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan membawa barokah bagi ananda serta keluarga tercinta.
+  const text = `*BUKTI PEMBAYARAN RESMI SPP*
+*TPQ NURUL MUN'IM PAITON*
+━━━━━━━━━━━━━━━━━━━━━━━
 
-*TPQ Nurul Mun'im*
-Karanganyar Paiton Probolinggo`;
+_Assalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Yth. Bapak/Ibu Wali dari ananda:
+👤 *${namaSantri}* (NISN: ${nisn})
+📚 Kelas / Jilid: *${kelas}*
+
+Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
+
+🧾 *No. Kuitansi* : ${k.nomor_kuitansi}
+🗓 *Tanggal Bayar*: ${tgl}
+📌 *Keperluan*    : SPP ${bulanTagihan}
+💳 *Metode Bayar* : ${metode}
+💰 *Jumlah Bayar* : *Rp ${nominal}*
+✅ *Status*       : *LUNAS (SAH)*
+${k.catatan ? '📝 *Catatan*      : ' + k.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
+
+_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
+
+_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Hormat kami,
+*Bendahara TPQ Nurul Mun'im*
+(${namaBendahara.value})
+_Karanganyar, Paiton, Probolinggo_`;
 
   const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
@@ -832,3 +911,12 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}
+</style>

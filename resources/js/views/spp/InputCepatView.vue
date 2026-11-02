@@ -329,8 +329,13 @@
         <div
           v-if="activeKuitansi"
           id="inputCepatKuitansiArea"
-          class="border border-zinc-300 dark:border-zinc-700 rounded-2xl p-5 sm:p-6 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-3.5 print:border print:border-black print:text-black print:bg-white print:p-5"
+          class="relative border border-zinc-300 dark:border-zinc-700 rounded-2xl p-5 sm:p-6 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-3.5 print:border print:border-black print:text-black print:bg-white print:p-5"
         >
+          <!-- Badge Cap Sah Lunas saat Dicetak -->
+          <div class="absolute right-4 top-24 pointer-events-none border-2 border-emerald-700 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded rotate-[-8deg] uppercase tracking-widest hidden print:block opacity-80">
+            LUNAS &bull; SAH
+          </div>
+
           <!-- Kop Surat Resmi TPQ Nurul Mun'im -->
           <div class="text-black dark:text-white print:text-black pb-1">
             <div class="flex items-center justify-between gap-3 pb-1">
@@ -741,25 +746,36 @@ function sendKuitansiViaWa() {
   }
 
   const bendaharaName = kw.nama_bendahara || namaBendahara.value;
-  const petugasInput = kw.petugas || bendaharaName;
+  const tglLengkap = kw.tanggal_bayar ? `${kw.tanggal_bayar} WIB` : '-';
 
-  const text = `*BUKTI PEMBAYARAN SPP TPQ*
----------------------------------------
-No. Kuitansi : ${kw.nomor_kuitansi}
-Tanggal      : ${kw.tanggal_bayar}
-Nama Santri  : ${kw.nama_santri}
-NISN / Jilid : ${kw.nisn} / ${kw.kelas}
-Pembayaran   : ${kw.pembayaran_untuk}
-Metode Bayar : ${kw.metode}
-Status       : LUNAS / SUKSES
----------------------------------------
-*TOTAL DIBAYAR: Rp ${formatRupiah(kw.jumlah_bayar)}*
-Bendahara    : ${bendaharaName}
-${petugasInput !== bendaharaName ? 'Petugas Input: ' + petugasInput + '\n' : ''}${kw.catatan ? 'Catatan      : ' + kw.catatan + '\n' : ''}---------------------------------------
-Terima kasih atas pembayaran SPP ananda. Semoga menjadi amal jariyah dan membawa barokah bagi ananda serta keluarga tercinta.
+  const text = `*BUKTI PEMBAYARAN RESMI SPP*
+*TPQ NURUL MUN'IM PAITON*
+━━━━━━━━━━━━━━━━━━━━━━━
 
-*TPQ Nurul Mun'im*
-Karanganyar Paiton Probolinggo`;
+_Assalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Yth. Bapak/Ibu Wali dari ananda:
+👤 *${kw.nama_santri}* (NISN: ${kw.nisn})
+📚 Kelas / Jilid: *${kw.kelas}*
+
+Alhamdulillah, pembayaran iuran SPP ananda telah kami terima dan tercatat sah pada buku kas administrasi TPQ Nurul Mun'im dengan rincian:
+
+🧾 *No. Kuitansi* : ${kw.nomor_kuitansi}
+🗓 *Tanggal Bayar*: ${tglLengkap}
+📌 *Keperluan*    : ${kw.pembayaran_untuk}
+💳 *Metode Bayar* : ${kw.metode}
+💰 *Jumlah Bayar* : *Rp ${formatRupiah(kw.jumlah_bayar)}*
+✅ *Status*       : *LUNAS (SAH)*
+${kw.catatan ? '📝 *Catatan*      : ' + kw.catatan + '\n' : ''}━━━━━━━━━━━━━━━━━━━━━━━
+
+_Jazakumullahu khairan katsiran_ atas kepedulian Bapak/Ibu dalam mendukung pendidikan Al-Qur'an ananda. Semoga Allah SWT membalas dengan rezeki yang berkah berlimpah, serta menjadikan ananda generasi sholeh/sholehah yang mencintai Al-Qur'an. Aamiin ya Rabbal 'Alamin.
+
+_Wassalamu’alaikum Warahmatullahi Wabarakatuh_
+
+Hormat kami,
+*Bendahara TPQ Nurul Mun'im*
+(${bendaharaName})
+_Karanganyar, Paiton, Probolinggo_`;
 
   const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
@@ -810,3 +826,12 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+@media print {
+  @page {
+    size: A5 landscape;
+    margin: 8mm;
+  }
+}
+</style>

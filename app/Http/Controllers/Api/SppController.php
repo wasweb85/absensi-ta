@@ -363,6 +363,21 @@ class SppController extends Controller
             });
         }
 
+        if ($request->boolean('semua') || $request->input('per_page') === 'all') {
+            $pembayaran = $query->orderBy('id', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => $pembayaran,
+                    'total' => $pembayaran->count(),
+                    'last_page' => 1,
+                    'current_page' => 1,
+                ],
+                'nama_bendahara' => User::getNamaBendahara(),
+            ]);
+        }
+
         $pembayaran = $query->orderBy('id', 'desc')->paginate(30);
 
         return response()->json([
