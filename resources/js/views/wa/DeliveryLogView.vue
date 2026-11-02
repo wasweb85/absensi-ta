@@ -684,7 +684,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   CheckCheck,
   Check,
@@ -793,8 +793,10 @@ const toEntry = computed(() => {
   return Math.min(pagination.value.current_page * pagination.value.per_page, pagination.value.total);
 });
 
-async function fetchLogs(page = 1) {
-  isLoading.value = true;
+async function fetchLogs(page = 1, silent = false) {
+  if (!silent) {
+    isLoading.value = true;
+  }
   try {
     const res = await api.get('/wa/logs', {
       params: {
@@ -814,9 +816,13 @@ async function fetchLogs(page = 1) {
       summary.value = res.data.summary;
     }
   } catch (err) {
-    toast.error('Gagal mengambil data log pengiriman WhatsApp.');
+    if (!silent) {
+      toast.error('Gagal mengambil data log pengiriman WhatsApp.');
+    }
   } finally {
-    isLoading.value = false;
+    if (!silent) {
+      isLoading.value = false;
+    }
   }
 }
 
@@ -989,7 +995,23 @@ function getTipeBadgeVariant(tipe) {
   }
 }
 
+let pollInterval = null;
+
 onMounted(() => {
   fetchLogs(1);
+
+  // Auto-refresh log setiap 12 detik agar saat webhook Fonnte tiba, centang otomatis terupdate di layar
+  pollInterval = setInterval(() => {
+    if (!previewModalOpen.value && !detailModalOpen.value && !showWebhookGuideModal.value && !document.hidden) {
+      fetchLogs(pagination.value.current_page, true);
+    }
+  }, 12000);
+});
+
+onUnmounted(() => {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
 });
 </script>
