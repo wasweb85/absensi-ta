@@ -61,12 +61,12 @@
 
         <Card class="p-3.5">
           <div class="flex items-center justify-between text-muted-foreground">
-            <span class="text-[11px] font-semibold uppercase tracking-wider">Cek Agenda & Libur</span>
+            <span class="text-[11px] font-semibold uppercase tracking-wider">Cek Hari Libur</span>
             <span class="size-2 rounded-full bg-blue-500"></span>
           </div>
           <div class="mt-2">
             <div class="text-2xl font-bold tracking-tight text-foreground">{{ stats.intent_distribution?.agenda || 0 }}</div>
-            <p class="text-[10px] text-muted-foreground mt-0.5">Pertanyaan jadwal & hari libur</p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Pertanyaan informasi hari libur</p>
           </div>
         </Card>
 
@@ -708,16 +708,16 @@ const chatContainerRef = ref(null);
 const sampleStudents = ref([]);
 
 const suggestedPrompts = [
-  { icon: '✅', text: 'Apakah anak saya hadir hari ini?' },
-  { icon: '📊', text: 'Rekap kehadiran bulan ini' },
-  { icon: '📅', text: 'Kapan jadwal libur TPQ?' },
+  { icon: '✅', text: 'Gimana absensi anak saya hari ini?' },
+  { icon: '💳', text: 'Anak saya nunggak berapa bulan?' },
+  { icon: '📅', text: 'Bulan ini apakah ada hari libur?' },
   { icon: '❓', text: 'Menu bantuan' },
 ];
 
 const messages = ref([
   {
     role: 'bot',
-    text: "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nSelamat datang di Layanan WhatsApp Otomatis TPQ Al-Hidayah. Ketik *MENU* atau *BANTUAN* untuk melihat daftar layanan yang tersedia.",
+    text: "Silakan ketik pertanyaan terkait *Absensi*, *SPP*, atau *Informasi Hari Libur* santri.",
     time: '12:00',
     intent: 'bantuan',
   },

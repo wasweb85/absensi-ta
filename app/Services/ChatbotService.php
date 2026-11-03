@@ -3,11 +3,11 @@
 namespace App\Services;
 
 use App\Models\Absensi;
-use App\Models\Agenda;
 use App\Models\ChatbotLog;
 use App\Models\HariLibur;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
+use App\Models\TagihanSpp;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -208,18 +208,18 @@ class ChatbotService
 
     /**
      * Klasifikasi intent dari teks pesan bahasa sehari-hari wali santri
+     * Hanya 3 informasi utama untuk wali santri: Absensi, SPP, dan Hari Libur
      */
     public function detectIntent(string $message): string
     {
         $clean = strtolower(trim($message));
 
-        // 1. Intent Pertanyaan SPP & Keuangan (Arahkan ke kantor sekretariat)
-        if (preg_match('/\b(tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|utang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi)\b/i', $clean)) {
+        // 1. Intent Pertanyaan SPP & Tunggakan
+        if (preg_match('/\b(nunggak|menunggak|tunggak|tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|belum lunas|utang|hutang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi|berapa bulan)\b/i', $clean)) {
             return 'spp_notice';
         }
 
         // 2. Intent Pemberitahuan Anak Izin / Sakit dari Wali Santri
-        // (Dibedakan dari pertanyaan cek rekap absensi: di sini wali sedang mengabarkan anaknya tidak bisa hadir)
         $isAskingRecap = (bool) preg_match('/\b(gimana|bagaimana|cek|rekap|berapa|laporan|info|apakah|apa|lihat|status)\b/i', $clean);
         $isInformingAbsence = (bool) preg_match('/\b(mohon izin|minta izin|mau izin|izin tidak|izin gak|izin nggak|tidak bisa hadir|tidak bisa masuk|tidak masuk|gak masuk|nggak masuk|absen dulu|lagi sakit|sedang sakit|karena sakit|kurang enak badan|demam|acara keluarga|bepergian)\b/i', $clean);
         if ($isInformingAbsence && ! $isAskingRecap) {
@@ -231,13 +231,12 @@ class ChatbotService
             return 'absensi';
         }
 
-        // 4. Intent Agenda & Hari Libur
-        if (preg_match('/\b(libur|liburan|tanggal merah|rutinan|agenda|kegiatan|acara|jadwal|kapan libur|kalender|pengumuman|ujian|rapat)\b/i', $clean)) {
+        // 4. Intent Informasi Hari Libur (Hanya hari libur, tidak menampilkan agenda internal)
+        if (preg_match('/\b(libur|liburan|tanggal merah|rutinan|kapan libur|kalender|jadwal libur|prei)\b/i', $clean)) {
             return 'agenda';
         }
 
         // 5. Intent Apresiasi / Terima Kasih / Konfirmasi Singkat
-        // (Contoh: "baik terimakasih", "makasih ustadz", "alhamdulillah", "syukron", "oke siap")
         $hasQuestionWord = (bool) preg_match('/\b(gimana|bagaimana|berapa|kapan|apakah|cek|menu|bantuan|tanya|bisa apa|halo|hai)\b/i', $clean);
         if (! $hasQuestionWord && preg_match('/\b(terima\s*kasih|terimakasih|makasih|mksh|trims|syukron|jazakallah|jazakumullah|alhamdulillah|baik|oke|ok|siap|noted|sama-sama|waalaikumsalam|wa\'alaikumussalam|walaikumsalam)\b/i', $clean)) {
             return 'apresiasi';
@@ -453,19 +452,17 @@ class ChatbotService
         }
 
         // F. Jika belum ada pilihan anak aktif:
-        // Apabila wali langsung bertanya tentang "absensi" tanpa menyebut nama anak, tampilkan langsung laporan seluruh anaknya
+        // Apabila wali langsung bertanya tentang "absensi" atau "spp_notice" tanpa menyebut nama anak, tampilkan langsung laporan seluruh anaknya
         // agar wali tidak perlu bolak-balik mengetik angka 1 atau 2!
-        // Namun jika sapaan awal ("Halo ustadz", "Menu"), tampilkan daftar pilihan santri.
         $detectedIntent = $this->detectIntent($cleanMsg);
-        if ($detectedIntent === 'absensi') {
+        if (in_array($detectedIntent, ['absensi', 'spp_notice'], true)) {
             return [
                 'status' => 'found_all',
                 'candidates' => $candidates,
             ];
         }
 
-        $prompt = "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."Nomor WhatsApp Anda terdaftar sebagai wali dari *{$candidates->count()} santri* di TPQ:\n";
+        $prompt = "Nomor WhatsApp Anda terdaftar sebagai wali dari *{$candidates->count()} santri*:\n";
 
         foreach ($candidates as $i => $cand) {
             $num = $i + 1;
@@ -474,7 +471,7 @@ class ChatbotService
         }
 
         $prompt .= "\nSilakan ketik angka *1*".($candidates->count() > 1 ? " sampai *{$candidates->count()}*" : '')
-            .' (atau sebutkan *nama ananda*) untuk memilih data santri yang ingin Anda tanyakan.';
+            .' (atau sebutkan *nama ananda*) untuk memilih santri yang ingin ditanyakan (*Absensi*, *SPP*, atau *Hari Libur*).';
 
         return [
             'status' => 'multi_selection_prompt',
@@ -484,82 +481,117 @@ class ChatbotService
     }
 
     /**
-     * Menghasilkan balasan ramah ketika wali santri mengucapkan terima kasih / konfirmasi
+     * Menghasilkan balasan singkat ketika wali santri mengucapkan terima kasih / konfirmasi
      *
      * @param  Collection<int, Siswa>  $candidates
      */
     public function handleApresiasiQuery(Collection $candidates): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
         $santriStr = '';
         if ($candidates->isNotEmpty()) {
             $names = $candidates->pluck('nama_lengkap')->map(fn ($n) => "*{$n}*")->implode(' & ');
             $santriStr = " Wali dari ananda {$names}";
         }
 
-        return "Wa'alaikumussalam Warahmatullahi Wabarakatuh.\n\n"
-            ."Sama-sama Bapak/Ibu{$santriStr}. Alhamdulillah, senang dapat membantu. 🤲\n\n"
-            ."Semoga ananda senantiasa diberikan kesehatan, kemudahan, dan keistiqamahan dalam menuntut ilmu Al-Qur'an di *{$namaInstansi}*.\n\n"
-            .'Apabila sewaktu-waktu Bapak/Ibu ingin memeriksa *rekap absensi*, *jadwal kegiatan*, atau *info hari libur*, silakan kirim pesan kembali kapan saja. Jazakumullah khairan katsiran.';
+        return "Sama-sama Bapak/Ibu{$santriStr}. Silakan kirim pesan kembali jika ingin mengecek informasi *Absensi*, *SPP*, atau *Hari Libur*.";
     }
 
     /**
-     * Menghasilkan balasan empati ketika wali santri mengabarkan anak izin / sakit
+     * Menghasilkan balasan ketika wali santri mengabarkan anak izin / sakit
      */
     public function handleIzinSakitQuery(?Siswa $siswa, string $message): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
         $santriStr = $siswa ? "ananda *{$siswa->nama_lengkap}* ({$siswa->kelas?->nama_kelas})" : 'ananda';
         $isSakit = (bool) preg_match('/\b(sakit|demam|batuk|pilek|panas|kurang enak badan|berobat|rawat)\b/i', $message);
 
         if ($isSakit) {
-            return "Wa'alaikumussalam Warahmatullahi Wabarakatuh.\n\n"
-                ."Terima kasih atas informasinya Bapak/Ibu. Pemberitahuan bahwa {$santriStr} hari ini berhalangan hadir karena *sakit* telah kami terima.\n\n"
-                ."_Syafahullah / Syafakillah_, semoga Allah SWT segera mengangkat sakitnya dan memberikan kesembuhan yang sempurna bagi ananda. 🤲\n\n"
-                ."Untuk pencatatan resmi pada buku presensi kelas di *{$namaInstansi}*, informasi ini dapat diteruskan kepada Ustadz/Ustadzah pengajar jilidnya. Jazakumullah khairan katsiran.";
+            return "Terima kasih atas informasinya Bapak/Ibu. Konfirmasi bahwa {$santriStr} hari ini berhalangan hadir karena *sakit* telah diterima. _Syafahullah / Syafakillah_, semoga ananda lekas sembuh.";
         }
 
-        return "Wa'alaikumussalam Warahmatullahi Wabarakatuh.\n\n"
-            ."Terima kasih atas konfirmasinya Bapak/Ibu. Pemberitahuan *izin* untuk {$santriStr} telah kami terima.\n\n"
-            ."Semoga urusan dan kegiatan keluarga diberikan kelancaran. Untuk pencatatan status izin di kelas *{$namaInstansi}*, silakan dapat dikonfirmasikan juga kepada Ustadz/Ustadzah pengajarnya. Jazakumullah khairan katsiran.";
+        return "Terima kasih atas konfirmasinya Bapak/Ibu. Pemberitahuan *izin* untuk {$santriStr} hari ini telah diterima.";
     }
 
     /**
-     * Menghasilkan balasan informasi terkait SPP & Keuangan (diarahkan ke pengurus)
+     * Menghasilkan balasan informasi terkait SPP & Tunggakan Santri secara langsung (to-the-point)
      *
      * @param  Collection<int, Siswa>|null  $allCandidates
      */
     public function handleSppNoticeQuery(?Siswa $siswa, ?Collection $allCandidates = null): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
-        $santriStr = '';
-
         if ($allCandidates && $allCandidates->count() > 1) {
-            $names = $allCandidates->pluck('nama_lengkap')->map(fn ($n) => "*{$n}*")->implode(' & ');
-            $santriStr = " dari ananda {$names}";
-        } elseif ($siswa) {
-            $santriStr = " ananda *{$siswa->nama_lengkap}*";
+            $sections = [];
+            foreach ($allCandidates as $idx => $cand) {
+                $num = $idx + 1;
+                $sections[] = "==============================\n*SANTRI {$num}:*\n".$this->buildSingleStudentSppSection($cand);
+            }
+
+            return "Berikut informasi SPP untuk seluruh putra/putri Bapak/Ibu:\n\n".implode("\n\n", $sections);
         }
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."Yth. Bapak/Ibu Wali{$santriStr},\n\n"
-            ."Mohon maaf, layanan WhatsApp Bot *{$namaInstansi}* saat ini difokuskan khusus untuk layanan otomatis *Presensi / Kehadiran Santri Berbasis QR Code*, *Jadwal Agenda Kegiatan*, serta *Informasi Hari Libur TPQ*.\n\n"
-            ."Untuk urusan administrasi, SPP, atau keuangan lainnya, Bapak/Ibu dapat langsung menghubungi bagian Bendahara / Kantor Sekretariat lembaga pada jam aktif mengaji. Jazakumullah khairan katsiran.\n\n"
-            .'Wassalamu\'alaikum Warahmatullahi Wabarakatuh.';
+        if (! $siswa) {
+            return 'Data santri tidak ditemukan untuk memeriksa informasi SPP.';
+        }
+
+        return $this->buildSingleStudentSppSection($siswa);
     }
 
     /**
-     * Menghasilkan balasan informasi presensi kehadiran untuk 1 santri
+     * Menyusun blok teks status SPP & rincian tunggakan untuk 1 santri
+     */
+    protected function buildSingleStudentSppSection(Siswa $siswa): string
+    {
+        SppBillingService::ensureSppSchemaExists();
+
+        $sppService = app(SppBillingService::class);
+        $now = Carbon::now('Asia/Jakarta');
+        $cutOffBulan = (int) $now->month;
+        $cutOffTahun = (int) $now->year;
+        $namaBulanIni = $this->bulanMap[$cutOffBulan] ?? 'Bulan Ini';
+        $namaKelas = $siswa->kelas?->nama_kelas ?: 'Jilid';
+
+        if (! TagihanSpp::where('id_siswa', $siswa->id)->exists()) {
+            $toTahun = max(2027, $cutOffTahun);
+            $toBulan = ($toTahun === 2027) ? max(6, $cutOffBulan) : $cutOffBulan;
+            $sppService->sinkronkanTagihanSemester(7, 2026, $toBulan, $toTahun);
+        }
+
+        $rekap = $sppService->hitungTunggakanSantri($siswa->id, $cutOffBulan, $cutOffTahun);
+        $totalBulan = (int) ($rekap['total_bulan'] ?? 0);
+        $totalTunggakan = (float) ($rekap['total_tunggakan'] ?? 0);
+        $daftarTunggakan = $rekap['daftar_tunggakan'] ?? [];
+
+        if ($totalBulan === 0 || $totalTunggakan <= 0) {
+            return "💳 *Informasi SPP {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+                ."• Status: ✅ *LUNAS* (Tidak ada tunggakan s/d {$namaBulanIni} {$cutOffTahun})\n"
+                .'• Total Tunggakan: *Rp 0*';
+        }
+
+        $totalRp = 'Rp '.number_format($totalTunggakan, 0, ',', '.');
+        $rincianLines = [];
+        foreach ($daftarTunggakan as $item) {
+            $sisaRp = 'Rp '.number_format((float) $item['sisa'], 0, ',', '.');
+            if ((float) ($item['sudah_dibayar'] ?? 0) > 0) {
+                $rincianLines[] = "• {$item['label']}: Sisa {$sisaRp} (Kurang Bayar)";
+            } else {
+                $rincianLines[] = "• {$item['label']}: {$sisaRp}";
+            }
+        }
+
+        return "💳 *Informasi SPP {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+            ."• Status: ⚠️ *Menunggak {$totalBulan} bulan*\n"
+            ."• Total Tunggakan: *{$totalRp}*\n\n"
+            ."*Rincian Bulan Belum Lunas:*\n"
+            .implode("\n", $rincianLines);
+    }
+
+    /**
+     * Menghasilkan balasan informasi presensi kehadiran untuk 1 santri (tanpa salam pembuka/penutup)
      */
     public function handleAbsensiQuery(Siswa $siswa, string $originalMessage = ''): string
     {
         $hariTanggalStr = Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y');
-        $section = $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            .$section."\n\n"
-            ."_Tip: Anda juga dapat mengetik *Agenda* atau *Info Libur* untuk melihat jadwal kegiatan TPQ._\n"
-            .'Semoga ananda senantiasa istiqamah dalam menuntut ilmu Al-Qur\'an. Jazakumullah khairan.';
+        return $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
     }
 
     /**
@@ -577,10 +609,8 @@ class ChatbotService
             $sections[] = "==============================\n*SANTRI {$num}:*\n".$this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
         }
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."Berikut laporan kehadiran untuk seluruh putra/putri Bapak/Ibu yang terdaftar di TPQ:\n\n"
-            .implode("\n\n", $sections)."\n\n"
-            .'Semoga ananda senantiasa istiqamah dalam menuntut ilmu Al-Qur\'an. Jazakumullah khairan.';
+        return "Berikut informasi kehadiran untuk seluruh putra/putri Bapak/Ibu:\n\n"
+            .implode("\n\n", $sections);
     }
 
     /**
@@ -629,10 +659,10 @@ class ChatbotService
             ? round((($totalHadir + $totalTerlambat) / $totalHariKegiatan) * 100)
             : 0;
 
-        return "Laporan presensi ananda *{$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
+        return "Informasi absensi *{$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
             ."📅 *Hari Ini ({$hariTanggalStr}):*\n"
             ."Status: {$statusHariIniText}\n\n"
-            ."📊 *Rekapitulasi Bulan {$namaBulan} {$currentYear}:*\n"
+            ."📊 *Rekap Bulan {$namaBulan} {$currentYear}:*\n"
             ."• Hadir Tepat Waktu: {$totalHadir} hari\n"
             ."• Hadir Terlambat: {$totalTerlambat} hari\n"
             ."• Izin: {$totalIzin} hari\n"
@@ -642,7 +672,7 @@ class ChatbotService
     }
 
     /**
-     * Menghasilkan informasi kegiatan dan kalender libur secara komunikatif & nyambung
+     * Menghasilkan informasi hari libur secara to-the-point (tanpa menampilkan agenda internal TPQ)
      */
     public function handleAgendaQuery(string $message = ''): string
     {
@@ -656,87 +686,52 @@ class ChatbotService
             ->limit(5)
             ->get();
 
-        $agendaMendatang = Agenda::where('tanggal', '>=', $today)
-            ->orderBy('tanggal', 'asc')
-            ->limit(5)
-            ->get();
-
-        $isAskingLibur = (bool) preg_match('/\b(libur|liburan|tanggal merah|rutinan)\b/i', $message);
-
-        $reply = "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."📅 *INFORMASI JADWAL LIBUR & AGENDA TPQ ({$namaBulan} {$currentYear}):*\n\n";
+        $reply = "📅 *Informasi Hari Libur TPQ ({$namaBulan} {$currentYear}):*\n\n";
 
         if ($liburMendatang->isNotEmpty()) {
-            $reply .= "🏖️ *Jadwal Libur Khusus / Tanggal Merah Terdekat:*\n";
             foreach ($liburMendatang as $lib) {
                 $mulai = Carbon::parse($lib->tanggal_mulai)->locale('id')->isoFormat('D MMM Y');
                 $selesai = Carbon::parse($lib->tanggal_selesai)->locale('id')->isoFormat('D MMM Y');
                 $tglStr = ($mulai === $selesai) ? $mulai : "{$mulai} s.d. {$selesai}";
                 $reply .= "• *{$tglStr}*: {$lib->keterangan}\n";
             }
-            $reply .= "_(Di luar tanggal tersebut, kegiatan mengaji berjalan normal sesuai jadwal rutin mingguan TPQ)._\n\n";
+            $reply .= "\nDi luar tanggal tersebut, kegiatan mengaji berjalan normal sesuai jadwal rutin mingguan.";
         } else {
-            if ($isAskingLibur) {
-                $reply .= "🏖️ *Info Hari Libur:*\n"
-                    ."Untuk bulan *{$namaBulan} {$currentYear}* saat ini belum ada jadwal libur khusus tambahan di luar hari libur rutin mingguan TPQ. Kegiatan belajar mengajar berjalan normal seperti biasa.\n\n";
-            } else {
-                $reply .= "🏖️ Tidak ada jadwal libur khusus dalam waktu dekat.\n\n";
-            }
+            $reply .= "Untuk bulan *{$namaBulan} {$currentYear}* saat ini tidak ada jadwal hari libur khusus tambahan di luar hari libur rutin mingguan. Kegiatan mengaji berjalan normal seperti biasa.";
         }
-
-        if ($agendaMendatang->isNotEmpty()) {
-            $reply .= "📋 *Agenda Kegiatan TPQ Terdekat:*\n";
-            foreach ($agendaMendatang as $ag) {
-                $tgl = Carbon::parse($ag->tanggal)->locale('id')->isoFormat('dddd, D MMMM Y');
-                $reply .= "• *{$ag->judul}* ({$tgl})\n";
-                if ($ag->keterangan) {
-                    $reply .= "  _{$ag->keterangan}_\n";
-                }
-            }
-        } else {
-            $reply .= "📋 Belum ada agenda kegiatan khusus yang terjadwal dalam waktu dekat.\n";
-        }
-
-        $reply .= "\nJazakumullah khairan katsiran.";
 
         return $reply;
     }
 
     /**
-     * Pesan panduan bantuan islami
+     * Pesan panduan bantuan ringkas (hanya 3 topik: Absensi, SPP, Hari Libur)
      */
     public function handleHelpQuery(?Siswa $siswa): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ Al-Qur\'an');
-        $namaSantriStr = $siswa
-            ? "Bapak/Ibu Wali dari ananda *{$siswa->nama_lengkap}* ({$siswa->kelas?->nama_kelas})"
-            : 'Bapak/Ibu Wali Santri';
+        $santriStr = $siswa
+            ? " untuk ananda *{$siswa->nama_lengkap}* ({$siswa->kelas?->nama_kelas})"
+            : '';
 
         $contohNama = $siswa ? strtolower(explode(' ', trim($siswa->nama_lengkap))[0]) : 'anak saya';
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh, {$namaSantriStr}.\n\n"
-            ."Selamat datang di layanan asisten informasi otomatis *{$namaInstansi}*.\n\n"
-            ."Bapak/Ibu dapat langsung mengetik pertanyaan dengan bahasa sehari-hari, misalnya:\n"
-            ."1. *Cek Kehadiran*: _\"Gimana absensi {$contohNama} hari ini?\"_ atau _\"Rekap kehadiran\"_\n"
-            ."2. *Info Libur & Kegiatan*: _\"Bulan ini ada libur tidak?\"_ atau _\"Info agenda TPQ\"_\n"
-            ."3. *Konfirmasi Izin/Sakit*: _\"Hari ini {$contohNama} izin tidak masuk karena sakit\"_\n\n"
-            .'Silakan ketik pertanyaan Bapak/Ibu kapan saja. Jazakumullah khairan katsiran.';
+        return "Layanan informasi otomatis TPQ{$santriStr}. Silakan ketik pertanyaan terkait 3 informasi berikut:\n\n"
+            ."1. *Absensi*: _\"Gimana absensi {$contohNama} hari ini?\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_ atau _\"Cek SPP\"_\n"
+            .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 
     /**
-     * Balasan ketika pesan tidak dikenali (dibuat lebih luwes & membantu)
+     * Balasan ketika pesan di luar 3 topik yang diizinkan (Absensi, SPP, Hari Libur)
      */
     public function handleUnknownQuery(?Siswa $siswa, string $originalMessage): string
     {
         $santriName = $siswa ? "ananda *{$siswa->nama_lengkap}*" : 'putra/putri Bapak/Ibu';
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."Terima kasih telah menghubungi layanan WhatsApp otomatis TPQ. Mohon maaf, kami belum dapat mengenali topik pertanyaan dari pesan: _\"{$originalMessage}\"_.\n\n"
-            ."Untuk memantau perkembangan {$santriName}, Bapak/Ibu dapat langsung mengetik:\n"
-            ."• *\"Absensi\"* — melihat kehadiran hari ini & rekap bulanan\n"
-            ."• *\"Info Libur\"* atau *\"Agenda\"* — melihat jadwal libur & kegiatan TPQ\n"
-            ."• *\"Menu\"* — menampilkan panduan layanan\n\n"
-            .'Apabila ada keperluan khusus untuk Ustadz/Ustadzah atau pengurus, silakan disampaikan langsung di kantor TPQ. Jazakumullah khairan katsiran.';
+        return "Mohon maaf, layanan ini hanya menyediakan informasi terkait *Absensi*, *SPP*, dan *Informasi Hari Libur* untuk {$santriName}.\n\n"
+            ."Silakan ketik pertanyaan sesuai topik berikut:\n"
+            ."1. *Absensi*: _\"Gimana absensi anak saya?\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_ atau _\"Cek SPP\"_\n"
+            .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 
     /**
@@ -746,12 +741,9 @@ class ChatbotService
     {
         $namaInstansi = Pengaturan::getValue('nama_instansi', 'TPQ & Lembaga');
 
-        return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
-            ."Mohon maaf, nomor WhatsApp Anda (*{$phone}*) belum terdaftar pada data orang tua / wali santri *{$namaInstansi}*.\n\n"
-            ."Jika Anda adalah wali santri yang sah, Anda dapat melihat data ananda dengan mengetik:\n"
-            ."*NISN [Nomor Induk]*\n"
-            ."Contoh: *NISN 1001*\n\n"
-            .'Atau silakan hubungi bagian administrasi TPQ untuk memperbarui nomor kontak WhatsApp Anda. Jazakumullah khairan.';
+        return "Mohon maaf, nomor WhatsApp Anda (*{$phone}*) belum terdaftar pada data wali santri *{$namaInstansi}*.\n\n"
+            ."Jika Anda adalah wali santri, ketik *NISN [Nomor Induk]* untuk mengecek data ananda.\n"
+            .'Contoh: *NISN 1001 cek absensi*';
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Agenda;
 use App\Models\HariLibur;
 use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Models\TagihanSpp;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,9 +100,19 @@ class ChatbotWebhookTest extends TestCase
         // Berikan nomor unik khusus siswa1 untuk tes single student
         $this->siswa2->update(['no_hp_ortu' => '089999999999']);
 
+        $now = Carbon::now('Asia/Jakarta');
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa1->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 25000,
+            'status' => 'belum_lunas',
+        ]);
+
         $response = $this->postJson('/api/webhook/whatsapp', [
             'sender' => '6281234567890',
-            'message' => 'Assalamu\'alaikum, berapa tunggakan anak saya?',
+            'message' => 'anak saya nunggak berapa bulan',
         ]);
 
         $response->assertStatus(200)
@@ -112,13 +123,24 @@ class ChatbotWebhookTest extends TestCase
 
         $reply = $response->json('reply');
         $this->assertStringContainsString('Ahmad Fauzi', $reply);
-        $this->assertStringContainsString('Presensi / Kehadiran Santri Berbasis QR Code', $reply);
-        $this->assertStringContainsString('administrasi, SPP, atau keuangan', $reply);
+        $this->assertStringContainsString('Menunggak 1 bulan', $reply);
+        $this->assertStringContainsString('Rp 25.000', $reply);
+        $this->assertStringNotContainsString("Assalamu'alaikum", $reply);
     }
 
-    public function test_webhook_responds_spp_notice_directing_to_administration(): void
+    public function test_webhook_responds_spp_lunas_when_no_arrears(): void
     {
         $this->siswa2->update(['no_hp_ortu' => '089999999999']);
+
+        $now = Carbon::now('Asia/Jakarta');
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa1->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 25000,
+            'status' => 'lunas',
+        ]);
 
         $response = $this->postJson('/api/webhook/whatsapp', [
             'sender' => '6281234567890',
@@ -132,7 +154,9 @@ class ChatbotWebhookTest extends TestCase
             ]);
 
         $reply = $response->json('reply');
-        $this->assertStringContainsString('administrasi', $reply);
+        $this->assertStringContainsString('Ahmad Fauzi', $reply);
+        $this->assertStringContainsString('LUNAS', $reply);
+        $this->assertStringNotContainsString("Assalamu'alaikum", $reply);
     }
 
     public function test_webhook_responds_attendance_today_and_monthly_recap(): void
@@ -162,9 +186,10 @@ class ChatbotWebhookTest extends TestCase
         $this->assertStringContainsString('Ahmad Fauzi', $reply);
         $this->assertStringContainsString('HADIR TEPAT WAKTU', $reply);
         $this->assertStringContainsString('15:30:00', $reply);
+        $this->assertStringNotContainsString("Assalamu'alaikum", $reply);
     }
 
-    public function test_webhook_responds_agenda_and_holiday_info(): void
+    public function test_webhook_responds_holiday_info_without_internal_agenda(): void
     {
         HariLibur::create([
             'tanggal_mulai' => Carbon::tomorrow()->toDateString(),
@@ -174,13 +199,13 @@ class ChatbotWebhookTest extends TestCase
 
         Agenda::create([
             'tanggal' => Carbon::today()->addDays(3)->toDateString(),
-            'judul' => 'Ujian Tahfidz Bersama',
-            'keterangan' => 'Seluruh santri hadir pukul 08.00 WIB',
+            'judul' => 'Rapat Bulanan Internal',
+            'keterangan' => 'Khusus dewan guru',
         ]);
 
         $response = $this->postJson('/api/webhook/whatsapp', [
             'sender' => '6281234567890',
-            'message' => 'Kapan libur dan ada agenda apa minggu ini?',
+            'message' => 'Bulan ini apakah ada hari libur selain hari libur rutinan?',
         ]);
 
         $response->assertStatus(200)
@@ -191,7 +216,8 @@ class ChatbotWebhookTest extends TestCase
 
         $reply = $response->json('reply');
         $this->assertStringContainsString('Libur Isra Miraj', $reply);
-        $this->assertStringContainsString('Ujian Tahfidz Bersama', $reply);
+        $this->assertStringNotContainsString('Rapat Bulanan Internal', $reply);
+        $this->assertStringNotContainsString("Assalamu'alaikum", $reply);
     }
 
     public function test_webhook_handles_unregistered_phone(): void
