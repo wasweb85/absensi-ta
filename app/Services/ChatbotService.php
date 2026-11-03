@@ -103,18 +103,18 @@ class ChatbotService
             $candidates = $resolved['candidates'];
             $firstSiswa = $candidates->first();
             $reply = $this->handleSppNoticeQuery($firstSiswa, $candidates);
-            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, $firstSiswa?->id, $reply, 'sukses');
+            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
 
             return [
                 'success' => true,
                 'intent' => $intent,
                 'reply' => $reply,
-                'siswa' => $firstSiswa ? $this->formatSiswaPayload($firstSiswa) : null,
+                'siswa' => null,
                 'log_id' => $log->id,
             ];
         }
 
-        // Jika wali meminta rekap "Semua" anak sekaligus saat punya >1 santri
+        // Jika wali meminta rekap "Semua" anak sekaligus saat punya >1 santri atau pertanyaan umum absensi/SPP
         if ($resolved['status'] === 'found_all') {
             /** @var Collection<int, Siswa> $candidates */
             $candidates = $resolved['candidates'];
@@ -128,13 +128,13 @@ class ChatbotService
                 default => $this->handleMultiAbsensiQuery($candidates),
             };
 
-            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, $firstSiswa?->id, $reply, 'sukses');
+            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
 
             return [
                 'success' => true,
                 'intent' => $intent,
                 'reply' => $reply,
-                'siswa' => $firstSiswa ? $this->formatSiswaPayload($firstSiswa) : null,
+                'siswa' => null,
                 'log_id' => $log->id,
             ];
         }
@@ -156,11 +156,11 @@ class ChatbotService
         /** @var Siswa|null $siswa */
         $siswa = $resolved['siswa'] ?? null;
 
-        // Jika pesan adalah konfirmasi pemilihan anak (cth: "1", "2"),
+        // Jika pesan adalah konfirmasi pemilihan anak (cth: "1", "2") atau pertanyaan "anak satunya lagi",
         // periksa apakah sebelumnya wali sudah mengajukan pertanyaan spesifik (misal tanya absensi / SPP)
-        if (! empty($resolved['is_selection_reply']) && $intent === 'unknown') {
-            $pendingIntent = $this->resolvePendingIntentFromHistory($normalizedSender);
-            $intent = $pendingIntent ?: 'bantuan';
+        if ((! empty($resolved['is_selection_reply']) || ! empty($resolved['is_other_child'])) && in_array($intent, ['unknown', 'bantuan'], true)) {
+            $pendingIntent = $this->resolvePreviousIntentFromHistory($normalizedSender);
+            $intent = $pendingIntent ?: 'absensi';
         }
 
         // 3. Bangun Respon berdasarkan Intent
@@ -331,26 +331,37 @@ class ChatbotService
     }
 
     /**
-     * Cek apakah sebelum memilih angka 1/2, wali santri sudah menanyakan topik tertentu (misal absensi / SPP)
+     * Hapus sesi santri aktif (misal saat wali bertanya umum tentang semua anak)
      */
-    protected function resolvePendingIntentFromHistory(string $normalizedPhone): ?string
+    protected function forgetActiveStudent(string $normalizedPhone): void
     {
-        $lastMultiLog = ChatbotLog::where('no_pengirim', $normalizedPhone)
-            ->where('intent_terdeteksi', 'multi_santri')
+        Cache::forget("wa_active_student_{$normalizedPhone}");
+
+        try {
+            $raw = Pengaturan::getValue('wa_active_student_map');
+            if (! empty($raw)) {
+                $map = json_decode((string) $raw, true);
+                if (is_array($map) && isset($map[$normalizedPhone])) {
+                    unset($map[$normalizedPhone]);
+                    Pengaturan::setValue('wa_active_student_map', json_encode($map));
+                }
+            }
+        } catch (\Throwable) {
+        }
+    }
+
+    /**
+     * Mengambil topik / intent terakhir dari percakapan wali santri sebelumnya
+     */
+    protected function resolvePreviousIntentFromHistory(string $normalizedPhone): ?string
+    {
+        $lastLog = ChatbotLog::where('no_pengirim', $normalizedPhone)
+            ->whereIn('intent_terdeteksi', ['absensi', 'spp_notice', 'agenda', 'izin_sakit'])
             ->where('created_at', '>=', Carbon::now()->subMinutes(30))
             ->latest('id')
             ->first();
 
-        if (! $lastMultiLog || empty($lastMultiLog->pesan_masuk)) {
-            return null;
-        }
-
-        $prevIntent = $this->detectIntent($lastMultiLog->pesan_masuk);
-        if (in_array($prevIntent, ['absensi', 'spp_notice', 'izin_sakit', 'agenda'], true)) {
-            return $prevIntent;
-        }
-
-        return null;
+        return $lastLog?->intent_terdeteksi;
     }
 
     /**
@@ -384,30 +395,37 @@ class ChatbotService
         $cleanMsg = trim($message);
         $lowerMsg = strtolower($cleanMsg);
 
-        // A. Jika wali mengetik "semua" / "keduanya" / "dua-duanya"
-        if (preg_match('/\b(semua|semuanya|keduanya|dua-duanya|kedua anak|semua anak)\b/i', $lowerMsg)) {
-            return [
-                'status' => 'found_all',
-                'candidates' => $candidates,
-            ];
-        }
+        // A. Cek apakah wali meminta informasi "anak yang satunya lagi" / "anak kedua" / "yang satunya"
+        $isOtherChildQuery = (bool) preg_match('/\b(anak\s*(?:sya|saya)?\s*yang\s*(?:satunya|lain|kedua)|yang\s*(?:satunya|lain)(?:\s*lagi)?|satunya\s*lagi|anak\s*(?:satunya|kedua))\b/i', $cleanMsg);
+        if ($isOtherChildQuery && $candidates->count() >= 2) {
+            $lastStudentId = $this->getRememberedActiveStudentId($normalizedPhone);
+            if (! $lastStudentId) {
+                $lastStudentId = ChatbotLog::where('no_pengirim', $normalizedPhone)
+                    ->whereNotNull('id_siswa')
+                    ->latest('id')
+                    ->value('id_siswa');
+            }
 
-        // B. Jika pesan adalah angka pilihan murni ("1", "2", "1.", "#1")
-        if (preg_match('/^\s*#?([1-9])[\.\)]?\s*$/', $cleanMsg, $numMatch)) {
-            $index = (int) $numMatch[1] - 1;
-            if ($candidates->has($index)) {
-                $chosen = $candidates->get($index);
+            $chosen = null;
+            if ($lastStudentId) {
+                $chosen = $candidates->first(fn ($c) => $c->id !== (int) $lastStudentId);
+            }
+            if (! $chosen) {
+                $chosen = $candidates->get(1); // default ke anak kedua
+            }
+            if ($chosen) {
                 $this->rememberActiveStudent($normalizedPhone, $chosen->id);
 
                 return [
                     'status' => 'found',
                     'siswa' => $chosen,
-                    'is_selection_reply' => true,
+                    'is_other_child' => true,
                 ];
             }
         }
 
-        // C. Cek apakah ada nama lengkap atau nama panggilan (kata dari nama_lengkap >= 3 huruf) di dalam pesan
+        // B. Cek apakah ada nama lengkap atau nama panggilan spesifik di dalam pesan
+        // (Misal: "Farel", "khowas", "Mohammad Farel")
         foreach ($candidates as $cand) {
             if (stripos($cleanMsg, $cand->nama_lengkap) !== false) {
                 $this->rememberActiveStudent($normalizedPhone, $cand->id);
@@ -428,7 +446,22 @@ class ChatbotService
             }
         }
 
-        // D. Cek apakah wali menyertakan angka urut anak di dalam kalimat (cth: "berapa tunggakan SPP anak saya 1", "anak ke 2", "nomor 1")
+        // C. Cek apakah pesan adalah angka pilihan murni ("1", "2", "1.", "#1")
+        if (preg_match('/^\s*#?([1-9])[\.\)]?\s*$/', $cleanMsg, $numMatch)) {
+            $index = (int) $numMatch[1] - 1;
+            if ($candidates->has($index)) {
+                $chosen = $candidates->get($index);
+                $this->rememberActiveStudent($normalizedPhone, $chosen->id);
+
+                return [
+                    'status' => 'found',
+                    'siswa' => $chosen,
+                    'is_selection_reply' => true,
+                ];
+            }
+        }
+
+        // D. Cek apakah wali menyertakan angka urut anak di dalam kalimat (cth: "anak 1", "anak ke 2", "nomor 1")
         if (preg_match('/(?:\b(?:anak|santri|nomor|no|ke|pilihan)\s*(?:saya\s*)?(?:ke\s*)?[-]?\s*([1-9])\b|\b([1-9])\s*$)/i', $cleanMsg, $inlineNum)) {
             $numStr = ! empty($inlineNum[1]) ? $inlineNum[1] : ($inlineNum[2] ?? '');
             if ($numStr !== '') {
@@ -442,7 +475,30 @@ class ChatbotService
             }
         }
 
-        // E. Cek sesi aktif dari Cache / Pengaturan / ChatbotLog 30 menit terakhir
+        // E. Jika wali mengetik "semua" / "keduanya" / "dua-duanya"
+        if (preg_match('/\b(semua|semuanya|keduanya|dua-duanya|kedua anak|semua anak)\b/i', $lowerMsg)) {
+            $this->forgetActiveStudent($normalizedPhone);
+
+            return [
+                'status' => 'found_all',
+                'candidates' => $candidates,
+            ];
+        }
+
+        // F. Cek Intent: jika pertanyaan umum tentang "absensi" atau "spp_notice" (cth: "kalau absensi anak saya", "anak saya nunggak berapa bulan")
+        // TANPA menyebutkan nama anak spesifik:
+        // Selalu tampilkan data SEMUA anak agar wali yang punya >1 santri langsung menerima informasi lengkap kedua anaknya!
+        $detectedIntent = $this->detectIntent($cleanMsg);
+        if (in_array($detectedIntent, ['absensi', 'spp_notice'], true)) {
+            $this->forgetActiveStudent($normalizedPhone);
+
+            return [
+                'status' => 'found_all',
+                'candidates' => $candidates,
+            ];
+        }
+
+        // G. Cek sesi aktif santri dari Cache / Pengaturan / ChatbotLog jika bukan pertanyaan umum
         $rememberedId = $this->getRememberedActiveStudentId($normalizedPhone);
         if ($rememberedId) {
             $cachedStudent = $candidates->firstWhere('id', $rememberedId);
@@ -451,17 +507,7 @@ class ChatbotService
             }
         }
 
-        // F. Jika belum ada pilihan anak aktif:
-        // Apabila wali langsung bertanya tentang "absensi" atau "spp_notice" tanpa menyebut nama anak, tampilkan langsung laporan seluruh anaknya
-        // agar wali tidak perlu bolak-balik mengetik angka 1 atau 2!
-        $detectedIntent = $this->detectIntent($cleanMsg);
-        if (in_array($detectedIntent, ['absensi', 'spp_notice'], true)) {
-            return [
-                'status' => 'found_all',
-                'candidates' => $candidates,
-            ];
-        }
-
+        // H. Tampilkan prompt informasi santri terdaftar
         $prompt = "Nomor WhatsApp Anda terdaftar sebagai wali dari *{$candidates->count()} santri*:\n";
 
         foreach ($candidates as $i => $cand) {
@@ -470,8 +516,7 @@ class ChatbotService
             $prompt .= "{$num}. *{$cand->nama_lengkap}* ({$namaKelas})\n";
         }
 
-        $prompt .= "\nSilakan ketik angka *1*".($candidates->count() > 1 ? " sampai *{$candidates->count()}*" : '')
-            .' (atau sebutkan *nama ananda*) untuk memilih santri yang ingin ditanyakan (*Absensi*, *SPP*, atau *Hari Libur*).';
+        $prompt .= "\nSilakan sebutkan *nama ananda* (atau ketik *1* sampai *{$candidates->count()}*) untuk memilih data santri yang ingin Anda tanyakan (*Absensi*, *SPP*, atau *Hari Libur*).";
 
         return [
             'status' => 'multi_selection_prompt',
@@ -520,12 +565,12 @@ class ChatbotService
     {
         if ($allCandidates && $allCandidates->count() > 1) {
             $sections = [];
-            foreach ($allCandidates as $idx => $cand) {
-                $num = $idx + 1;
-                $sections[] = "==============================\n*SANTRI {$num}:*\n".$this->buildSingleStudentSppSection($cand);
+            foreach ($allCandidates as $cand) {
+                $sections[] = $this->buildSingleStudentSppSection($cand);
             }
 
-            return "Berikut informasi SPP untuk seluruh putra/putri Bapak/Ibu:\n\n".implode("\n\n", $sections);
+            return "Berikut informasi SPP ananda:\n\n"
+                .implode("\n\n────────────────────\n\n", $sections);
         }
 
         if (! $siswa) {
@@ -561,7 +606,7 @@ class ChatbotService
         $daftarTunggakan = $rekap['daftar_tunggakan'] ?? [];
 
         if ($totalBulan === 0 || $totalTunggakan <= 0) {
-            return "💳 *Informasi SPP {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+            return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
                 ."• Status: ✅ *LUNAS* (Tidak ada tunggakan s/d {$namaBulanIni} {$cutOffTahun})\n"
                 .'• Total Tunggakan: *Rp 0*';
         }
@@ -577,7 +622,7 @@ class ChatbotService
             }
         }
 
-        return "💳 *Informasi SPP {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+        return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
             ."• Status: ⚠️ *Menunggak {$totalBulan} bulan*\n"
             ."• Total Tunggakan: *{$totalRp}*\n\n"
             ."*Rincian Bulan Belum Lunas:*\n"
@@ -604,13 +649,12 @@ class ChatbotService
         $hariTanggalStr = Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y');
         $sections = [];
 
-        foreach ($candidates as $idx => $siswa) {
-            $num = $idx + 1;
-            $sections[] = "==============================\n*SANTRI {$num}:*\n".$this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
+        foreach ($candidates as $siswa) {
+            $sections[] = $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
         }
 
-        return "Berikut informasi kehadiran untuk seluruh putra/putri Bapak/Ibu:\n\n"
-            .implode("\n\n", $sections);
+        return "Berikut informasi absensi ananda:\n\n"
+            .implode("\n\n────────────────────\n\n", $sections);
     }
 
     /**
@@ -659,7 +703,7 @@ class ChatbotService
             ? round((($totalHadir + $totalTerlambat) / $totalHariKegiatan) * 100)
             : 0;
 
-        return "Informasi absensi *{$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
+        return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
             ."📅 *Hari Ini ({$hariTanggalStr}):*\n"
             ."Status: {$statusHariIniText}\n\n"
             ."📊 *Rekap Bulan {$namaBulan} {$currentYear}:*\n"

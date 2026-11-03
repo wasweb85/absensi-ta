@@ -412,4 +412,72 @@ class ChatbotWebhookTest extends TestCase
             ->assertJson(['intent' => 'izin_sakit']);
         $this->assertStringContainsString('Syafahullah', $resIzin->json('reply'));
     }
+
+    public function test_webhook_multi_student_consecutive_questions_and_follow_up_other_child(): void
+    {
+        // Setup tagihan untuk kedua anak
+        $now = Carbon::now('Asia/Jakarta');
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa1->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 15000,
+            'status' => 'belum_lunas',
+        ]);
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa2->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 15000,
+            'status' => 'belum_lunas',
+        ]);
+
+        // 1. Wali bertanya SPP: "anak saya nunggak berapa bulan?"
+        $resSpp = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'anak saya nunggak berapa bulan?',
+        ]);
+
+        $resSpp->assertStatus(200);
+        $replySpp = $resSpp->json('reply');
+        $this->assertStringContainsString('Ahmad Fauzi', $replySpp);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $replySpp);
+        // Pastikan tidak ada "SANTRI 1:" atau "SANTRI 2:"
+        $this->assertStringNotContainsString('SANTRI 1:', $replySpp);
+        $this->assertStringNotContainsString('SANTRI 2:', $replySpp);
+
+        // 2. Wali bertanya berturut-turut: "kalau absensi anak saya"
+        $resAbsensi = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'kalau absensi anak saya',
+        ]);
+
+        $resAbsensi->assertStatus(200);
+        $replyAbsensi = $resAbsensi->json('reply');
+        // KEDUA anak harus terjawab, bukan cuma satu anak!
+        $this->assertStringContainsString('Ahmad Fauzi', $replyAbsensi);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $replyAbsensi);
+        // Pastikan tidak ada "SANTRI 1:" atau "SANTRI 2:"
+        $this->assertStringNotContainsString('SANTRI 1:', $replyAbsensi);
+        $this->assertStringNotContainsString('SANTRI 2:', $replyAbsensi);
+
+        // 3. Wali bertanya secara spesifik ke anak 2 lalu tanya "anak sya yang satunya lagi"
+        $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'gimana absensi fatimah',
+        ]);
+
+        $resOther = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'anak sya yang satunya lagi',
+        ]);
+
+        $resOther->assertStatus(200);
+        $replyOther = $resOther->json('reply');
+        // Harus beralih ke Ahmad Fauzi dan menjawab absensi Ahmad Fauzi
+        $this->assertStringContainsString('Ahmad Fauzi', $replyOther);
+        $this->assertStringContainsString('Absensi ananda Ahmad Fauzi', $replyOther);
+    }
 }
