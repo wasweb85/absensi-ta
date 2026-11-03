@@ -46,7 +46,7 @@ class WhatsAppLog extends Model
     {
         $updates = [
             'status' => 'sent',
-            'sent_at' => Carbon::now('Asia/Jakarta'),
+            'sent_at' => $this->sent_at ?: Carbon::now('Asia/Jakarta'),
             'keterangan_error' => null,
         ];
 
