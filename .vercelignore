@@ -2,4 +2,9 @@
 /test-results
 /node_modules
 /.git
+/.agents
+/docs
+/website acuan
+/scratch
+*.md
 
