@@ -316,4 +316,74 @@ class ChatbotWebhookTest extends TestCase
             ->getJson('/api/chatbot/logs');
         $responseGuru->assertStatus(403);
     }
+
+    public function test_webhook_handles_thank_you_appreciation_naturally_even_with_multi_students(): void
+    {
+        $response = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'baik terimakasih',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'apresiasi',
+            ]);
+
+        $reply = $response->json('reply');
+        $this->assertStringContainsString('Sama-sama Bapak/Ibu', $reply);
+        $this->assertStringContainsString('Ahmad Fauzi', $reply);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $reply);
+    }
+
+    public function test_webhook_returns_both_children_attendance_when_multi_student_parent_asks_directly(): void
+    {
+        $response = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'gimana absensi anak saya',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'absensi',
+            ]);
+
+        $reply = $response->json('reply');
+        $this->assertStringContainsString('Ahmad Fauzi', $reply);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $reply);
+    }
+
+    public function test_webhook_matches_nickname_and_inline_number_and_izin_sakit(): void
+    {
+        // 1. Inline number: "berapa tunggakan SPP anak saya 1"
+        $resSpp = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'berapa tunggakan SPP anak saya 1',
+        ]);
+
+        $resSpp->assertStatus(200)
+            ->assertJson(['intent' => 'spp_notice']);
+        $this->assertStringContainsString('Ahmad Fauzi', $resSpp->json('reply'));
+
+        // 2. Nickname match: "fatimah"
+        $resNick = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'gimana absensi fatimah hari ini',
+        ]);
+
+        $resNick->assertStatus(200)
+            ->assertJson(['intent' => 'absensi']);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $resNick->json('reply'));
+
+        // 3. Izin sakit notification
+        $resIzin = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'ustadz mohon izin hari ini ahmad tidak bisa hadir karena sedang sakit demam',
+        ]);
+
+        $resIzin->assertStatus(200)
+            ->assertJson(['intent' => 'izin_sakit']);
+        $this->assertStringContainsString('Syafahullah', $resIzin->json('reply'));
+    }
 }

@@ -96,6 +96,9 @@
                 <option value="">Semua Topik</option>
                 <option value="absensi">Presensi Santri</option>
                 <option value="agenda">Agenda & Libur</option>
+                <option value="izin_sakit">Konfirmasi Izin / Sakit</option>
+                <option value="apresiasi">Apresiasi / Terima Kasih</option>
+                <option value="spp_notice">Info Administrasi / SPP</option>
                 <option value="bantuan">Menu Bantuan</option>
                 <option value="multi_santri">Multi Santri</option>
                 <option value="unregistered">Nomor Belum Terdaftar</option>
