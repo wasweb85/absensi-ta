@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,17 @@ class AuthController extends Controller
 
         // Buat access token Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        ActivityLog::record(
+            modul: 'auth',
+            aksi: 'login',
+            deskripsi: "Pengguna {$user->name} ({$user->username}) berhasil login ke sistem sebagai ".strtoupper($user->role),
+            properties: [
+                'username' => $user->username,
+                'role' => $user->role,
+            ],
+            user: $user
+        );
 
         return response()->json([
             'success' => true,
@@ -84,6 +96,20 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if ($user) {
+            ActivityLog::record(
+                modul: 'auth',
+                aksi: 'logout',
+                deskripsi: "Pengguna {$user->name} ({$user->username}) logout dari sistem",
+                properties: [
+                    'username' => $user->username,
+                    'role' => $user->role,
+                ],
+                user: $user
+            );
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

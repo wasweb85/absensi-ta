@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AbsensiController;
+use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AgendaLiburController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatbotController;
@@ -154,5 +155,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/simulate', [ChatbotController::class, 'simulate']);
         Route::get('/logs', [ChatbotController::class, 'logs']);
         Route::get('/stats', [ChatbotController::class, 'stats']);
+    });
+
+    // Log Aktivitas Sistem (Khusus Administrator)
+    Route::middleware('role:admin')->prefix('activity-logs')->group(function () {
+        Route::get('/', [ActivityLogController::class, 'index']);
+        Route::get('/stats', [ActivityLogController::class, 'stats']);
+        Route::delete('/clear', [ActivityLogController::class, 'clear']);
     });
 });

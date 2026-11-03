@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSiswaRequest;
 use App\Http\Requests\UpdateSiswaRequest;
+use App\Models\ActivityLog;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
@@ -57,6 +58,17 @@ class SiswaController extends Controller
 
         $siswa = Siswa::create($validated);
 
+        ActivityLog::record(
+            modul: 'santri',
+            aksi: 'tambah',
+            deskripsi: "Menambahkan santri baru: {$siswa->nama_lengkap} (NISN: {$siswa->nisn})",
+            properties: [
+                'id_siswa' => $siswa->id,
+                'nisn' => $siswa->nisn,
+                'nama_lengkap' => $siswa->nama_lengkap,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Data santri berhasil ditambahkan',
@@ -90,6 +102,17 @@ class SiswaController extends Controller
 
         $siswa->update($validated);
 
+        ActivityLog::record(
+            modul: 'santri',
+            aksi: 'ubah',
+            deskripsi: "Memperbarui data santri: {$siswa->nama_lengkap} (NISN: {$siswa->nisn})",
+            properties: [
+                'id_siswa' => $siswa->id,
+                'nisn' => $siswa->nisn,
+                'nama_lengkap' => $siswa->nama_lengkap,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Data santri berhasil diperbarui',
@@ -100,7 +123,20 @@ class SiswaController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $siswa = Siswa::findOrFail($id);
+        $namaSantri = $siswa->nama_lengkap;
+        $nisnSantri = $siswa->nisn;
         $siswa->delete();
+
+        ActivityLog::record(
+            modul: 'santri',
+            aksi: 'hapus',
+            deskripsi: "Menghapus data santri: {$namaSantri} (NISN: {$nisnSantri})",
+            properties: [
+                'id_siswa' => $id,
+                'nisn' => $nisnSantri,
+                'nama_lengkap' => $namaSantri,
+            ]
+        );
 
         return response()->json([
             'success' => true,
@@ -160,6 +196,15 @@ class SiswaController extends Controller
             }
         });
 
+        if ($imported > 0) {
+            ActivityLog::record(
+                modul: 'santri',
+                aksi: 'tambah',
+                deskripsi: "Impor massal data santri: {$imported} santri berhasil diimpor",
+                properties: ['imported_count' => $imported]
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => "Berhasil mengimpor {$imported} data santri.",
@@ -209,6 +254,13 @@ class SiswaController extends Controller
             if ($result['failed'] > 0) {
                 $msg .= " ({$result['failed']} baris perlu diperiksa).";
             }
+
+            ActivityLog::record(
+                modul: 'santri',
+                aksi: 'ubah',
+                deskripsi: "Sinkronisasi data santri dari Google Spreadsheet ({$result['created']} baru, {$result['updated']} diperbarui)",
+                properties: $result
+            );
 
             return response()->json([
                 'success' => true,

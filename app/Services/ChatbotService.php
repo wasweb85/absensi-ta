@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Absensi;
+use App\Models\ActivityLog;
 use App\Models\ChatbotLog;
 use App\Models\HariLibur;
 use App\Models\Pengaturan;
@@ -1213,6 +1214,18 @@ class ChatbotService
         string $status = 'sukses',
         ?string $error = null
     ): ChatbotLog {
+        ActivityLog::record(
+            modul: 'whatsapp',
+            aksi: 'chatbot',
+            deskripsi: "Chatbot merespons pesan dari {$phone} (Topik: {$intent})",
+            properties: [
+                'phone' => $phone,
+                'intent' => $intent,
+                'id_siswa' => $siswaId,
+                'status' => $status,
+            ]
+        );
+
         return ChatbotLog::create([
             'no_pengirim' => $phone,
             'pesan_masuk' => $message,

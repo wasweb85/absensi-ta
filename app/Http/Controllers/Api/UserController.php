@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Kelas;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -80,6 +81,17 @@ class UserController extends Controller
         if ($user->id_kelas) {
             $this->syncWaliKelas((int) $user->id_kelas);
         }
+
+        ActivityLog::record(
+            modul: 'guru',
+            aksi: 'tambah',
+            deskripsi: "Menambahkan pengguna/guru baru: {$user->name} ({$user->username}, Role: ".strtoupper($user->role).')',
+            properties: [
+                'id_user_target' => $user->id,
+                'username' => $user->username,
+                'role' => $user->role,
+            ]
+        );
 
         return response()->json([
             'success' => true,
@@ -161,6 +173,17 @@ class UserController extends Controller
             $this->syncWaliKelas((int) $newKelasId);
         }
 
+        ActivityLog::record(
+            modul: 'guru',
+            aksi: 'ubah',
+            deskripsi: "Memperbarui akun pengguna/guru: {$user->name} ({$user->username})",
+            properties: [
+                'id_user_target' => $user->id,
+                'username' => $user->username,
+                'role' => $user->role,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Data guru/pengurus berhasil diperbarui.',
@@ -181,12 +204,26 @@ class UserController extends Controller
         }
 
         $user = User::findOrFail($id);
+        $namaTarget = $user->name;
+        $usernameTarget = $user->username;
+        $roleTarget = $user->role;
         $kelasId = $user->id_kelas;
         $user->delete();
 
         if ($kelasId) {
             $this->syncWaliKelas((int) $kelasId);
         }
+
+        ActivityLog::record(
+            modul: 'guru',
+            aksi: 'hapus',
+            deskripsi: "Menghapus akun pengguna/guru: {$namaTarget} ({$usernameTarget}, Role: ".strtoupper($roleTarget).')',
+            properties: [
+                'id_user_target' => $id,
+                'username' => $usernameTarget,
+                'role' => $roleTarget,
+            ]
+        );
 
         return response()->json([
             'success' => true,

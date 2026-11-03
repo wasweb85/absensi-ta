@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BayarSppRequest;
+use App\Models\ActivityLog;
 use App\Models\PembayaranSpp;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
@@ -208,6 +209,22 @@ class SppController extends Controller
         $result = $this->billingService->prosesPembayaran($validated, $petugasId);
         if (isset($result['kuitansi'])) {
             $result['kuitansi']['petugas'] = $request->user()->name;
+
+            $namaSantri = $result['kuitansi']['nama_santri'] ?? 'Santri';
+            $namaKelas = $result['kuitansi']['kelas'] ?? '-';
+            $noKuitansi = $result['kuitansi']['nomor_kuitansi'] ?? '-';
+            $jumlah = (float) ($result['kuitansi']['jumlah_bayar'] ?? 0);
+
+            ActivityLog::record(
+                modul: 'spp',
+                aksi: 'bayar',
+                deskripsi: "Mencatat pembayaran SPP ananda {$namaSantri} ({$namaKelas}) sebesar Rp ".number_format($jumlah, 0, ',', '.')." (Kuitansi: {$noKuitansi})",
+                properties: [
+                    'nomor_kuitansi' => $noKuitansi,
+                    'jumlah_bayar' => $jumlah,
+                    'metode' => $validated['metode_pembayaran'] ?? 'Tunai',
+                ]
+            );
         }
 
         return response()->json($result);
@@ -238,6 +255,24 @@ class SppController extends Controller
 
         if (isset($result['kuitansi'])) {
             $result['kuitansi']['petugas'] = $request->user()->name;
+
+            $namaSantri = $result['kuitansi']['nama_santri'] ?? 'Santri';
+            $daftarBulan = $result['kuitansi']['daftar_bulan_str'] ?? '';
+            $noKuitansi = $result['kuitansi']['nomor_kuitansi'] ?? '-';
+            $totalBayar = (float) ($result['kuitansi']['total_bayar'] ?? 0);
+
+            ActivityLog::record(
+                modul: 'spp',
+                aksi: 'bayar',
+                deskripsi: "Mencatat pembayaran multi-bulan SPP ananda {$namaSantri} ({$daftarBulan}) sebesar Rp ".number_format($totalBayar, 0, ',', '.')." (Kuitansi: {$noKuitansi})",
+                properties: [
+                    'id_siswa' => $validated['id_siswa'],
+                    'nomor_kuitansi' => $noKuitansi,
+                    'total_bayar' => $totalBayar,
+                    'daftar_bulan' => $daftarBulan,
+                    'metode' => $validated['metode_pembayaran'],
+                ]
+            );
         }
 
         return response()->json($result, $result['success'] ? 200 : 422);
@@ -260,6 +295,18 @@ class SppController extends Controller
             $validated['alasan'],
             $namaPetugas
         );
+
+        if (! empty($result['success'])) {
+            ActivityLog::record(
+                modul: 'spp',
+                aksi: 'batal_bayar',
+                deskripsi: "Membatalkan transaksi SPP (ID Pembayaran: {$validated['id_pembayaran']}) dengan alasan: {$validated['alasan']}",
+                properties: [
+                    'id_pembayaran' => $validated['id_pembayaran'],
+                    'alasan' => $validated['alasan'],
+                ]
+            );
+        }
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
@@ -319,6 +366,20 @@ class SppController extends Controller
                 $sukses++;
             }
         });
+
+        if ($sukses > 0) {
+            ActivityLog::record(
+                modul: 'spp',
+                aksi: 'bayar',
+                deskripsi: "Input cepat pembayaran SPP berhasil untuk {$sukses} santri (Bulan {$bulan}/{$tahun})",
+                properties: [
+                    'total_santri' => $sukses,
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                    'id_kelas' => $idKelas,
+                ]
+            );
+        }
 
         return response()->json([
             'success' => true,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Pengaturan;
 use App\Models\User;
 use App\Services\TelegramService;
@@ -89,6 +90,16 @@ class SettingController extends Controller
         foreach ($settings as $key => $value) {
             Pengaturan::setValue((string) $key, is_null($value) ? '' : (string) $value);
         }
+
+        $keysUpdated = implode(', ', array_keys($settings));
+        ActivityLog::record(
+            modul: 'pengaturan',
+            aksi: 'ubah',
+            deskripsi: "Memperbarui pengaturan sistem: {$keysUpdated}",
+            properties: [
+                'keys' => array_keys($settings),
+            ]
+        );
 
         return response()->json([
             'success' => true,

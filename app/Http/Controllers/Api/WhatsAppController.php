@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWhatsAppMessageJob;
+use App\Models\ActivityLog;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
@@ -188,6 +189,17 @@ class WhatsAppController extends Controller
         if ($request->boolean('async')) {
             SendWhatsAppMessageJob::dispatch($phone, $message, null, null, $metadata);
 
+            ActivityLog::record(
+                modul: 'whatsapp',
+                aksi: 'kirim_wa',
+                deskripsi: "Mengirim pesan WhatsApp (antrean) ke {$phone}".(! empty($metadata['nama_penerima']) ? " ({$metadata['nama_penerima']})" : ''),
+                properties: [
+                    'phone' => $phone,
+                    'tipe_pesan' => $metadata['tipe_pesan'],
+                    'nama_penerima' => $metadata['nama_penerima'],
+                ]
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pesan berhasil dimasukkan ke dalam antrean background.',
@@ -196,6 +208,18 @@ class WhatsAppController extends Controller
         }
 
         $result = $this->waService->sendViaFonnte($phone, $message, null, $metadata);
+
+        ActivityLog::record(
+            modul: 'whatsapp',
+            aksi: 'kirim_wa',
+            deskripsi: "Mengirim pesan WhatsApp langsung ke {$phone}".(! empty($metadata['nama_penerima']) ? " ({$metadata['nama_penerima']})" : ''),
+            properties: [
+                'phone' => $phone,
+                'tipe_pesan' => $metadata['tipe_pesan'],
+                'nama_penerima' => $metadata['nama_penerima'],
+                'status' => $result['success'] ? 'sukses' : 'gagal',
+            ]
+        );
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
@@ -263,6 +287,17 @@ class WhatsAppController extends Controller
             }
         }
 
+        ActivityLog::record(
+            modul: 'whatsapp',
+            aksi: 'kirim_wa',
+            deskripsi: "Mengirim kuitansi SPP format gambar via WhatsApp ke {$phone}".(! empty($nomorKuitansi) ? " (No: {$nomorKuitansi})" : ''),
+            properties: [
+                'phone' => $phone,
+                'nomor_kuitansi' => $nomorKuitansi,
+                'status' => $result['success'] ? 'sukses' : 'gagal',
+            ]
+        );
+
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
@@ -295,6 +330,18 @@ class WhatsAppController extends Controller
                 SendWhatsAppMessageJob::dispatch($trimmed, $message, null, null, $meta);
                 $count++;
             }
+        }
+
+        if ($count > 0) {
+            ActivityLog::record(
+                modul: 'whatsapp',
+                aksi: 'broadcast',
+                deskripsi: "Mengirim pesan broadcast WhatsApp ({$tipePesan}) ke {$count} nomor tujuan",
+                properties: [
+                    'tipe_pesan' => $tipePesan,
+                    'total_penerima' => $count,
+                ]
+            );
         }
 
         return response()->json([

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Kelas;
 use App\Models\User;
 use App\Services\SppBillingService;
@@ -96,6 +97,17 @@ class KelasController extends Controller
             User::where('id', $idGuru)->update(['id_kelas' => $kelas->id]);
         }
 
+        ActivityLog::record(
+            modul: 'jilid',
+            aksi: 'tambah',
+            deskripsi: "Menambahkan jilid baru: {$kelas->nama_kelas}",
+            properties: [
+                'id_kelas' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'nominal_spp' => $kelas->nominal_spp,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Jilid berhasil ditambahkan',
@@ -153,6 +165,17 @@ class KelasController extends Controller
 
         $kelas->update($validated);
 
+        ActivityLog::record(
+            modul: 'jilid',
+            aksi: 'ubah',
+            deskripsi: "Memperbarui data jilid: {$kelas->nama_kelas}",
+            properties: [
+                'id_kelas' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'nominal_spp' => $kelas->nominal_spp,
+            ]
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Jilid berhasil diperbarui',
@@ -163,6 +186,7 @@ class KelasController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $kelas = Kelas::findOrFail($id);
+        $namaKelas = $kelas->nama_kelas;
 
         if ($kelas->siswa()->count() > 0) {
             return response()->json([
@@ -177,6 +201,16 @@ class KelasController extends Controller
             ->update(['id_kelas' => null]);
 
         $kelas->delete();
+
+        ActivityLog::record(
+            modul: 'jilid',
+            aksi: 'hapus',
+            deskripsi: "Menghapus jilid: {$namaKelas}",
+            properties: [
+                'id_kelas' => $id,
+                'nama_kelas' => $namaKelas,
+            ]
+        );
 
         return response()->json([
             'success' => true,

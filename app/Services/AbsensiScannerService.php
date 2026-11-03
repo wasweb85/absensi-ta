@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Absensi;
+use App\Models\ActivityLog;
 use App\Models\HariLibur;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
@@ -97,6 +98,7 @@ class AbsensiScannerService
         // Kasus A: Siswa belum ada catatan absensi hari ini (Absen Masuk)
         if (! $absensi) {
             $status = ($currentTimeShort <= $jamTerlambat) ? 'Hadir' : 'Terlambat';
+            $keteranganWaktu = ($status === 'Hadir') ? 'Tepat Waktu' : 'Terlambat';
 
             $absensi = Absensi::create([
                 'id_siswa' => $siswa->id,
@@ -132,6 +134,19 @@ class AbsensiScannerService
             if (! empty($waPlan['note'])) {
                 $waNoteSuffix = " ({$waPlan['note']})";
             }
+
+            ActivityLog::record(
+                modul: 'presensi',
+                aksi: 'scan',
+                deskripsi: "Scan presensi santri: {$siswa->nama_lengkap} ({$siswa->kelas?->nama_kelas}) - Status: {$status}".($keteranganWaktu ? " ({$keteranganWaktu})" : ''),
+                properties: [
+                    'id_siswa' => $siswa->id,
+                    'nisn' => $siswa->nisn,
+                    'status' => $status,
+                    'keterangan_waktu' => $keteranganWaktu,
+                    'waktu' => $currentTimeShort,
+                ]
+            );
 
             return [
                 'success' => true,

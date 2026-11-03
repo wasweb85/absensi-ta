@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ScanAbsensiRequest;
 use App\Models\Absensi;
+use App\Models\ActivityLog;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
@@ -167,6 +168,18 @@ class AbsensiController extends Controller
             $tanggal = $validated['tanggal'];
             $waktuPulang = $absensi->waktu_pulang ?: '-';
             $keterangan = ($validated['keterangan'] ?? null) ?: ($status === 'Hadir' ? 'Tepat Waktu' : '-');
+
+            ActivityLog::record(
+                modul: 'presensi',
+                aksi: 'ubah',
+                deskripsi: "Perubahan manual presensi {$siswa->nama_lengkap} tanggal {$tanggal} menjadi {$status}".(! empty($validated['keterangan']) ? " ({$validated['keterangan']})" : ''),
+                properties: [
+                    'id_siswa' => $siswa->id,
+                    'status' => $status,
+                    'tanggal' => $tanggal,
+                    'keterangan' => $validated['keterangan'] ?? null,
+                ]
+            );
 
             defer(function () use ($siswa, $status, $waktuMasuk, $tanggal, $waktuPulang, $keterangan) {
                 try {

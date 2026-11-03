@@ -87,6 +87,7 @@ import {
   Download,
   FileText,
   GraduationCap,
+  History,
   Layers,
   LayoutDashboard,
   MessageSquareShare,
@@ -157,6 +158,7 @@ const sections = [
   {
     title: 'Sistem',
     items: [
+      { to: '/log-aktivitas', label: 'Log Aktivitas', icon: History },
       { to: '/pengaturan', label: 'Pengaturan', icon: Settings },
     ],
   },

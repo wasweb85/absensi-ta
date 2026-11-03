@@ -115,6 +115,12 @@ const routes = [
                 meta: { title: 'Data Jilid', roles: ['admin'] },
             },
             {
+                path: 'log-aktivitas',
+                name: 'log-aktivitas',
+                component: () => import('../views/master/LogAktivitasView.vue'),
+                meta: { title: 'Log Aktivitas', roles: ['admin'] },
+            },
+            {
                 path: 'pengaturan',
                 name: 'pengaturan',
                 component: () => import('../views/master/PengaturanView.vue'),
