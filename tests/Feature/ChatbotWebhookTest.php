@@ -480,4 +480,71 @@ class ChatbotWebhookTest extends TestCase
         $this->assertStringContainsString('Ahmad Fauzi', $replyOther);
         $this->assertStringContainsString('Absensi ananda Ahmad Fauzi', $replyOther);
     }
+
+    public function test_webhook_handles_previous_month_and_colloquial_frequency_questions(): void
+    {
+        // Catat absensi Ahmad Fauzi di bulan Oktober 2026 (bulan lalu)
+        Absensi::create([
+            'id_siswa' => $this->siswa1->id,
+            'tanggal' => '2026-10-15',
+            'waktu_masuk' => '15:30:00',
+            'status' => 'Hadir',
+            'metode_scan' => 'qr_kamera',
+        ]);
+        Absensi::create([
+            'id_siswa' => $this->siswa1->id,
+            'tanggal' => '2026-10-16',
+            'waktu_masuk' => '15:45:00',
+            'status' => 'Terlambat',
+            'metode_scan' => 'qr_kamera',
+        ]);
+
+        // Catat absensi Fatimah di bulan Oktober 2026 (bulan lalu)
+        Absensi::create([
+            'id_siswa' => $this->siswa2->id,
+            'tanggal' => '2026-10-15',
+            'waktu_masuk' => '15:30:00',
+            'status' => 'Hadir',
+            'metode_scan' => 'qr_kamera',
+        ]);
+
+        // 1. Wali bertanya pertanyaan lanjutan tidak spesifik: "kalau bulan sebelumnya berpa kali?"
+        $response = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'kalau bulan sebelumnya berpa kali?',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'absensi',
+            ]);
+
+        $reply = $response->json('reply');
+        // Harus mendeteksi bulan Oktober 2026 dan memuat data kedua anak
+        $this->assertStringContainsString('Oktober 2026', $reply);
+        $this->assertStringContainsString('Ahmad Fauzi', $reply);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $reply);
+        $this->assertStringContainsString('1 kali', $reply);
+        $this->assertStringNotContainsString('SANTRI 1:', $reply);
+        $this->assertStringNotContainsString("Assalamu'alaikum", $reply);
+
+        // 2. Wali bertanya spesifik nama bulan: "rekap bulan oktober"
+        $resOkt = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'rekap bulan oktober',
+        ]);
+
+        $resOkt->assertStatus(200);
+        $this->assertStringContainsString('Oktober', $resOkt->json('reply'));
+
+        // 3. Wali bertanya kemarin: "kemarin masuk gak?"
+        $resKemarin = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'kemarin masuk gak?',
+        ]);
+
+        $resKemarin->assertStatus(200)
+            ->assertJson(['intent' => 'absensi']);
+    }
 }

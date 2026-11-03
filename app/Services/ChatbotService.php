@@ -46,7 +46,7 @@ class ChatbotService
         }
 
         // 1. Deteksi intent awal dari teks pesan
-        $intent = $this->detectIntent($trimmedMessage);
+        $intent = $this->detectIntent($trimmedMessage, $normalizedSender);
 
         // Pertanyaan umum institusi (Agenda & Hari Libur) langsung dijawab tanpa terhalang pemilihan multi-santri
         if ($intent === 'agenda') {
@@ -102,7 +102,7 @@ class ChatbotService
             /** @var Collection<int, Siswa> $candidates */
             $candidates = $resolved['candidates'];
             $firstSiswa = $candidates->first();
-            $reply = $this->handleSppNoticeQuery($firstSiswa, $candidates);
+            $reply = $this->handleSppNoticeQuery($firstSiswa, $candidates, $trimmedMessage);
             $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
 
             return [
@@ -124,8 +124,8 @@ class ChatbotService
             }
 
             $reply = match ($intent) {
-                'spp_notice' => $this->handleSppNoticeQuery($firstSiswa, $candidates),
-                default => $this->handleMultiAbsensiQuery($candidates),
+                'spp_notice' => $this->handleSppNoticeQuery($firstSiswa, $candidates, $trimmedMessage),
+                default => $this->handleMultiAbsensiQuery($candidates, $trimmedMessage),
             };
 
             $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
@@ -165,11 +165,11 @@ class ChatbotService
 
         // 3. Bangun Respon berdasarkan Intent
         $reply = match ($intent) {
-            'spp_notice' => $this->handleSppNoticeQuery($siswa),
+            'spp_notice' => $this->handleSppNoticeQuery($siswa, null, $trimmedMessage),
             'izin_sakit' => $this->handleIzinSakitQuery($siswa, $trimmedMessage),
             'absensi' => $siswa ? $this->handleAbsensiQuery($siswa, $trimmedMessage) : $this->handleHelpQuery(null),
             'bantuan' => $this->handleHelpQuery($siswa),
-            default => $this->handleUnknownQuery($siswa, $trimmedMessage),
+            default => $this->handleUnknownQuery($siswa, $trimmedMessage, $resolved['candidates'] ?? null),
         };
 
         // 4. Catat riwayat ke log (sekaligus menyimpan id_siswa aktif di database untuk percakapan berikutnya)
@@ -210,41 +210,72 @@ class ChatbotService
      * Klasifikasi intent dari teks pesan bahasa sehari-hari wali santri
      * Hanya 3 informasi utama untuk wali santri: Absensi, SPP, dan Hari Libur
      */
-    public function detectIntent(string $message): string
+    public function detectIntent(string $message, ?string $normalizedSender = null): string
     {
         $clean = strtolower(trim($message));
 
         // 1. Intent Pertanyaan SPP & Tunggakan
-        if (preg_match('/\b(nunggak|menunggak|tunggak|tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|belum lunas|utang|hutang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi|berapa bulan)\b/i', $clean)) {
+        if (preg_match('/\b(nunggak|menunggak|tunggak|tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|belum lunas|utang|hutang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi|berapa bulan|biaya ngaji|bayar ngaji)\b/i', $clean)) {
             return 'spp_notice';
         }
 
         // 2. Intent Pemberitahuan Anak Izin / Sakit dari Wali Santri
-        $isAskingRecap = (bool) preg_match('/\b(gimana|bagaimana|cek|rekap|berapa|laporan|info|apakah|apa|lihat|status)\b/i', $clean);
+        $isAskingRecap = (bool) preg_match('/\b(gimana|bagaimana|cek|rekap|berapa|berpa|brp|laporan|info|apakah|lihat|status|berapa kali|berpa kali|berapa hari)\b/i', $clean);
         $isInformingAbsence = (bool) preg_match('/\b(mohon izin|minta izin|mau izin|izin tidak|izin gak|izin nggak|tidak bisa hadir|tidak bisa masuk|tidak masuk|gak masuk|nggak masuk|absen dulu|lagi sakit|sedang sakit|karena sakit|kurang enak badan|demam|acara keluarga|bepergian)\b/i', $clean);
         if ($isInformingAbsence && ! $isAskingRecap) {
             return 'izin_sakit';
         }
 
         // 3. Intent Absensi & Kehadiran
-        if (preg_match('/\b(presensi|absensi|kehadiran|absen|masuk|hadir|bolos|izin|sakit|alpa|alfa|terlambat|telat|rekap|datang|berangkat|pulang|sampai|ngaji|mengaji)\b/i', $clean)) {
+        // A. Kata kunci absensi/kehadiran langsung
+        $hasAttendanceWords = (bool) preg_match('/\b(presensi|absensi|kehadiran|absen|masuk|hadir|bolos|izin|sakit|alpa|alfa|terlambat|telat|rekap|datang|berangkat|pulang|sampai|ngaji|mengaji)\b/i', $clean);
+        // B. Pertanyaan frekuensi / jumlah kehadiran (cth: "berapa kali?", "berpa kali?", "berapa hari?", "berapa kali masuk")
+        $hasFrequencyWords = (bool) preg_match('/\b(berapa kali|berpa kali|brp kali|berapa hari|brp hari|berapa kali hadir|berpa kali hadir|berapa kali masuk|berpa kali masuk|berapa kali absen|berpa kali absen|ada yang alpa|ada alpa|ada yang alfa|ada yang bolos)\b/i', $clean);
+        // C. Pertanyaan temporal (cth: "kalau bulan sebelumnya berpa kali?", "bulan lalu gimana?", "kemarin gimana?", "minggu lalu?")
+        $hasTemporalWords = (bool) preg_match('/\b(bulan\s*(?:lalu|kemarin|kemaren|sebelumnya|berikutnya)|bln\s*(?:lalu|kemarin|kemaren|sebelumnya)|kemarin|kemaren|hari kemarin|hari kemaren|minggu lalu|minggu ini|januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $clean);
+
+        if ($hasAttendanceWords || $hasFrequencyWords) {
             return 'absensi';
         }
 
-        // 4. Intent Informasi Hari Libur (Hanya hari libur, tidak menampilkan agenda internal)
+        // 4. Follow-up temporal berdasarkan riwayat percakapan sebelumnya
+        if ($hasTemporalWords) {
+            if ($normalizedSender) {
+                $prevIntent = $this->resolvePreviousIntentFromHistory($normalizedSender);
+                if ($prevIntent && in_array($prevIntent, ['absensi', 'spp_notice'], true)) {
+                    return $prevIntent;
+                }
+            }
+            // Default jika ada kata temporal dan pertanyaan ("gimana", "berapa", "berpa", "cek", "info", dll) -> absensi
+            if (preg_match('/\b(gimana|bagaimana|berapa|berpa|brp|cek|info|apakah|apa|ada|status|lihat|kalau|gmn)\b/i', $clean) || str_contains($clean, '?')) {
+                return 'absensi';
+            }
+        }
+
+        // 5. Intent Informasi Hari Libur (Hanya hari libur, tidak menampilkan agenda internal)
         if (preg_match('/\b(libur|liburan|tanggal merah|rutinan|kapan libur|kalender|jadwal libur|prei)\b/i', $clean)) {
             return 'agenda';
         }
 
-        // 5. Intent Apresiasi / Terima Kasih / Konfirmasi Singkat
-        $hasQuestionWord = (bool) preg_match('/\b(gimana|bagaimana|berapa|kapan|apakah|cek|menu|bantuan|tanya|bisa apa|halo|hai)\b/i', $clean);
+        // 6. Intent Apresiasi / Terima Kasih / Konfirmasi Singkat
+        $hasQuestionWord = (bool) preg_match('/\b(gimana|bagaimana|berapa|berpa|brp|kapan|apakah|cek|menu|bantuan|tanya|bisa apa|halo|hai)\b/i', $clean);
         if (! $hasQuestionWord && preg_match('/\b(terima\s*kasih|terimakasih|makasih|mksh|trims|syukron|jazakallah|jazakumullah|alhamdulillah|baik|oke|ok|siap|noted|sama-sama|waalaikumsalam|wa\'alaikumussalam|walaikumsalam)\b/i', $clean)) {
             return 'apresiasi';
         }
 
-        // 6. Intent Bantuan & Sapaan
+        // 7. Intent Bantuan & Sapaan
         if (preg_match('/\b(halo|hai|assalam|assalamualaikum|assalamu\'alaikum|salam|pagi|siang|sore|malam|ustadz|ustazah|admin|menu|bantuan|help|info|bisa apa|tanya|panduan)\b/i', $clean)) {
             return 'bantuan';
+        }
+
+        // 8. Follow-up kontekstual jika ada tanda tanya atau pertanyaan pendek setelah topik sebelumnya
+        if ($normalizedSender) {
+            $prevIntent = $this->resolvePreviousIntentFromHistory($normalizedSender);
+            if ($prevIntent && in_array($prevIntent, ['absensi', 'spp_notice'], true)) {
+                if (preg_match('/(\?|\b(gimana|bagaimana|berapa|berpa|brp|apakah|apa|kapan|kenapa|ada|kalau|terus)\b)/i', $clean)) {
+                    return $prevIntent;
+                }
+            }
         }
 
         return 'unknown';
@@ -485,10 +516,10 @@ class ChatbotService
             ];
         }
 
-        // F. Cek Intent: jika pertanyaan umum tentang "absensi" atau "spp_notice" (cth: "kalau absensi anak saya", "anak saya nunggak berapa bulan")
+        // F. Cek Intent: jika pertanyaan umum tentang "absensi" atau "spp_notice" (cth: "kalau absensi anak saya", "anak saya nunggak berapa bulan", "kalau bulan sebelumnya berpa kali?")
         // TANPA menyebutkan nama anak spesifik:
         // Selalu tampilkan data SEMUA anak agar wali yang punya >1 santri langsung menerima informasi lengkap kedua anaknya!
-        $detectedIntent = $this->detectIntent($cleanMsg);
+        $detectedIntent = $this->detectIntent($cleanMsg, $normalizedPhone);
         if (in_array($detectedIntent, ['absensi', 'spp_notice'], true)) {
             $this->forgetActiveStudent($normalizedPhone);
 
@@ -557,19 +588,165 @@ class ChatbotService
     }
 
     /**
+     * Mengekstrak periode waktu (bulan/tahun atau hari kemarin) dari pesan wali santri
+     *
+     * @return array{
+     *     mode: 'month'|'day',
+     *     bulan: int,
+     *     tahun: int,
+     *     nama_bulan: string,
+     *     label_periode: string,
+     *     is_current_month: bool,
+     *     is_previous_month: bool,
+     *     is_specific_day: bool,
+     *     tanggal_khusus: string|null,
+     *     label_hari_khusus: string|null
+     * }
+     */
+    public function parseTargetPeriod(string $message): array
+    {
+        $clean = strtolower(trim($message));
+        $now = Carbon::now('Asia/Jakarta');
+        $currentMonth = (int) $now->month;
+        $currentYear = (int) $now->year;
+
+        // 1. Cek apakah menanyakan "kemarin" / "kemaren"
+        if (preg_match('/\b(kemarin|kemaren|hari kemarin|hari kemaren)\b/i', $clean)) {
+            $yesterday = Carbon::yesterday('Asia/Jakarta');
+
+            return [
+                'mode' => 'day',
+                'bulan' => (int) $yesterday->month,
+                'tahun' => (int) $yesterday->year,
+                'nama_bulan' => $this->bulanMap[(int) $yesterday->month] ?? 'Bulan',
+                'label_periode' => $yesterday->locale('id')->isoFormat('dddd, D MMMM Y'),
+                'is_current_month' => (int) $yesterday->month === $currentMonth && (int) $yesterday->year === $currentYear,
+                'is_previous_month' => false,
+                'is_specific_day' => true,
+                'tanggal_khusus' => $yesterday->toDateString(),
+                'label_hari_khusus' => 'Kemarin ('.$yesterday->locale('id')->isoFormat('dddd, D MMMM Y').')',
+            ];
+        }
+
+        // 2. Cek apakah menanyakan 2 bulan lalu
+        if (preg_match('/\b(2|dua)\s*bulan\s*(?:lalu|kemarin|kemaren|sebelumnya)\b/i', $clean)) {
+            $dt = $now->copy()->subMonths(2);
+            $m = (int) $dt->month;
+            $y = (int) $dt->year;
+            $namaBln = $this->bulanMap[$m] ?? "Bulan {$m}";
+
+            return [
+                'mode' => 'month',
+                'bulan' => $m,
+                'tahun' => $y,
+                'nama_bulan' => $namaBln,
+                'label_periode' => "Bulan {$namaBln} {$y}",
+                'is_current_month' => false,
+                'is_previous_month' => true,
+                'is_specific_day' => false,
+                'tanggal_khusus' => null,
+                'label_hari_khusus' => null,
+            ];
+        }
+
+        // 3. Cek apakah menanyakan "bulan sebelumnya" / "bulan lalu" / "bulan kemarin"
+        if (preg_match('/\b(bulan\s*(?:sebelumnya|lalu|kemarin|kemaren|terakhir)|bln\s*(?:sebelumnya|lalu|kemarin|kemaren)|last\s*month)\b/i', $clean)) {
+            $dt = $now->copy()->subMonth();
+            $m = (int) $dt->month;
+            $y = (int) $dt->year;
+            $namaBln = $this->bulanMap[$m] ?? "Bulan {$m}";
+
+            return [
+                'mode' => 'month',
+                'bulan' => $m,
+                'tahun' => $y,
+                'nama_bulan' => $namaBln,
+                'label_periode' => "Bulan {$namaBln} {$y}",
+                'is_current_month' => false,
+                'is_previous_month' => true,
+                'is_specific_day' => false,
+                'tanggal_khusus' => null,
+                'label_hari_khusus' => null,
+            ];
+        }
+
+        // 4. Cek apakah ada nama bulan spesifik (misal: "oktober", "september")
+        $monthPatternMap = [
+            1 => 'januari|jan',
+            2 => 'februari|pebruari|feb',
+            3 => 'maret|mar',
+            4 => 'april|apr',
+            5 => 'mei|may',
+            6 => 'juni|jun',
+            7 => 'juli|jul',
+            8 => 'agustus|agust|agt',
+            9 => 'september|sept|sep',
+            10 => 'oktober|okt',
+            11 => 'november|nopember|nov',
+            12 => 'desember|des',
+        ];
+
+        // Cari tahun spesifik jika disebutkan (cth: 2025, 2026, 2027)
+        $targetYear = $currentYear;
+        if (preg_match('/\b(202[4-9])\b/', $clean, $ym)) {
+            $targetYear = (int) $ym[1];
+        }
+
+        foreach ($monthPatternMap as $mNum => $mRegex) {
+            if (preg_match('/\b('.$mRegex.')\b/i', $clean)) {
+                $namaBln = $this->bulanMap[$mNum] ?? "Bulan {$mNum}";
+                $isCurrent = ($mNum === $currentMonth && $targetYear === $currentYear);
+
+                return [
+                    'mode' => 'month',
+                    'bulan' => $mNum,
+                    'tahun' => $targetYear,
+                    'nama_bulan' => $namaBln,
+                    'label_periode' => "Bulan {$namaBln} {$targetYear}",
+                    'is_current_month' => $isCurrent,
+                    'is_previous_month' => ! $isCurrent,
+                    'is_specific_day' => false,
+                    'tanggal_khusus' => null,
+                    'label_hari_khusus' => null,
+                ];
+            }
+        }
+
+        // 5. Default: Bulan berjalan saat ini
+        $namaBln = $this->bulanMap[$currentMonth] ?? 'Bulan Ini';
+
+        return [
+            'mode' => 'month',
+            'bulan' => $currentMonth,
+            'tahun' => $currentYear,
+            'nama_bulan' => $namaBln,
+            'label_periode' => "Bulan {$namaBln} {$currentYear}",
+            'is_current_month' => true,
+            'is_previous_month' => false,
+            'is_specific_day' => false,
+            'tanggal_khusus' => null,
+            'label_hari_khusus' => null,
+        ];
+    }
+
+    /**
      * Menghasilkan balasan informasi terkait SPP & Tunggakan Santri secara langsung (to-the-point)
      *
      * @param  Collection<int, Siswa>|null  $allCandidates
      */
-    public function handleSppNoticeQuery(?Siswa $siswa, ?Collection $allCandidates = null): string
+    public function handleSppNoticeQuery(?Siswa $siswa, ?Collection $allCandidates = null, string $originalMessage = ''): string
     {
+        $period = $this->parseTargetPeriod($originalMessage);
+
         if ($allCandidates && $allCandidates->count() > 1) {
             $sections = [];
             foreach ($allCandidates as $cand) {
-                $sections[] = $this->buildSingleStudentSppSection($cand);
+                $sections[] = $this->buildSingleStudentSppSection($cand, $period);
             }
 
-            return "Berikut informasi SPP ananda:\n\n"
+            $introPeriode = $period['is_previous_month'] ? " untuk {$period['label_periode']}" : '';
+
+            return "Berikut informasi SPP ananda{$introPeriode}:\n\n"
                 .implode("\n\n────────────────────\n\n", $sections);
         }
 
@@ -577,13 +754,13 @@ class ChatbotService
             return 'Data santri tidak ditemukan untuk memeriksa informasi SPP.';
         }
 
-        return $this->buildSingleStudentSppSection($siswa);
+        return $this->buildSingleStudentSppSection($siswa, $period);
     }
 
     /**
      * Menyusun blok teks status SPP & rincian tunggakan untuk 1 santri
      */
-    protected function buildSingleStudentSppSection(Siswa $siswa): string
+    protected function buildSingleStudentSppSection(Siswa $siswa, ?array $period = null): string
     {
         SppBillingService::ensureSppSchemaExists();
 
@@ -605,8 +782,30 @@ class ChatbotService
         $totalTunggakan = (float) ($rekap['total_tunggakan'] ?? 0);
         $daftarTunggakan = $rekap['daftar_tunggakan'] ?? [];
 
+        // Jika menanyakan periode bulan tertentu (misal: "spp bulan kemarin" / "spp oktober")
+        $statusBulanSpesifik = '';
+        if ($period && ! empty($period['is_previous_month'])) {
+            $tagihanSpesifik = TagihanSpp::with(['pembayaran' => fn ($q) => $q->where('status_transaksi', 'valid')])
+                ->where('id_siswa', $siswa->id)
+                ->where('bulan', $period['bulan'])
+                ->where('tahun', $period['tahun'])
+                ->first();
+
+            if ($tagihanSpesifik) {
+                $totalBayar = (float) $tagihanSpesifik->pembayaran->sum('jumlah_bayar');
+                $sisa = max(0, (float) $tagihanSpesifik->nominal_tagihan - $totalBayar);
+                if ($tagihanSpesifik->status === 'lunas' || $sisa <= 0) {
+                    $statusBulanSpesifik = "• SPP {$period['label_periode']}: ✅ *LUNAS*\n";
+                } else {
+                    $sisaRp = 'Rp '.number_format($sisa, 0, ',', '.');
+                    $statusBulanSpesifik = "• SPP {$period['label_periode']}: ⚠️ *BELUM LUNAS* (Sisa {$sisaRp})\n";
+                }
+            }
+        }
+
         if ($totalBulan === 0 || $totalTunggakan <= 0) {
             return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+                .$statusBulanSpesifik
                 ."• Status: ✅ *LUNAS* (Tidak ada tunggakan s/d {$namaBulanIni} {$cutOffTahun})\n"
                 .'• Total Tunggakan: *Rp 0*';
         }
@@ -623,7 +822,8 @@ class ChatbotService
         }
 
         return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
-            ."• Status: ⚠️ *Menunggak {$totalBulan} bulan*\n"
+            .$statusBulanSpesifik
+            ."• Status Keseluruhan: ⚠️ *Menunggak {$totalBulan} bulan*\n"
             ."• Total Tunggakan: *{$totalRp}*\n\n"
             ."*Rincian Bulan Belum Lunas:*\n"
             .implode("\n", $rincianLines);
@@ -634,9 +834,10 @@ class ChatbotService
      */
     public function handleAbsensiQuery(Siswa $siswa, string $originalMessage = ''): string
     {
-        $hariTanggalStr = Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y');
+        $hariTanggalStr = Carbon::now('Asia/Jakarta')->locale('id')->isoFormat('dddd, D MMMM Y');
+        $period = $this->parseTargetPeriod($originalMessage);
 
-        return $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
+        return $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr, $period);
     }
 
     /**
@@ -644,30 +845,101 @@ class ChatbotService
      *
      * @param  Collection<int, Siswa>  $candidates
      */
-    public function handleMultiAbsensiQuery(Collection $candidates): string
+    public function handleMultiAbsensiQuery(Collection $candidates, string $originalMessage = ''): string
     {
-        $hariTanggalStr = Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y');
+        $hariTanggalStr = Carbon::now('Asia/Jakarta')->locale('id')->isoFormat('dddd, D MMMM Y');
+        $period = $this->parseTargetPeriod($originalMessage);
         $sections = [];
 
         foreach ($candidates as $siswa) {
-            $sections[] = $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr);
+            $sections[] = $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr, $period);
         }
 
-        return "Berikut informasi absensi ananda:\n\n"
+        $introPeriode = $period['is_previous_month'] ? " untuk {$period['label_periode']}" : '';
+
+        return "Berikut informasi absensi ananda{$introPeriode}:\n\n"
             .implode("\n\n────────────────────\n\n", $sections);
     }
 
     /**
      * Menyusun blok teks ringkasan presensi hari ini & bulan berjalan untuk 1 santri
      */
-    protected function buildSingleStudentAbsensiSection(Siswa $siswa, string $hariTanggalStr): string
+    protected function buildSingleStudentAbsensiSection(Siswa $siswa, string $hariTanggalStr, ?array $period = null): string
     {
-        $today = Carbon::today()->toDateString();
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
-        $namaBulan = $this->bulanMap[$currentMonth] ?? 'Bulan Ini';
+        $period = $period ?: $this->parseTargetPeriod('');
         $namaKelas = $siswa->kelas?->nama_kelas ?: 'Jilid';
+        $targetMonth = $period['bulan'];
+        $targetYear = $period['tahun'];
 
+        // Rekapitulasi pada bulan target
+        $startOfMonth = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth()->toDateString();
+        $endOfMonth = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth()->toDateString();
+
+        $rekapBulan = Absensi::where('id_siswa', $siswa->id)
+            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+            ->get();
+
+        $totalHadir = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'hadir')->count();
+        $totalTerlambat = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'terlambat')->count();
+        $totalIzin = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'izin')->count();
+        $totalSakit = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'sakit')->count();
+        $totalAlpa = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'alpa')->count();
+
+        $totalHariKegiatan = $rekapBulan->count();
+        $persentase = $totalHariKegiatan > 0
+            ? round((($totalHadir + $totalTerlambat) / $totalHariKegiatan) * 100)
+            : 0;
+
+        // Jika wali menanyakan bulan sebelumnya atau bulan lampau tertentu:
+        if (! empty($period['is_previous_month'])) {
+            $catatanText = ($totalHariKegiatan > 0)
+                ? "📈 Persentase Kehadiran: *{$persentase}%* (Total {$totalHariKegiatan} hari tercatat)"
+                : 'ℹ️ _(Belum ada data kegiatan mengaji tercatat pada periode ini)_';
+
+            return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
+                ."📊 *Rekap {$period['label_periode']}:*\n"
+                ."• Hadir Tepat Waktu: *{$totalHadir} kali*\n"
+                ."• Hadir Terlambat: *{$totalTerlambat} kali*\n"
+                ."• Izin: *{$totalIzin} kali*\n"
+                ."• Sakit: *{$totalSakit} kali*\n"
+                ."• Alpa: *{$totalAlpa} kali*\n"
+                .$catatanText;
+        }
+
+        // Jika wali menanyakan tanggal kemarin tertentu
+        if (! empty($period['is_specific_day']) && ! empty($period['tanggal_khusus'])) {
+            $presensiKhusus = Absensi::where('id_siswa', $siswa->id)
+                ->where('tanggal', $period['tanggal_khusus'])
+                ->first();
+
+            $statusKhususText = 'Tidak ada catatan presensi pada tanggal ini.';
+            if ($presensiKhusus) {
+                $jam = $presensiKhusus->waktu_masuk ?: '-';
+                $st = strtolower($presensiKhusus->status);
+                $statusKhususText = match ($st) {
+                    'hadir' => "✅ *HADIR TEPAT WAKTU* (Pukul {$jam} WIB)",
+                    'terlambat' => "⚠️ *HADIR TERLAMBAT* (Pukul {$jam} WIB)",
+                    'izin' => '📝 *IZIN*',
+                    'sakit' => '🏥 *SAKIT*',
+                    'alpa' => '❌ *ALPA / TANPA KETERANGAN*',
+                    default => "*{$presensiKhusus->status}*",
+                };
+            }
+
+            return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
+                ."📅 *{$period['label_hari_khusus']}:*\n"
+                ."Status: {$statusKhususText}\n\n"
+                ."📊 *Rekap {$period['label_periode']}:*\n"
+                ."• Hadir Tepat Waktu: {$totalHadir} hari\n"
+                ."• Hadir Terlambat: {$totalTerlambat} hari\n"
+                ."• Izin: {$totalIzin} hari\n"
+                ."• Sakit: {$totalSakit} hari\n"
+                ."• Alpa: {$totalAlpa} hari\n"
+                ."📈 Persentase Kehadiran: *{$persentase}%*";
+        }
+
+        // Default: Bulan berjalan saat ini (tampilkan Status Hari Ini + Rekap Bulan Ini)
+        $today = Carbon::today('Asia/Jakarta')->toDateString();
         $presensiHariIni = Absensi::where('id_siswa', $siswa->id)
             ->where('tanggal', $today)
             ->first();
@@ -686,27 +958,10 @@ class ChatbotService
             };
         }
 
-        $startOfMonth = Carbon::now()->startOfMonth()->toDateString();
-        $endOfMonth = Carbon::now()->endOfMonth()->toDateString();
-        $rekapBulan = Absensi::where('id_siswa', $siswa->id)
-            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
-            ->get();
-
-        $totalHadir = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'hadir')->count();
-        $totalTerlambat = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'terlambat')->count();
-        $totalIzin = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'izin')->count();
-        $totalSakit = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'sakit')->count();
-        $totalAlpa = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'alpa')->count();
-
-        $totalHariKegiatan = $rekapBulan->count();
-        $persentase = $totalHariKegiatan > 0
-            ? round((($totalHadir + $totalTerlambat) / $totalHariKegiatan) * 100)
-            : 0;
-
         return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
             ."📅 *Hari Ini ({$hariTanggalStr}):*\n"
             ."Status: {$statusHariIniText}\n\n"
-            ."📊 *Rekap Bulan {$namaBulan} {$currentYear}:*\n"
+            ."📊 *Rekap {$period['label_periode']}:*\n"
             ."• Hadir Tepat Waktu: {$totalHadir} hari\n"
             ."• Hadir Terlambat: {$totalTerlambat} hari\n"
             ."• Izin: {$totalIzin} hari\n"
@@ -767,13 +1022,19 @@ class ChatbotService
     /**
      * Balasan ketika pesan di luar 3 topik yang diizinkan (Absensi, SPP, Hari Libur)
      */
-    public function handleUnknownQuery(?Siswa $siswa, string $originalMessage): string
+    public function handleUnknownQuery(?Siswa $siswa, string $originalMessage, ?Collection $candidates = null): string
     {
-        $santriName = $siswa ? "ananda *{$siswa->nama_lengkap}*" : 'putra/putri Bapak/Ibu';
+        $santriName = 'ananda';
+        if ($candidates && $candidates->count() > 1) {
+            $names = $candidates->pluck('nama_lengkap')->map(fn ($n) => "*{$n}*")->implode(' & ');
+            $santriName = "putra/putri Bapak/Ibu ({$names})";
+        } elseif ($siswa) {
+            $santriName = "ananda *{$siswa->nama_lengkap}*";
+        }
 
         return "Mohon maaf, layanan ini hanya menyediakan informasi terkait *Absensi*, *SPP*, dan *Informasi Hari Libur* untuk {$santriName}.\n\n"
             ."Silakan ketik pertanyaan sesuai topik berikut:\n"
-            ."1. *Absensi*: _\"Gimana absensi anak saya?\"_\n"
+            ."1. *Absensi*: _\"Gimana absensi anak saya?\"_ atau _\"Bulan sebelumnya berapa kali?\"_\n"
             ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_ atau _\"Cek SPP\"_\n"
             .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
