@@ -11,6 +11,7 @@ use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
@@ -60,8 +61,9 @@ class ChatbotController extends Controller
         }
 
         // 2. Fonnte mengirimkan pesan masuk chatbot: sender & message
-        $sender = $request->input('sender') ?: $request->input('from');
-        $message = $request->input('message') ?: $request->input('body');
+        $payload = $this->extractWebhookPayload($request);
+        $sender = $payload['sender'] ?? $payload['from'] ?? $request->input('sender') ?: $request->input('from');
+        $message = $payload['message'] ?? $payload['body'] ?? $request->input('message') ?: $request->input('body');
 
         // Jika request kosong (Fonnte ping verifikasi webhook saat disimpan)
         if (empty($sender) && empty($message)) {
@@ -77,6 +79,15 @@ class ChatbotController extends Controller
                 'success' => false,
                 'message' => 'Sender is required',
             ], 400);
+        }
+
+        // Jika penerima membalas chat ke bot, otomatis pesan sebelumnya ke nomor tersebut pasti sudah dibaca
+        $senderNorm = WhatsAppService::normalizePhone((string) $sender);
+        if (! empty($senderNorm)) {
+            WhatsAppLog::where('nomor_tujuan', $senderNorm)
+                ->whereIn('status', ['sent', 'delivered'])
+                ->get()
+                ->each(fn (WhatsAppLog $log) => $log->markAsRead());
         }
 
         $result = $this->chatbotService->handleIncomingMessage((string) $sender, (string) $message);
@@ -249,13 +260,7 @@ class ChatbotController extends Controller
             ]);
         }
 
-        $data = $request->all();
-        if (empty($data)) {
-            $rawContent = $request->getContent();
-            if (! empty($rawContent)) {
-                $data = json_decode($rawContent, true) ?: [];
-            }
-        }
+        $data = $this->extractWebhookPayload($request);
 
         $device = (string) ($data['device'] ?? $request->input('device') ?? '');
         $status = strtolower(trim((string) ($data['status'] ?? $request->input('status') ?? '')));
@@ -275,30 +280,127 @@ class ChatbotController extends Controller
     }
 
     /**
-     * Logika internal pemrosesan status pesan Fonnte (Delivery Log)
+     * Ekstrak payload JSON maupun form-urlencoded dari request webhook Fonnte.
+     * Fonnte mengirimkan JSON mentah di php://input yang sering kali bertipe Content-Type form-urlencoded.
      */
-    protected function processMessageStatusUpdate(Request $request): ?JsonResponse
+    protected function extractWebhookPayload(Request $request): array
     {
-        $data = $request->all();
-        if (empty($data)) {
-            $rawContent = $request->getContent();
-            if (! empty($rawContent)) {
-                $data = json_decode($rawContent, true) ?: [];
+        $data = [];
+        $rawContent = $request->getContent();
+        if (! empty($rawContent)) {
+            $decoded = json_decode($rawContent, true);
+            if (is_array($decoded)) {
+                $data = $decoded;
             }
         }
 
-        $rawId = $data['id'] ?? $request->input('id');
-        if (empty($rawId)) {
+        $all = $request->all();
+        if (is_array($all) && ! empty($all)) {
+            foreach ($all as $k => $v) {
+                if (is_string($k) && str_starts_with(trim($k), '{') && empty($data)) {
+                    $keyJson = json_decode($k, true);
+                    if (is_array($keyJson)) {
+                        $data = array_merge($keyJson, $data);
+                    }
+                }
+            }
+            $data = array_merge($all, $data);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Ambil peta relasi stateid WhatsApp -> log_id dari tabel pengaturan
+     *
+     * @return array<string, int>
+     */
+    protected function getStateIdMap(): array
+    {
+        try {
+            $raw = Pengaturan::getValue('fonnte_stateid_map');
+            if (! empty($raw)) {
+                $decoded = json_decode((string) $raw, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return [];
+    }
+
+    /**
+     * Simpan relasi stateid WhatsApp -> log_id ke Cache dan tabel pengaturan
+     */
+    protected function saveStateIdMapping(string $stateId, int $logId): void
+    {
+        if ($stateId === '' || in_array($stateId, ['0', '1', '2', '3'], true)) {
+            return;
+        }
+
+        try {
+            Cache::put("fonnte_stateid:{$stateId}", $logId, now()->addDays(7));
+            $map = $this->getStateIdMap();
+            $map[$stateId] = $logId;
+            if (count($map) > 250) {
+                $map = array_slice($map, -250, null, true);
+            }
+            Pengaturan::setValue('fonnte_stateid_map', json_encode($map));
+        } catch (\Throwable) {
+        }
+    }
+
+    /**
+     * Catat jejak debug payload webhook terakhir untuk diagnostik
+     */
+    protected function recordWebhookDebug(array $entry): void
+    {
+        try {
+            $raw = Pengaturan::getValue('fonnte_webhook_debug');
+            $list = ! empty($raw) ? (json_decode((string) $raw, true) ?: []) : [];
+            if (! is_array($list)) {
+                $list = [];
+            }
+            array_unshift($list, $entry);
+            $list = array_slice($list, 0, 15);
+            Pengaturan::setValue('fonnte_webhook_debug', json_encode($list));
+        } catch (\Throwable) {
+        }
+    }
+
+    /**
+     * Logika internal pemrosesan status pesan Fonnte (Delivery Log).
+     * Mendukung 3 skema resmi Fonnte:
+     * 1) id + stateid (saat pesan terkirim ke WA dan mendapat stateid)
+     * 2) id saja (status antrean/gagal awal)
+     * 3) stateid + state saja tanpa id (saat WA mengirim receipt delivered / read)
+     */
+    protected function processMessageStatusUpdate(Request $request): ?JsonResponse
+    {
+        $data = $this->extractWebhookPayload($request);
+
+        // Jika ini adalah pesan masuk chatbot murni (ada sender & message tanpa state/stateid), lewati
+        if (! empty($data['sender']) && isset($data['message']) && empty($data['state']) && empty($data['stateid'])) {
             return null;
         }
 
-        $msgId = trim((string) (is_array($rawId) ? ($rawId[0] ?? '') : $rawId));
+        $rawId = $data['id'] ?? $data['message_id'] ?? $request->input('id');
+        $msgId = ! empty($rawId) ? trim((string) (is_array($rawId) ? ($rawId[0] ?? '') : $rawId)) : '';
+
+        $rawStateId = $data['stateid'] ?? $data['state_id'] ?? $request->input('stateid');
+        $stateId = ($rawStateId !== null && $rawStateId !== '') ? trim((string) (is_array($rawStateId) ? ($rawStateId[0] ?? '') : $rawStateId)) : '';
+
+        if ($msgId === '' && $stateId === '') {
+            return null;
+        }
+
         $stateVal = strtolower(trim((string) ($data['state'] ?? $request->input('state') ?? '')));
         $statusVal = strtolower(trim((string) ($data['status'] ?? $request->input('status') ?? '')));
         $msgStatusVal = strtolower(trim((string) ($data['message_status'] ?? $request->input('message_status') ?? '')));
-        $stateId = trim((string) ($data['stateid'] ?? $request->input('stateid') ?? ''));
 
-        if (empty($stateVal) && empty($statusVal) && empty($msgStatusVal) && empty($stateId)) {
+        if ($stateVal === '' && $statusVal === '' && $msgStatusVal === '' && $stateId === '') {
             return null;
         }
 
@@ -311,11 +413,28 @@ class ChatbotController extends Controller
             'payload' => $data,
         ]);
 
-        $log = WhatsAppLog::where('fonnte_id', $msgId)
-            ->orWhere('id', is_numeric($msgId) ? (int) $msgId : -1)
-            ->first();
+        $stateIdMap = $this->getStateIdMap();
+        $log = null;
 
-        // Fallback pencarian: jika fonnte_id belum cocok, cocokkan dengan nomor tujuan terbaru
+        // 1. Cari berdasarkan Fonnte ID (id) jika tersedia
+        if ($msgId !== '') {
+            $log = WhatsAppLog::where('fonnte_id', $msgId)
+                ->orWhere('id', is_numeric($msgId) ? (int) $msgId : -1)
+                ->first();
+        }
+
+        // 2. Cari berdasarkan WhatsApp State ID (stateid) jika id kosong atau belum ketemu
+        if (! $log && $stateId !== '' && ! in_array($stateId, ['0', '1', '2', '3'], true)) {
+            $cachedLogId = Cache::get("fonnte_stateid:{$stateId}") ?? ($stateIdMap[$stateId] ?? null);
+            if ($cachedLogId) {
+                $log = WhatsAppLog::find((int) $cachedLogId);
+            }
+            if (! $log) {
+                $log = WhatsAppLog::where('fonnte_id', $stateId)->first();
+            }
+        }
+
+        // 3. Fallback pencarian berdasarkan nomor tujuan (target) jika ada
         if (! $log) {
             $target = $data['target'] ?? $data['recipient'] ?? $data['to'] ?? $request->input('target') ?? null;
             if ($target) {
@@ -325,15 +444,41 @@ class ChatbotController extends Controller
                         ->where('status', '!=', 'read')
                         ->latest('id')
                         ->first();
-                    if ($log && empty($log->fonnte_id)) {
+                    if ($log && empty($log->fonnte_id) && $msgId !== '') {
                         $log->update(['fonnte_id' => $msgId]);
                     }
                 }
             }
         }
 
+        // 4. Fallback ketika Fonnte mengirim webhook delivered/read yang hanya berisi stateid (tanpa id & tanpa target)
+        // untuk pesan yang baru saja dikirim namun belum sempat terpetakan stateid-nya
+        if (! $log && $msgId === '' && $stateId !== '') {
+            $mappedLogIds = array_values($stateIdMap);
+            $query = WhatsAppLog::whereIn('status', ['pending', 'sent', 'delivered'])
+                ->where('created_at', '>=', Carbon::now('Asia/Jakarta')->subHours(24));
+
+            if (! empty($mappedLogIds)) {
+                $query->whereNotIn('id', $mappedLogIds);
+            }
+
+            $log = $query->latest('id')->first();
+
+            if (! $log) {
+                $log = WhatsAppLog::whereIn('status', ['pending', 'sent', 'delivered'])
+                    ->where('created_at', '>=', Carbon::now('Asia/Jakarta')->subHours(6))
+                    ->latest('id')
+                    ->first();
+            }
+        }
+
         $matchedAction = 'none';
         if ($log) {
+            // Simpan relasi stateid -> log_id agar callback berikutnya (delivered -> read) selalu tepat sasaran
+            if ($stateId !== '') {
+                $this->saveStateIdMapping($stateId, $log->id);
+            }
+
             $isRead = $stateVal === 'read' ||
                 $statusVal === 'read' ||
                 $msgStatusVal === 'read' ||
@@ -380,23 +525,33 @@ class ChatbotController extends Controller
             } elseif ($isSent) {
                 // Cegah penurunan jika status sudah delivered atau read
                 if (! in_array($log->status, ['delivered', 'read'], true)) {
-                    $log->markAsSent($msgId);
+                    $log->markAsSent($msgId !== '' ? $msgId : null);
                 }
                 $matchedAction = 'sent';
             }
 
             Log::info("Fonnte Webhook Status: WhatsAppLog #{$log->id} updated to '{$log->status}' via action '{$matchedAction}'");
         } else {
-            Log::warning("Fonnte Webhook Status: WhatsAppLog not found for ID '{$msgId}'", [
+            Log::warning("Fonnte Webhook Status: WhatsAppLog not found for ID '{$msgId}' / stateid '{$stateId}'", [
                 'payload' => $data,
             ]);
         }
+
+        $this->recordWebhookDebug([
+            'time' => Carbon::now('Asia/Jakarta')->toIso8601String(),
+            'id' => $msgId,
+            'stateid' => $stateId,
+            'state' => $stateVal,
+            'status' => $statusVal,
+            'matched_log_id' => $log?->id,
+            'action' => $matchedAction,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Status pesan berhasil diperbarui.',
             'matched' => (bool) $log,
-            'fonnte_id' => $msgId,
+            'fonnte_id' => $msgId !== '' ? $msgId : ($log?->fonnte_id ?? $stateId),
             'state' => $stateVal ?: $statusVal,
             'action' => $matchedAction,
             'current_status' => $log?->status,

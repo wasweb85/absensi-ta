@@ -371,4 +371,82 @@ class WhatsAppDeliveryLogTest extends TestCase
         $log->refresh();
         $this->assertEquals('read', $log->status);
     }
+
+    public function test_webhook_handles_raw_json_with_form_urlencoded_header_and_stateid_only_lifecycle(): void
+    {
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => '190361810',
+            'nomor_tujuan' => '6285899145514',
+        ]);
+
+        // Tahap 1: Fonnte mengirim id + stateid saat pesan masuk ke WA (dengan Content-Type form-urlencoded seperti curl default Fonnte)
+        $rawStage1 = json_encode([
+            'device' => '083836952027',
+            'id' => '190361810',
+            'stateid' => '3EB0ABCDEF998877',
+            'status' => 'sent',
+            'state' => 'sent',
+        ]);
+
+        $res1 = $this->call(
+            'POST',
+            '/api/webhook/whatsapp/status',
+            [$rawStage1 => ''],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/x-www-form-urlencoded'],
+            $rawStage1
+        );
+
+        $res1->assertStatus(200)
+            ->assertJson(['matched' => true, 'action' => 'sent']);
+
+        // Tahap 2: Fonnte mengirim HANYA stateid + state="delivered" (tanpa id!)
+        $rawStage2 = json_encode([
+            'device' => '083836952027',
+            'stateid' => '3EB0ABCDEF998877',
+            'state' => 'delivered',
+        ]);
+
+        $res2 = $this->call(
+            'POST',
+            '/api/webhook/whatsapp/status',
+            [$rawStage2 => ''],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/x-www-form-urlencoded'],
+            $rawStage2
+        );
+
+        $res2->assertStatus(200)
+            ->assertJson(['matched' => true, 'action' => 'delivered']);
+
+        $log->refresh();
+        $this->assertEquals('delivered', $log->status);
+        $this->assertNotNull($log->delivered_at);
+
+        // Tahap 3: Fonnte mengirim HANYA stateid + state="read" (tanpa id!)
+        $rawStage3 = json_encode([
+            'device' => '083836952027',
+            'stateid' => '3EB0ABCDEF998877',
+            'state' => 'read',
+        ]);
+
+        $res3 = $this->call(
+            'POST',
+            '/api/webhook/whatsapp/status',
+            [$rawStage3 => ''],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/x-www-form-urlencoded'],
+            $rawStage3
+        );
+
+        $res3->assertStatus(200)
+            ->assertJson(['matched' => true, 'action' => 'read']);
+
+        $log->refresh();
+        $this->assertEquals('read', $log->status);
+        $this->assertNotNull($log->read_at);
+    }
 }

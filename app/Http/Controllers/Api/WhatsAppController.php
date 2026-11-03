@@ -396,7 +396,7 @@ class WhatsAppController extends Controller
         $perPage = min((int) $request->input('per_page', 15), 100);
         $logs = $query->paginate($perPage);
 
-        return response()->json([
+        $responsePayload = [
             'success' => true,
             'data' => $logs->items(),
             'pagination' => [
@@ -412,7 +412,14 @@ class WhatsAppController extends Controller
                 'read' => (int) ($summary->read ?? 0),
                 'failed' => (int) ($summary->failed ?? 0),
             ],
-        ]);
+        ];
+
+        if ($request->boolean('debug')) {
+            $responsePayload['webhook_debug'] = json_decode((string) Pengaturan::getValue('fonnte_webhook_debug', '[]'), true);
+            $responsePayload['stateid_map'] = json_decode((string) Pengaturan::getValue('fonnte_stateid_map', '{}'), true);
+        }
+
+        return response()->json($responsePayload);
     }
 
     /**
