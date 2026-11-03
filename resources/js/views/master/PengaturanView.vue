@@ -21,17 +21,6 @@
       <div class="flex items-center gap-2">
         <Button
           type="button"
-          variant="outline"
-          size="sm"
-          class="h-8 text-xs gap-1.5"
-          @click="toggleAllCategories"
-        >
-          <component :is="isAllOpen ? ChevronUp : ChevronDown" class="size-3.5" />
-          <span>{{ isAllOpen ? 'Tutup Semua' : 'Buka Semua' }}</span>
-        </Button>
-
-        <Button
-          type="button"
           size="sm"
           class="h-8 gap-1.5 text-xs shadow-2xs"
           :disabled="isSaving"
@@ -867,7 +856,6 @@ import {
   Building2,
   Check,
   ChevronDown,
-  ChevronUp,
   Clock,
   Code,
   Copy,
@@ -922,19 +910,8 @@ const openCategories = ref({
 
 const activeCategoryFilter = ref('all');
 
-const isAllOpen = computed(() => {
-  return Object.values(openCategories.value).every(val => val === true);
-});
-
 function toggleCategory(catId) {
   openCategories.value[catId] = !openCategories.value[catId];
-}
-
-function toggleAllCategories() {
-  const targetState = !isAllOpen.value;
-  for (const key of Object.keys(openCategories.value)) {
-    openCategories.value[key] = targetState;
-  }
 }
 
 function setCategoryFilter(catId) {

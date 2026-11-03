@@ -14,14 +14,10 @@
 
       <!-- Tab Switcher (Shadcn Tabs) -->
       <Tabs v-model="activeTab" class="w-auto">
-        <TabsList class="grid grid-cols-3 h-8">
+        <TabsList class="grid grid-cols-2 h-8">
           <TabsTrigger value="logs" class="text-xs px-3 gap-1.5">
             <MessageSquare class="size-3.5" />
             <span>Log Percakapan</span>
-          </TabsTrigger>
-          <TabsTrigger value="simulator" class="text-xs px-3 gap-1.5">
-            <Sparkles class="size-3.5" />
-            <span>Simulator Chat</span>
           </TabsTrigger>
           <TabsTrigger value="config" class="text-xs px-3 gap-1.5">
             <Settings class="size-3.5" />
@@ -255,185 +251,7 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB 2: INTERACTIVE CHATBOT SIMULATOR (LIVE DEMO) -->
-    <!-- ================================================================= -->
-    <div v-if="activeTab === 'simulator'" class="space-y-4">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <!-- Kolom Kiri: Pengaturan Nomor Simulasi & Rekomendasi Pertanyaan -->
-        <div class="space-y-4">
-          <Card class="p-4 space-y-4">
-            <div>
-              <h3 class="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
-                <Smartphone class="size-4 text-primary" />
-                <span>Nomor HP Simulasi</span>
-              </h3>
-              <p class="text-xs text-muted-foreground mt-0.5">
-                Pilih santri sampel atau masukkan nomor WhatsApp untuk menguji bot.
-              </p>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-[11px] font-medium text-muted-foreground">Nomor Pengirim (Wali Santri)</label>
-              <Input
-                v-model="simPhone"
-                type="text"
-                placeholder="Contoh: 081234567890"
-                class="font-mono text-xs h-9"
-              />
-            </div>
-
-            <!-- Santri Samples Quick Select -->
-            <div class="space-y-1.5">
-              <label class="text-[11px] font-medium text-muted-foreground">Pilih Cepat Sampel Santri</label>
-              <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                <button
-                  v-for="s in sampleStudents"
-                  :key="s.id"
-                  type="button"
-                  class="w-full text-left p-2 rounded-lg border text-xs transition cursor-pointer flex items-center justify-between"
-                  :class="simPhone === s.no_hp_ortu ? 'border-primary bg-primary/5 text-foreground' : 'border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground'"
-                  @click="selectSampleStudent(s)"
-                >
-                  <div class="min-w-0 pr-1">
-                    <p class="font-medium text-xs truncate">{{ s.nama_lengkap }}</p>
-                    <p class="text-[10px] text-muted-foreground font-mono">{{ s.no_hp_ortu || 'Tanpa no HP' }}</p>
-                  </div>
-                  <Badge variant="outline" class="text-[10px] shrink-0 font-normal">
-                    {{ s.kelas?.nama_kelas || '-' }}
-                  </Badge>
-                </button>
-              </div>
-            </div>
-
-            <div class="pt-2 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                class="w-full text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 gap-1.5"
-                @click="clearChatHistory"
-              >
-                <Trash2 class="size-3.5" />
-                <span>Bersihkan Layar Chat</span>
-              </Button>
-            </div>
-          </Card>
-
-          <!-- Suggested Prompt Chips -->
-          <Card class="p-4 space-y-3">
-            <h4 class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Sparkles class="size-3.5 text-amber-500" />
-              <span>Pertanyaan Siap Coba</span>
-            </h4>
-            <div class="flex flex-col gap-1.5">
-              <button
-                v-for="(prompt, idx) in suggestedPrompts"
-                :key="idx"
-                type="button"
-                class="text-left px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted border border-border text-foreground text-xs transition cursor-pointer flex items-center justify-between"
-                @click="sendPrompt(prompt.text)"
-              >
-                <span class="truncate">"{{ prompt.text }}"</span>
-                <span class="text-xs shrink-0 ml-1">{{ prompt.icon }}</span>
-              </button>
-            </div>
-          </Card>
-        </div>
-
-        <!-- Kolom Kanan: Simulator Chat Screen (Phone Mockup) -->
-        <div class="lg:col-span-2">
-          <Card class="overflow-hidden flex flex-col h-[620px] border">
-            <!-- WhatsApp Phone Top Bar -->
-            <div class="bg-emerald-700 dark:bg-emerald-800 px-4 py-3 text-white flex items-center justify-between shadow-xs">
-              <div class="flex items-center gap-2.5">
-                <div class="size-9 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-white">
-                  <Bot class="size-5" />
-                </div>
-                <div>
-                  <h4 class="text-xs font-semibold leading-tight">Chatbot TPQ Al-Hidayah</h4>
-                  <p class="text-[10px] text-emerald-100 flex items-center gap-1 mt-0.5">
-                    <span class="size-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
-                    <span>Online &bull; Layanan Otomatis</span>
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary" class="font-mono text-[10px] bg-white/10 text-white border-white/20">
-                {{ simPhone || 'Pilih Nomor' }}
-              </Badge>
-            </div>
-
-            <!-- Messages Stream Area -->
-            <div ref="chatContainerRef" class="flex-1 p-4 overflow-y-auto space-y-3 bg-muted/20 text-xs">
-              <!-- Welcome Info Pill -->
-              <div class="text-center my-1">
-                <Badge variant="outline" class="font-normal text-[10px] text-muted-foreground bg-background">
-                  Pesan diproses otomatis oleh Chatbot Engine Laravel & MySQL
-                </Badge>
-              </div>
-
-              <!-- Message Bubbles -->
-              <div
-                v-for="(msg, i) in messages"
-                :key="i"
-                class="flex flex-col"
-                :class="msg.role === 'user' ? 'items-end' : 'items-start'"
-              >
-                <div
-                  class="max-w-[85%] sm:max-w-[75%] p-3 rounded-xl shadow-xs whitespace-pre-line leading-relaxed"
-                  :class="msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-background border text-foreground rounded-bl-none'"
-                >
-                  <p class="text-xs">{{ msg.text }}</p>
-                  <div
-                    class="flex items-center justify-end gap-1 mt-1 text-[9px] font-mono"
-                    :class="msg.role === 'user' ? 'text-emerald-100' : 'text-muted-foreground'"
-                  >
-                    <span>{{ msg.time }}</span>
-                    <span v-if="msg.role === 'user'" class="text-emerald-200 font-bold">✓✓</span>
-                  </div>
-                </div>
-
-                <!-- Intent Tag (Bot only) -->
-                <span v-if="msg.intent" class="text-[9px] px-1 py-0.5 mt-0.5 text-muted-foreground font-mono">
-                  Intent: {{ msg.intent }}
-                </span>
-              </div>
-
-              <!-- Typing Indicator -->
-              <div v-if="isSimulating" class="flex items-center gap-1.5 p-2.5 rounded-xl bg-background border text-muted-foreground w-20">
-                <span class="size-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
-                <span class="size-1.5 bg-muted-foreground rounded-full animate-bounce delay-100"></span>
-                <span class="size-1.5 bg-muted-foreground rounded-full animate-bounce delay-200"></span>
-              </div>
-            </div>
-
-            <!-- Bottom Chat Input Bar -->
-            <div class="p-3 bg-background border-t flex items-center gap-2">
-              <Input
-                v-model="inputSimMessage"
-                type="text"
-                placeholder="Ketik pertanyaan untuk disimulasikan..."
-                :disabled="isSimulating"
-                class="h-9 text-xs flex-1"
-                @keydown.enter.prevent="sendSimMessage"
-              />
-              <Button
-                size="sm"
-                class="h-9 text-xs gap-1.5 px-3"
-                :disabled="!inputSimMessage.trim() || isSimulating"
-                @click="sendSimMessage"
-              >
-                <span>Kirim</span>
-                <Send class="size-3.5" />
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ================================================================= -->
-    <!-- TAB 3: WEBHOOK FONNTE & KONFIGURASI -->
+    <!-- TAB 2: WEBHOOK FONNTE & KONFIGURASI -->
     <!-- ================================================================= -->
     <div v-if="activeTab === 'config'" class="space-y-6">
       <Card class="p-6 space-y-5">
@@ -631,18 +449,15 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   Bot,
   MessageSquare,
-  Sparkles,
   Settings,
   Send,
   Copy,
-  Trash2,
   Search,
   Check,
-  Smartphone,
 } from '@lucide/vue';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -700,29 +515,6 @@ let searchTimeout = null;
 // Modal
 const selectedLog = ref(null);
 
-// Simulator State
-const simPhone = ref('');
-const inputSimMessage = ref('');
-const isSimulating = ref(false);
-const chatContainerRef = ref(null);
-const sampleStudents = ref([]);
-
-const suggestedPrompts = [
-  { icon: '✅', text: 'Gimana absensi anak saya hari ini?' },
-  { icon: '💳', text: 'Anak saya nunggak berapa bulan?' },
-  { icon: '📅', text: 'Bulan ini apakah ada hari libur?' },
-  { icon: '❓', text: 'Menu bantuan' },
-];
-
-const messages = ref([
-  {
-    role: 'bot',
-    text: "Silakan ketik pertanyaan terkait *Absensi*, *SPP*, atau *Informasi Hari Libur* santri.",
-    time: '12:00',
-    intent: 'bantuan',
-  },
-]);
-
 const debounceSearch = () => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
@@ -758,96 +550,6 @@ const loadLogs = async (page = 1) => {
   }
 };
 
-const loadSampleStudents = async () => {
-  try {
-    const res = await api.get('/siswa', { params: { per_page: 8 } });
-    if (res.data.success) {
-      sampleStudents.value = res.data.data || [];
-      if (sampleStudents.value.length > 0 && sampleStudents.value[0].no_hp_ortu) {
-        simPhone.value = sampleStudents.value[0].no_hp_ortu;
-      }
-    }
-  } catch (e) {}
-};
-
-function selectSampleStudent(s) {
-  simPhone.value = s.no_hp_ortu || '';
-  toast.success(`Santri "${s.nama_lengkap}" dipilih untuk simulasi.`);
-}
-
-function clearChatHistory() {
-  messages.value = [
-    {
-      role: 'bot',
-      text: "Riwayat chat telah dibersihkan. Silakan ajukan pertanyaan baru.",
-      time: getCurrentTime(),
-      intent: 'info',
-    },
-  ];
-}
-
-function sendPrompt(text) {
-  inputSimMessage.value = text;
-  sendSimMessage();
-}
-
-async function sendSimMessage() {
-  const text = inputSimMessage.value.trim();
-  if (!text || isSimulating.value) return;
-
-  // Add User Message
-  messages.value.push({
-    role: 'user',
-    text,
-    time: getCurrentTime(),
-  });
-
-  inputSimMessage.value = '';
-  isSimulating.value = true;
-  scrollChatToBottom();
-
-  try {
-    const res = await api.post('/chatbot/simulate', {
-      phone: simPhone.value || '081234567890',
-      message: text,
-    });
-
-    if (res.data.success) {
-      const data = res.data.data;
-      messages.value.push({
-        role: 'bot',
-        text: data.reply,
-        time: getCurrentTime(),
-        intent: data.intent,
-      });
-      loadStats();
-    }
-  } catch (e) {
-    messages.value.push({
-      role: 'bot',
-      text: "Mohon maaf, terjadi gangguan saat menghubungi server chatbot.",
-      time: getCurrentTime(),
-      intent: 'error',
-    });
-  } finally {
-    isSimulating.value = false;
-    scrollChatToBottom();
-  }
-}
-
-function scrollChatToBottom() {
-  nextTick(() => {
-    if (chatContainerRef.value) {
-      chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight;
-    }
-  });
-}
-
-function getCurrentTime() {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
 function formatDateTime(val) {
   if (!val) return '-';
   const d = new Date(val);
@@ -876,6 +578,5 @@ function openDetailModal(item) {
 onMounted(() => {
   loadStats();
   loadLogs();
-  loadSampleStudents();
 });
 </script>

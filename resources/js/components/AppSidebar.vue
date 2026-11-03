@@ -1,5 +1,6 @@
 <template>
   <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+    <!-- Brand Header -->
     <div class="flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-5">
       <router-link to="/dashboard" class="flex items-center gap-3" @click="emit('navigate')">
         <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground overflow-hidden">
@@ -13,26 +14,76 @@
       </router-link>
     </div>
 
-    <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-      <div v-for="section in visibleSections" :key="section.title">
-        <p v-if="section.title" class="mb-1.5 px-3 text-xs font-medium text-muted-foreground">
-          {{ section.title }}
-        </p>
-        <div class="space-y-0.5">
-          <router-link
-            v-for="item in section.items"
-            :key="item.to"
-            :to="item.to"
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors"
-            :class="isActive(item.to)
-              ? 'bg-primary/10 font-medium text-primary'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
-            @click="emit('navigate')"
-          >
-            <component :is="item.icon" class="size-4 shrink-0" />
-            <span class="truncate">{{ item.label }}</span>
-          </router-link>
-        </div>
+    <!-- Navigation List (Dropdowns for Mobile & Desktop) -->
+    <nav class="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+      <div v-for="section in visibleSections" :key="section.title || 'root'">
+        <!-- Standalone Menu Item (e.g. Dashboard) -->
+        <template v-if="!section.title">
+          <div class="space-y-0.5 pb-1">
+            <router-link
+              v-for="item in section.items"
+              :key="item.to"
+              :to="item.to"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors"
+              :class="isActive(item.to)
+                ? 'bg-primary/10 font-medium text-primary'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+              @click="emit('navigate')"
+            >
+              <component :is="item.icon" class="size-4 shrink-0" />
+              <span class="truncate">{{ item.label }}</span>
+            </router-link>
+          </div>
+        </template>
+
+        <!-- Dropdown Accordion Section -->
+        <template v-else>
+          <div class="space-y-0.5">
+            <!-- Dropdown Trigger Button -->
+            <button
+              type="button"
+              class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer select-none"
+              :class="isSectionActive(section)
+                ? 'text-primary bg-primary/5'
+                : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+              :aria-expanded="isSectionOpen(section.title)"
+              @click="toggleSection(section.title)"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <component :is="section.icon" class="size-3.5 shrink-0" />
+                <span class="truncate">{{ section.title }}</span>
+                <span
+                  v-if="isSectionActive(section)"
+                  class="size-1.5 rounded-full bg-primary shrink-0"
+                ></span>
+              </div>
+              <ChevronDown
+                class="size-3.5 shrink-0 transition-transform duration-200 text-muted-foreground/70"
+                :class="{ 'rotate-180': isSectionOpen(section.title) }"
+              />
+            </button>
+
+            <!-- Dropdown Menu Items -->
+            <div
+              v-show="isSectionOpen(section.title)"
+              class="space-y-0.5 pl-3 ml-3 border-l border-sidebar-border/70 py-0.5 animate-in fade-in slide-in-from-top-1 duration-150"
+            >
+              <router-link
+                v-for="item in section.items"
+                :key="item.to"
+                :to="item.to"
+                class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors"
+                :class="isActive(item.to)
+                  ? 'bg-primary/10 font-medium text-primary'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+                @click="emit('navigate')"
+              >
+                <component :is="item.icon" class="size-3.5 shrink-0" />
+                <span class="truncate">{{ item.label }}</span>
+              </router-link>
+            </div>
+          </div>
+        </template>
       </div>
     </nav>
 
@@ -59,6 +110,7 @@
       </div>
     </div>
 
+    <!-- User Profile Footer -->
     <div class="shrink-0 border-t border-sidebar-border p-3">
       <div class="flex items-center gap-3 rounded-lg px-2 py-1.5">
         <Avatar class="size-8">
@@ -78,18 +130,20 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Activity,
   Bot,
   CalendarDays,
+  ChevronDown,
   Download,
   FileText,
   GraduationCap,
   History,
   Layers,
   LayoutDashboard,
+  MessageSquare,
   MessageSquareShare,
   QrCode,
   ReceiptText,
@@ -113,6 +167,8 @@ const { user, role, roleLabel } = useAuth();
 const { appName, appLogo } = useAppConfig();
 const { isInstallable, isInstalled, installApp } = usePwa();
 
+const openSections = ref({});
+
 /**
  * Menu visibility follows the `meta.roles` of each route, so the sidebar
  * only shows pages the router guard will actually let the user open.
@@ -124,6 +180,7 @@ const sections = [
   },
   {
     title: 'Presensi',
+    icon: ScanLine,
     items: [
       { to: '/absensi/scanner', label: 'Scanner', icon: ScanLine },
       { to: '/absensi/monitoring', label: 'Monitoring', icon: Activity },
@@ -133,6 +190,7 @@ const sections = [
   },
   {
     title: 'Keuangan SPP',
+    icon: Wallet,
     items: [
       { to: '/spp/input-cepat', label: 'Input Pembayaran', icon: Wallet },
       { to: '/spp/tagihan', label: 'Data Tagihan', icon: FileText },
@@ -142,6 +200,7 @@ const sections = [
   },
   {
     title: 'Data Master',
+    icon: Layers,
     items: [
       { to: '/absensi/siswa', label: 'Data Santri', icon: GraduationCap },
       { to: '/guru', label: 'Data Guru', icon: UserCog },
@@ -150,6 +209,7 @@ const sections = [
   },
   {
     title: 'WhatsApp',
+    icon: MessageSquare,
     items: [
       { to: '/wa/delivery-log', label: 'Delivery Log', icon: Send },
       { to: '/chatbot', label: 'Chatbot', icon: Bot },
@@ -157,6 +217,7 @@ const sections = [
   },
   {
     title: 'Sistem',
+    icon: Settings,
     items: [
       { to: '/log-aktivitas', label: 'Log Aktivitas', icon: History },
       { to: '/pengaturan', label: 'Pengaturan', icon: Settings },
@@ -166,7 +227,6 @@ const sections = [
 
 const canOpen = (path) => {
   const allowedRoles = router.resolve(path).meta.roles;
-
   return !allowedRoles?.length || allowedRoles.includes(role.value);
 };
 
@@ -179,5 +239,33 @@ const visibleSections = computed(() =>
 const userInitial = computed(() => user.value?.name?.charAt(0)?.toUpperCase() || 'U');
 
 const isActive = (path) => route.path === path || route.path.startsWith(path + '/');
-</script>
 
+function isSectionOpen(title) {
+  return !!openSections.value[title];
+}
+
+function toggleSection(title) {
+  openSections.value[title] = !openSections.value[title];
+}
+
+function isSectionActive(section) {
+  if (!section.items) return false;
+  return section.items.some(item => isActive(item.to));
+}
+
+function syncActiveSection() {
+  for (const section of sections) {
+    if (section.title && isSectionActive(section)) {
+      openSections.value[section.title] = true;
+    }
+  }
+}
+
+watch(
+  () => route.path,
+  () => {
+    syncActiveSection();
+  },
+  { immediate: true },
+);
+</script>
