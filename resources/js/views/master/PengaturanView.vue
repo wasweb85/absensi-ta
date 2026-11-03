@@ -651,18 +651,6 @@
               Terpasang
             </Badge>
           </div>
-
-          <!-- Petunjuk Singkat -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
-            <div class="p-2.5 rounded-lg border bg-muted/10 space-y-1">
-              <span class="font-semibold text-foreground text-[11px]">Android (Chrome/Edge):</span>
-              <p class="text-[11px] leading-relaxed">Ketuk menu titik tiga &vellip; lalu pilih <em>"Install Aplikasi"</em> atau <em>"Tambahkan ke Layar Utama"</em>.</p>
-            </div>
-            <div class="p-2.5 rounded-lg border bg-muted/10 space-y-1">
-              <span class="font-semibold text-foreground text-[11px]">iPhone / iPad (Safari):</span>
-              <p class="text-[11px] leading-relaxed">Ketuk tombol <strong>Bagikan (Share ⎋)</strong> di Safari, lalu pilih <strong>"Tambah ke Layar Utama"</strong>.</p>
-            </div>
-          </div>
         </div>
       </div>
 
