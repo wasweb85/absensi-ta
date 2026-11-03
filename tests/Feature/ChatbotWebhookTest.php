@@ -586,17 +586,29 @@ class ChatbotWebhookTest extends TestCase
             ]);
 
         $replyTarget = $resTarget->json('reply');
-        // Harus memuat data kedua anak
-        $this->assertStringContainsString('Ahmad Fauzi', $replyTarget);
-        $this->assertStringContainsString('Fatimah Az-Zahra', $replyTarget);
-        // Harus memuat info bendahara dan nomor kontak
+        // Tidak membombardir status SPP anak jika hanya bertanya kepada siapa membayar
+        $this->assertStringNotContainsString('Ahmad Fauzi', $replyTarget);
+        $this->assertStringNotContainsString('Fatimah Az-Zahra', $replyTarget);
+        $this->assertStringNotContainsString('Menunggak', $replyTarget);
+        // Harus langsung to-the-point memuat info bendahara dan nomor kontak
         $this->assertStringContainsString('Pembayaran SPP dapat diselesaikan melalui Bendahara', $replyTarget);
         $this->assertStringContainsString('0858-9914-5514', $replyTarget);
         $this->assertStringContainsString('Kantor / Sekretariat TPQ', $replyTarget);
         // Harus memuat kalimat himbauan bayar ke Bendahara
         $this->assertStringContainsString('Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara', $replyTarget);
+        $this->assertStringContainsString('Cek SPP', $replyTarget);
 
-        // 2. Wali bertanya tunggakan biasa, bot tetap menyertakan himbauan Bendahara karena ada tunggakan
+        // 2. Wali bertanya tanpa kata SPP: "kepada siapa kalau mau bayar" (sesuai pesan persis user)
+        $resTarget2 = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'kepada siapa kalau mau bayar',
+        ]);
+        $resTarget2->assertStatus(200);
+        $replyTarget2 = $resTarget2->json('reply');
+        $this->assertStringNotContainsString('Ahmad Fauzi', $replyTarget2);
+        $this->assertStringContainsString('Pembayaran SPP dapat diselesaikan melalui Bendahara', $replyTarget2);
+
+        // 3. Wali bertanya tunggakan biasa, bot menampilkan rincian anak + menyertakan himbauan Bendahara karena ada tunggakan
         $resTunggakan = $this->postJson('/api/webhook/whatsapp', [
             'sender' => '6281234567890',
             'message' => 'anak saya nunggak berapa bulan?',
@@ -604,7 +616,22 @@ class ChatbotWebhookTest extends TestCase
 
         $resTunggakan->assertStatus(200);
         $replyTunggakan = $resTunggakan->json('reply');
+        $this->assertStringContainsString('Ahmad Fauzi', $replyTunggakan);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $replyTunggakan);
+        $this->assertStringContainsString('Menunggak', $replyTunggakan);
         $this->assertStringContainsString('Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara', $replyTunggakan);
         $this->assertStringContainsString('0858-9914-5514', $replyTunggakan);
+
+        // 4. Wali bertanya gabungan: status tunggakan DAN kemana bayar
+        $resCombined = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'anak saya nunggak berapa bulan dan bayar ke siapa?',
+        ]);
+        $resCombined->assertStatus(200);
+        $replyCombined = $resCombined->json('reply');
+        // Keduanya harus muncul: status tagihan anak dan info Bendahara
+        $this->assertStringContainsString('Ahmad Fauzi', $replyCombined);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $replyCombined);
+        $this->assertStringContainsString('Pembayaran SPP dapat diselesaikan melalui Bendahara', $replyCombined);
     }
 }

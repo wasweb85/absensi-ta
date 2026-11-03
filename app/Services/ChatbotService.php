@@ -739,10 +739,22 @@ class ChatbotService
     {
         $period = $this->parseTargetPeriod($originalMessage);
         $clean = strtolower(trim($originalMessage));
+
         $isAskingPaymentTarget = (bool) preg_match(
-            '/\b(kepada siapa|ke siapa|sama siapa|lewat siapa|hubungi siapa|bayar ke siapa|bayar kemana|kemana bayar|cara bayar|lewat mana|rekening|transfer|no.*bendahara|nomor.*bendahara|kontak.*bendahara|bendahara)\b/i',
+            '/\b(kepada siapa|ke siapa|sama siapa|lewat siapa|hubungi siapa|(?:bayar|membayar)\s+ke\s+siapa|(?:bayar|membayar)\s+ke\s*mana|ke\s*mana\s+(?:bayar|membayar)|ke\s*mana kalau mau (?:bayar|membayar)|cara\s+(?:bayar|membayar)|lewat mana|rekening|transfer|bendahara|mau\s+(?:bayar|membayar)|ingin\s+(?:bayar|membayar)|pengen\s+(?:bayar|membayar))\b/i',
             $clean
         );
+
+        $isAskingSppStatus = (bool) preg_match(
+            '/\b(nunggak|menunggak|tunggak|tunggakan|tagihan|berapa|cek|rincian|status|lunas|belum lunas|belum bayar|kurang bayar|kuitansi|rekap|daftar)\b/i',
+            $clean
+        );
+
+        // Jika wali HANYA bertanya kepada siapa/kemana/cara membayar (tanpa meminta status tagihan),
+        // langsung jawab tujuan pembayaran ke Bendahara secara to-the-point tanpa memborbardir status tagihan anak
+        if ($isAskingPaymentTarget && ! $isAskingSppStatus) {
+            return $this->buildDirectPaymentGuideReply($siswa, $allCandidates);
+        }
 
         $hasTunggakan = false;
         $sections = [];
@@ -777,6 +789,37 @@ class ChatbotService
         }
 
         return $baseReply;
+    }
+
+    /**
+     * Balasan langsung dan to-the-point saat wali santri hanya menanyakan kepada siapa/ke mana membayar SPP
+     *
+     * @param  Collection<int, Siswa>|null  $allCandidates
+     */
+    public function buildDirectPaymentGuideReply(?Siswa $siswa = null, ?Collection $allCandidates = null): string
+    {
+        $bendaharaInfo = $this->getBendaharaInfo();
+        $namaBendahara = $bendaharaInfo['nama'];
+        $kontak = $bendaharaInfo['kontak'];
+        $rekeningSpp = trim((string) Pengaturan::getValue('rekening_spp'));
+
+        $lines = [
+            'Pembayaran SPP dapat diselesaikan melalui Bendahara:',
+            "• Bendahara: {$namaBendahara}",
+        ];
+        if (! empty($kontak)) {
+            $lines[] = "• Kontak / No. HP: {$kontak}";
+        }
+        if (! empty($rekeningSpp)) {
+            $lines[] = "• Rekening: {$rekeningSpp}";
+        }
+        $lines[] = '• Lokasi: Kantor / Sekretariat TPQ';
+        $lines[] = '';
+        $lines[] = 'Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara.';
+        $lines[] = '';
+        $lines[] = 'Untuk melihat rincian tagihan ananda, silakan ketik: *"Cek SPP"*';
+
+        return implode("\n", $lines);
     }
 
     /**
