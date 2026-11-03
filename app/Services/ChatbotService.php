@@ -8,6 +8,7 @@ use App\Models\HariLibur;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -737,30 +738,121 @@ class ChatbotService
     public function handleSppNoticeQuery(?Siswa $siswa, ?Collection $allCandidates = null, string $originalMessage = ''): string
     {
         $period = $this->parseTargetPeriod($originalMessage);
+        $clean = strtolower(trim($originalMessage));
+        $isAskingPaymentTarget = (bool) preg_match(
+            '/\b(kepada siapa|ke siapa|sama siapa|lewat siapa|hubungi siapa|bayar ke siapa|bayar kemana|kemana bayar|cara bayar|lewat mana|rekening|transfer|no.*bendahara|nomor.*bendahara|kontak.*bendahara|bendahara)\b/i',
+            $clean
+        );
+
+        $hasTunggakan = false;
+        $sections = [];
 
         if ($allCandidates && $allCandidates->count() > 1) {
-            $sections = [];
             foreach ($allCandidates as $cand) {
-                $sections[] = $this->buildSingleStudentSppSection($cand, $period);
+                $sectionData = $this->buildSingleStudentSppData($cand, $period);
+                $sections[] = $sectionData['text'];
+                if ($sectionData['has_tunggakan']) {
+                    $hasTunggakan = true;
+                }
             }
 
             $introPeriode = $period['is_previous_month'] ? " untuk {$period['label_periode']}" : '';
 
-            return "Berikut informasi SPP ananda{$introPeriode}:\n\n"
+            $baseReply = "Berikut informasi SPP ananda{$introPeriode}:\n\n"
                 .implode("\n\n────────────────────\n\n", $sections);
-        }
-
-        if (! $siswa) {
+        } elseif ($siswa) {
+            $sectionData = $this->buildSingleStudentSppData($siswa, $period);
+            $sections[] = $sectionData['text'];
+            if ($sectionData['has_tunggakan']) {
+                $hasTunggakan = true;
+            }
+            $baseReply = $sectionData['text'];
+        } else {
             return 'Data santri tidak ditemukan untuk memeriksa informasi SPP.';
         }
 
-        return $this->buildSingleStudentSppSection($siswa, $period);
+        $paymentNotice = $this->buildSppPaymentNotice($isAskingPaymentTarget, $hasTunggakan);
+        if (! empty($paymentNotice)) {
+            return $baseReply."\n\n".$paymentNotice;
+        }
+
+        return $baseReply;
+    }
+
+    /**
+     * Menghasilkan catatan panduan pembayaran SPP ke Bendahara
+     */
+    protected function buildSppPaymentNotice(bool $isAskingPaymentTarget, bool $hasTunggakan): string
+    {
+        $bendaharaInfo = $this->getBendaharaInfo();
+        $namaBendahara = $bendaharaInfo['nama'];
+        $kontak = $bendaharaInfo['kontak'];
+        $rekeningSpp = trim((string) Pengaturan::getValue('rekening_spp'));
+
+        if ($isAskingPaymentTarget) {
+            $lines = [
+                'Pembayaran SPP dapat diselesaikan melalui Bendahara:',
+                "• Bendahara: {$namaBendahara}",
+            ];
+            if (! empty($kontak)) {
+                $lines[] = "• Kontak / No. HP: {$kontak}";
+            }
+            if (! empty($rekeningSpp)) {
+                $lines[] = "• Rekening: {$rekeningSpp}";
+            }
+            $lines[] = '• Lokasi: Kantor / Sekretariat TPQ';
+
+            if ($hasTunggakan) {
+                $lines[] = '';
+                $lines[] = 'Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara.';
+            }
+
+            return implode("\n", $lines);
+        }
+
+        if ($hasTunggakan) {
+            $kontakSuffix = ! empty($kontak) ? " - {$kontak}" : '';
+
+            return "Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara ({$namaBendahara}{$kontakSuffix}) atau langsung di kantor TPQ.";
+        }
+
+        return '';
+    }
+
+    /**
+     * Mengambil nama resmi dan nomor kontak bendahara dari database / pengaturan
+     *
+     * @return array{nama: string, kontak: string}
+     */
+    public function getBendaharaInfo(): array
+    {
+        $namaBendahara = User::getNamaBendahara();
+        $kontakBendahara = trim((string) (
+            Pengaturan::getValue('no_hp_bendahara')
+            ?: Pengaturan::getValue('kontak_bendahara')
+            ?: Pengaturan::getValue('kontak_instansi')
+        ));
+
+        return [
+            'nama' => $namaBendahara,
+            'kontak' => $kontakBendahara,
+        ];
     }
 
     /**
      * Menyusun blok teks status SPP & rincian tunggakan untuk 1 santri
      */
     protected function buildSingleStudentSppSection(Siswa $siswa, ?array $period = null): string
+    {
+        return $this->buildSingleStudentSppData($siswa, $period)['text'];
+    }
+
+    /**
+     * Menyusun data status SPP & rincian tunggakan untuk 1 santri
+     *
+     * @return array{text: string, has_tunggakan: bool, total_bulan: int, total_tunggakan: float}
+     */
+    protected function buildSingleStudentSppData(Siswa $siswa, ?array $period = null): array
     {
         SppBillingService::ensureSppSchemaExists();
 
@@ -781,6 +873,7 @@ class ChatbotService
         $totalBulan = (int) ($rekap['total_bulan'] ?? 0);
         $totalTunggakan = (float) ($rekap['total_tunggakan'] ?? 0);
         $daftarTunggakan = $rekap['daftar_tunggakan'] ?? [];
+        $hasTunggakan = ($totalBulan > 0 && $totalTunggakan > 0);
 
         // Jika menanyakan periode bulan tertentu (misal: "spp bulan kemarin" / "spp oktober")
         $statusBulanSpesifik = '';
@@ -803,11 +896,18 @@ class ChatbotService
             }
         }
 
-        if ($totalBulan === 0 || $totalTunggakan <= 0) {
-            return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+        if (! $hasTunggakan) {
+            $text = "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
                 .$statusBulanSpesifik
                 ."• Status: ✅ *LUNAS* (Tidak ada tunggakan s/d {$namaBulanIni} {$cutOffTahun})\n"
                 .'• Total Tunggakan: *Rp 0*';
+
+            return [
+                'text' => $text,
+                'has_tunggakan' => false,
+                'total_bulan' => 0,
+                'total_tunggakan' => 0.0,
+            ];
         }
 
         $totalRp = 'Rp '.number_format($totalTunggakan, 0, ',', '.');
@@ -821,12 +921,19 @@ class ChatbotService
             }
         }
 
-        return "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
+        $text = "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
             .$statusBulanSpesifik
             ."• Status Keseluruhan: ⚠️ *Menunggak {$totalBulan} bulan*\n"
             ."• Total Tunggakan: *{$totalRp}*\n\n"
             ."*Rincian Bulan Belum Lunas:*\n"
             .implode("\n", $rincianLines);
+
+        return [
+            'text' => $text,
+            'has_tunggakan' => true,
+            'total_bulan' => $totalBulan,
+            'total_tunggakan' => $totalTunggakan,
+        ];
     }
 
     /**
@@ -1015,7 +1122,7 @@ class ChatbotService
 
         return "Layanan informasi otomatis TPQ{$santriStr}. Silakan ketik pertanyaan terkait 3 informasi berikut:\n\n"
             ."1. *Absensi*: _\"Gimana absensi {$contohNama} hari ini?\"_\n"
-            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_ atau _\"Cek SPP\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_\n"
             .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 
@@ -1035,7 +1142,7 @@ class ChatbotService
         return "Mohon maaf, layanan ini hanya menyediakan informasi terkait *Absensi*, *SPP*, dan *Informasi Hari Libur* untuk {$santriName}.\n\n"
             ."Silakan ketik pertanyaan sesuai topik berikut:\n"
             ."1. *Absensi*: _\"Gimana absensi anak saya?\"_ atau _\"Bulan sebelumnya berapa kali?\"_\n"
-            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_ atau _\"Cek SPP\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_\n"
             .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 

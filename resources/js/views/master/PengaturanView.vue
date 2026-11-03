@@ -127,7 +127,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1.5">
-              <Label for="kontakInstansi" class="text-xs font-medium">Kontak / Telepon / Email</Label>
+              <Label for="kontakInstansi" class="text-xs font-medium">Kontak Lembaga / Sekretariat</Label>
               <Input
                 id="kontakInstansi"
                 v-model="settings.kontak_instansi"
@@ -138,15 +138,26 @@
             </div>
 
             <div class="space-y-1.5">
-              <Label for="tahunAjaran" class="text-xs font-medium">Tahun Ajaran Aktif</Label>
+              <Label for="noHpBendahara" class="text-xs font-medium">No. HP Bendahara (Info Pembayaran SPP Chatbot)</Label>
               <Input
-                id="tahunAjaran"
-                v-model="settings.tahun_ajaran_aktif"
+                id="noHpBendahara"
+                v-model="settings.no_hp_bendahara"
                 type="text"
-                placeholder="Contoh: 2026/2027"
+                placeholder="Contoh: 0812-3456-7899"
                 class="h-9 text-xs"
               />
             </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <Label for="tahunAjaran" class="text-xs font-medium">Tahun Ajaran Aktif</Label>
+            <Input
+              id="tahunAjaran"
+              v-model="settings.tahun_ajaran_aktif"
+              type="text"
+              placeholder="Contoh: 2026/2027"
+              class="h-9 text-xs"
+            />
           </div>
         </CardContent>
       </Card>
@@ -699,6 +710,7 @@ const settings = ref({
   tahun_ajaran_aktif: "2026/2027",
   alamat_instansi: "",
   kontak_instansi: "",
+  no_hp_bendahara: "",
   logo_lembaga: "",
   jam_masuk: "07:00",
   jam_terlambat: "07:15",

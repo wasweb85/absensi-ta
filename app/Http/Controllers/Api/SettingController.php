@@ -40,6 +40,7 @@ class SettingController extends Controller
             'tahun_ajaran_aktif',
             'alamat_instansi',
             'kontak_instansi',
+            'no_hp_bendahara',
             'logo_lembaga',
         ];
 
@@ -55,6 +56,7 @@ class SettingController extends Controller
             'data' => [
                 'nama_instansi' => $namaInstansi,
                 'nama_bendahara' => User::getNamaBendahara(),
+                'no_hp_bendahara' => $settings['no_hp_bendahara'] ?? '',
                 'tahun_ajaran_aktif' => $settings['tahun_ajaran_aktif'] ?? '2026/2027',
                 'alamat_instansi' => $settings['alamat_instansi'] ?? '',
                 'kontak_instansi' => $settings['kontak_instansi'] ?? '',

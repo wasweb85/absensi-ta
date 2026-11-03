@@ -6,6 +6,7 @@ use App\Models\Absensi;
 use App\Models\Agenda;
 use App\Models\HariLibur;
 use App\Models\Kelas;
+use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
 use App\Models\User;
@@ -546,5 +547,64 @@ class ChatbotWebhookTest extends TestCase
 
         $resKemarin->assertStatus(200)
             ->assertJson(['intent' => 'absensi']);
+    }
+
+    public function test_webhook_responds_to_payment_target_inquiry_and_tunggakan_bendahara_appeal(): void
+    {
+        // Setup tagihan SPP menunggak untuk kedua anak
+        $now = Carbon::now('Asia/Jakarta');
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa1->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 15000,
+            'status' => 'belum_lunas',
+        ]);
+        TagihanSpp::create([
+            'id_siswa' => $this->siswa2->id,
+            'bulan' => (int) $now->month,
+            'tahun' => (int) $now->year,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 15000,
+            'status' => 'belum_lunas',
+        ]);
+
+        // Simpan no hp bendahara di pengaturan
+        Pengaturan::setValue('no_hp_bendahara', '0858-9914-5514');
+
+        // 1. Wali bertanya spesifik kemana/kepada siapa membayar SPP (sesuai screenshot user)
+        $resTarget = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'kepada siapa kalau mau bayar spp',
+        ]);
+
+        $resTarget->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'spp_notice',
+            ]);
+
+        $replyTarget = $resTarget->json('reply');
+        // Harus memuat data kedua anak
+        $this->assertStringContainsString('Ahmad Fauzi', $replyTarget);
+        $this->assertStringContainsString('Fatimah Az-Zahra', $replyTarget);
+        // Harus memuat info bendahara dan nomor kontak
+        $this->assertStringContainsString('Pembayaran SPP dapat diselesaikan melalui Bendahara', $replyTarget);
+        $this->assertStringContainsString('0858-9914-5514', $replyTarget);
+        $this->assertStringContainsString('Kantor / Sekretariat TPQ', $replyTarget);
+        // Harus memuat kalimat himbauan bayar ke Bendahara
+        $this->assertStringContainsString('Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara', $replyTarget);
+
+        // 2. Wali bertanya tunggakan biasa, bot tetap menyertakan himbauan Bendahara karena ada tunggakan
+        $resTunggakan = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'anak saya nunggak berapa bulan?',
+        ]);
+
+        $resTunggakan->assertStatus(200);
+        $replyTunggakan = $resTunggakan->json('reply');
+        $this->assertStringContainsString('Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara', $replyTunggakan);
+        $this->assertStringContainsString('0858-9914-5514', $replyTunggakan);
     }
 }
