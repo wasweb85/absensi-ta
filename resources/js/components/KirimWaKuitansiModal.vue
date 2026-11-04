@@ -268,9 +268,16 @@ async function sendViaGateway() {
 
   isSendingGateway.value = true;
   try {
-    const santri = props.kuitansiData?.nama_santri || 'Santri';
-    const noKw = props.kuitansiData?.nomor_kuitansi || '';
-    const caption = `Kuitansi Pembayaran SPP an. ${santri}${noKw ? ' (' + noKw + ')' : ''}`;
+    const k = props.kuitansiData || {};
+    const santri = k.nama_santri || 'Santri';
+    const kelas = k.kelas ? ` (${k.kelas})` : '';
+    const noKw = k.nomor_kuitansi || '-';
+    const periode = k.daftar_bulan_str || k.bulan_tagihan || k.catatan || 'SPP';
+    const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
+    const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const bendahara = k.nama_bendahara || 'Bendahara TPQ';
+
+    const caption = `*BUKTI PEMBAYARAN SPP RESMI*\nTPQ Nurul Mun'im\n\n• No. Kuitansi: *${noKw}*\n• Nama: *${santri}*${kelas}\n• Periode: *${periode}*\n• Total: *Rp ${nominal}*\n• Tanggal: *${tanggal}*\n• Status: *LUNAS*\n• Bendahara: *${bendahara}*\n\nJazakumullah khairan katsiran.`;
 
     const res = await api.post('/wa/send-kuitansi-image', {
       phone: cleanPhone,
@@ -281,7 +288,7 @@ async function sendViaGateway() {
     });
 
     if (res.data?.success) {
-      toast.success('Kuitansi gambar berhasil dikirim ke nomor wali santri via Gateway!');
+      toast.success(res.data?.message || 'Kuitansi berhasil dikirim ke nomor wali santri via Gateway!');
       emit('sent');
       emit('close');
     } else {

@@ -245,7 +245,7 @@ class WhatsAppController extends Controller
         $message = trim((string) ($request->input('message') ?? ''));
 
         if (empty($message)) {
-            $message = 'Kuitansi Pembayaran SPP'.(! empty($namaPenerima) ? " an. {$namaPenerima}" : '').(! empty($nomorKuitansi) ? " ({$nomorKuitansi})" : '');
+            $message = "Bukti Pembayaran SPP Resmi TPQ Nurul Mun'im".(! empty($namaPenerima) ? " an. {$namaPenerima}" : '').(! empty($nomorKuitansi) ? " ({$nomorKuitansi})" : '');
         }
 
         $filename = 'Kuitansi-'.($nomorKuitansi ?: 'SPP').'.png';
@@ -263,11 +263,10 @@ class WhatsAppController extends Controller
             }
             $decoded = base64_decode($base64);
             if ($decoded !== false) {
-                $tempDir = storage_path('app/temp');
-                if (! is_dir($tempDir)) {
-                    @mkdir($tempDir, 0755, true);
-                }
-                $tempPath = $tempDir.'/temp_kw_'.uniqid().'.png';
+                // Di serverless Vercel / AWS Lambda, folder root bersifat read-only.
+                // Gunakan sys_get_temp_dir() (/tmp) yang selalu writable di semua lingkungan.
+                $tempDir = sys_get_temp_dir();
+                $tempPath = rtrim($tempDir, '/\\').DIRECTORY_SEPARATOR.'temp_kw_'.uniqid().'.png';
                 file_put_contents($tempPath, $decoded);
                 $isCreatedTemp = true;
             }

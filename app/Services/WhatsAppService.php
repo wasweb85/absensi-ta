@@ -316,6 +316,47 @@ class WhatsAppService
                 'response' => $json ?: substr((string) ($responseBody ?? ''), 0, 300),
             ]);
 
+            // Jika pengiriman file ditolak oleh Fonnte karena batasan paket akun (misal akun free belum mendukung kirim file/media),
+            // lakukan fallback otomatis ke pengiriman pesan teks resmi agar bukti pembayaran tetap sampai dari Bot TPQ.
+            if ($filePath && (! isset($json['status']) || $json['status'] == false)) {
+                $rawReasonCheck = $json['reason'] ?? $json['message'] ?? $json['detail'] ?? '';
+                $reasonLower = strtolower((string) $rawReasonCheck);
+                if (
+                    str_contains($reasonLower, 'package') ||
+                    str_contains($reasonLower, 'file') ||
+                    str_contains($reasonLower, 'attachment') ||
+                    str_contains($reasonLower, 'media') ||
+                    str_contains($reasonLower, 'plan') ||
+                    str_contains($reasonLower, 'subscription')
+                ) {
+                    \Log::warning('Fonnte tidak mendukung attachment/file pada paket ini, fallback ke pesan teks resmi.', [
+                        'target' => $target,
+                        'reason' => $rawReasonCheck,
+                    ]);
+
+                    $fallbackResp = Http::withoutVerifying()->timeout(15)->withHeaders([
+                        'Authorization' => $token,
+                    ])->post('https://api.fonnte.com/send', $payload);
+
+                    $fallbackJson = $fallbackResp->json();
+                    if (isset($fallbackJson['status']) && $fallbackJson['status'] == true) {
+                        $fonnteId = $fallbackJson['id'] ?? null;
+                        if (is_array($fonnteId)) {
+                            $fonnteId = $fonnteId[0] ?? null;
+                        }
+                        $log->markAsSent($fonnteId ? (string) $fonnteId : null);
+
+                        return [
+                            'success' => true,
+                            'message' => 'Kuitansi berhasil dikirim via bot TPQ (format rincian teks resmi, karena paket Fonnte akun belum mendukung kirim file/gambar langsung).',
+                            'log_id' => $log->id,
+                            'fonnte_id' => $fonnteId,
+                            'response' => $fallbackJson,
+                        ];
+                    }
+                }
+            }
+
             if (isset($json['status']) && $json['status'] == true) {
                 $fonnteId = null;
                 if (isset($json['id'])) {
