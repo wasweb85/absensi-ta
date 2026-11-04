@@ -32,6 +32,15 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($password, $user->password)) {
+            ActivityLog::record(
+                modul: 'auth',
+                aksi: 'login_gagal',
+                deskripsi: "Percobaan login gagal untuk kredensial: {$loginInput}",
+                properties: [
+                    'input' => $loginInput,
+                ]
+            );
+
             throw ValidationException::withMessages([
                 'username' => ['Kredensial login (Username atau Password) tidak sesuai.'],
             ]);

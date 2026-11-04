@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AbsensiScannerService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -252,5 +253,39 @@ class ActivityLogTest extends TestCase
         Sanctum::actingAs($this->guruUser);
         $resGuru = $this->getJson('/api/activity-logs');
         $resGuru->assertStatus(403);
+    }
+
+    public function test_failed_login_records_activity_log(): void
+    {
+        $res = $this->postJson('/api/login', [
+            'username' => 'user_tidak_ada',
+            'password' => 'salah_password',
+        ]);
+
+        $res->assertStatus(422);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'modul' => 'auth',
+            'aksi' => 'login_gagal',
+        ]);
+    }
+
+    public function test_ensure_schema_exists_creates_table_when_missing(): void
+    {
+        // Reset static property schemaChecked via Reflection
+        $reflection = new \ReflectionClass(ActivityLog::class);
+        $prop = $reflection->getProperty('schemaChecked');
+        $prop->setValue(null, false);
+
+        Schema::dropIfExists('activity_logs');
+        $this->assertFalse(Schema::hasTable('activity_logs'));
+
+        ActivityLog::ensureSchemaExists();
+
+        $this->assertTrue(Schema::hasTable('activity_logs'));
+        $this->assertDatabaseHas('activity_logs', [
+            'modul' => 'pengaturan',
+            'aksi' => 'inisialisasi',
+        ]);
     }
 }

@@ -231,6 +231,7 @@
               <option value="all">Semua Aksi</option>
               <option value="login">Login</option>
               <option value="logout">Logout</option>
+              <option value="login_gagal">Login Gagal</option>
               <option value="tambah">Tambah Data</option>
               <option value="ubah">Ubah Data</option>
               <option value="hapus">Hapus Data</option>
@@ -868,14 +869,23 @@ function formatAksi(aksi) {
   const map = {
     login: 'Login',
     logout: 'Logout',
-    tambah: 'Tambah',
-    ubah: 'Ubah',
-    hapus: 'Hapus',
-    scan: 'Scan',
-    bayar: 'Bayar',
+    login_gagal: 'Login Gagal',
+    tambah: 'Tambah Data',
+    ubah: 'Ubah Data',
+    ubah_status: 'Ubah Status',
+    hapus: 'Hapus Data',
+    scan: 'Scan Presensi',
+    bayar: 'Bayar SPP',
     batal: 'Batal',
+    batal_bayar: 'Batal Transaksi',
     kirim: 'Kirim',
-    respon: 'Respon',
+    kirim_wa: 'Kirim WA',
+    broadcast: 'Broadcast WA',
+    chatbot: 'Respon Chatbot',
+    respon: 'Respon Chatbot',
+    import: 'Import CSV',
+    sync: 'Sinkronisasi',
+    inisialisasi: 'Inisialisasi',
   };
   return map[aksi] || aksi;
 }
@@ -885,18 +895,28 @@ function getAksiBadgeClass(aksi) {
     case 'login':
     case 'logout':
       return 'border-indigo-300 bg-indigo-50/50 text-indigo-700 dark:border-indigo-700 dark:text-indigo-300';
+    case 'login_gagal':
+    case 'hapus':
+    case 'batal':
+    case 'batal_bayar':
+      return 'border-rose-300 bg-rose-50/50 text-rose-700 dark:border-rose-700 dark:text-rose-300';
     case 'tambah':
     case 'bayar':
     case 'scan':
+    case 'inisialisasi':
       return 'border-emerald-300 bg-emerald-50/50 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300';
     case 'ubah':
+    case 'ubah_status':
       return 'border-amber-300 bg-amber-50/50 text-amber-700 dark:border-amber-700 dark:text-amber-300';
-    case 'hapus':
-    case 'batal':
-      return 'border-rose-300 bg-rose-50/50 text-rose-700 dark:border-rose-700 dark:text-rose-300';
     case 'kirim':
+    case 'kirim_wa':
+    case 'broadcast':
     case 'respon':
+    case 'chatbot':
       return 'border-green-300 bg-green-50/50 text-green-700 dark:border-green-700 dark:text-green-300';
+    case 'import':
+    case 'sync':
+      return 'border-cyan-300 bg-cyan-50/50 text-cyan-700 dark:border-cyan-700 dark:text-cyan-300';
     default:
       return 'border-muted text-muted-foreground';
   }
