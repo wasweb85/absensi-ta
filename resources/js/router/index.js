@@ -50,7 +50,7 @@ const routes = [
                 path: 'absensi/siswa',
                 name: 'absensi-siswa',
                 component: () => import('../views/absensi/SiswaView.vue'),
-                meta: { title: 'Data Santri', roles: ['admin', 'kepala', 'sekretaris', 'bendahara'] },
+                meta: { title: 'Data Santri', roles: ['admin', 'kepala', 'sekretaris'] },
             },
             {
                 path: 'absensi/agenda-libur',

@@ -16,7 +16,7 @@
           </div>
 
           <!-- Tombol Aksi (Import CSV & Tambah Santri - Di Mobile Cukup Icon Saja) -->
-          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div v-if="canManageSiswa" class="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -180,6 +180,7 @@
                     <QrCode class="size-3.5" />
                   </Button>
                   <Button
+                    v-if="canManageSiswa"
                     variant="ghost"
                     size="icon-sm"
                     class="size-8 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
@@ -189,6 +190,7 @@
                     <Pencil class="size-3.5" />
                   </Button>
                   <Button
+                    v-if="canManageSiswa"
                     variant="ghost"
                     size="icon-sm"
                     class="size-8 text-destructive hover:bg-destructive/10"
@@ -434,7 +436,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import QRCode from 'qrcode';
 import {
   Upload,
@@ -471,6 +473,10 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+
+const { role } = useAuth();
+const canManageSiswa = computed(() => ['admin', 'sekretaris'].includes(role.value));
 
 const toast = useToast();
 
