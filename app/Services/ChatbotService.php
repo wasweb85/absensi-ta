@@ -216,6 +216,15 @@ class ChatbotService
     {
         $clean = strtolower(trim($message));
 
+        // 0. Shortcut pemilihan menu 1, 2, 3 (1 = Absensi, 2 = SPP, 3 = Hari Libur)
+        if (preg_match('/^\s*(?:menu\s*|opsi\s*|pilihan\s*|nomor\s*|no\.?\s*)?([123])[\.\)]?\s*$/i', $clean, $numMatches)) {
+            return match ($numMatches[1]) {
+                '1' => 'absensi',
+                '2' => 'spp_notice',
+                '3' => 'agenda',
+            };
+        }
+
         // 1. Intent Pertanyaan SPP & Tunggakan
         if (preg_match('/\b(nunggak|menunggak|tunggak|tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|belum lunas|utang|hutang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi|berapa bulan|biaya ngaji|bayar ngaji)\b/i', $clean)) {
             return 'spp_notice';
@@ -801,16 +810,14 @@ class ChatbotService
     {
         $bendaharaInfo = $this->getBendaharaInfo();
         $namaBendahara = $bendaharaInfo['nama'];
-        $kontak = $bendaharaInfo['kontak'];
+        $kontak = $bendaharaInfo['kontak'] ?: '085235567818';
         $rekeningSpp = trim((string) Pengaturan::getValue('rekening_spp'));
 
         $lines = [
             'Pembayaran SPP dapat diselesaikan melalui Bendahara:',
             "• Bendahara: {$namaBendahara}",
+            "• No. WhatsApp / HP: {$kontak}",
         ];
-        if (! empty($kontak)) {
-            $lines[] = "• Kontak / No. HP: {$kontak}";
-        }
         if (! empty($rekeningSpp)) {
             $lines[] = "• Rekening: {$rekeningSpp}";
         }
@@ -830,17 +837,15 @@ class ChatbotService
     {
         $bendaharaInfo = $this->getBendaharaInfo();
         $namaBendahara = $bendaharaInfo['nama'];
-        $kontak = $bendaharaInfo['kontak'];
+        $kontak = $bendaharaInfo['kontak'] ?: '085235567818';
         $rekeningSpp = trim((string) Pengaturan::getValue('rekening_spp'));
 
         if ($isAskingPaymentTarget) {
             $lines = [
                 'Pembayaran SPP dapat diselesaikan melalui Bendahara:',
                 "• Bendahara: {$namaBendahara}",
+                "• No. WhatsApp / HP: {$kontak}",
             ];
-            if (! empty($kontak)) {
-                $lines[] = "• Kontak / No. HP: {$kontak}";
-            }
             if (! empty($rekeningSpp)) {
                 $lines[] = "• Rekening: {$rekeningSpp}";
             }
@@ -855,12 +860,22 @@ class ChatbotService
         }
 
         if ($hasTunggakan) {
-            $kontakSuffix = ! empty($kontak) ? " - {$kontak}" : '';
+            $lines = [
+                'Untuk pembayaran & konfirmasi SPP, silakan hubungi Bendahara:',
+                "• Bendahara: {$namaBendahara}",
+                "• No. WhatsApp / HP: {$kontak}",
+            ];
+            if (! empty($rekeningSpp)) {
+                $lines[] = "• Rekening: {$rekeningSpp}";
+            }
+            $lines[] = '• Lokasi: Kantor / Sekretariat TPQ';
+            $lines[] = '';
+            $lines[] = 'Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara.';
 
-            return "Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara ({$namaBendahara}{$kontakSuffix}) atau langsung di kantor TPQ.";
+            return implode("\n", $lines);
         }
 
-        return '';
+        return "Informasi & konfirmasi SPP silakan hubungi Bendahara:\n• {$namaBendahara} (No. WA: {$kontak})";
     }
 
     /**
@@ -874,8 +889,12 @@ class ChatbotService
         $kontakBendahara = trim((string) (
             Pengaturan::getValue('no_hp_bendahara')
             ?: Pengaturan::getValue('kontak_bendahara')
-            ?: Pengaturan::getValue('kontak_instansi')
+            ?: '085235567818'
         ));
+
+        if (empty($kontakBendahara)) {
+            $kontakBendahara = '085235567818';
+        }
 
         return [
             'nama' => $namaBendahara,
@@ -1163,10 +1182,11 @@ class ChatbotService
             : '';
 
         $contohNama = $siswa ? strtolower(explode(' ', trim($siswa->nama_lengkap))[0]) : 'anak saya';
+        $kontakBendahara = $this->getBendaharaInfo()['kontak'] ?: '085235567818';
 
-        return "Layanan informasi otomatis TPQ{$santriStr}. Silakan ketik pertanyaan terkait 3 informasi berikut:\n\n"
+        return "Layanan informasi otomatis TPQ{$santriStr}. Silakan ketik pertanyaan terkait 3 informasi berikut (atau ketik *1*, *2*, atau *3*):\n\n"
             ."1. *Absensi*: _\"Gimana absensi {$contohNama} hari ini?\"_\n"
-            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_ (No. Bendahara: *{$kontakBendahara}*)\n"
             .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 
@@ -1183,10 +1203,12 @@ class ChatbotService
             $santriName = "ananda *{$siswa->nama_lengkap}*";
         }
 
+        $kontakBendahara = $this->getBendaharaInfo()['kontak'] ?: '085235567818';
+
         return "Mohon maaf, layanan ini hanya menyediakan informasi terkait *Absensi*, *SPP*, dan *Informasi Hari Libur* untuk {$santriName}.\n\n"
-            ."Silakan ketik pertanyaan sesuai topik berikut:\n"
+            ."Silakan ketik pertanyaan sesuai topik berikut (atau ketik *1*, *2*, atau *3*):\n"
             ."1. *Absensi*: _\"Gimana absensi anak saya?\"_ atau _\"Bulan sebelumnya berapa kali?\"_\n"
-            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_\n"
+            ."2. *SPP*: _\"Anak saya nunggak berapa bulan?\"_, _\"Cek SPP\"_, atau _\"Bayar ke siapa?\"_ (No. Bendahara: *{$kontakBendahara}*)\n"
             .'3. *Hari Libur*: _"Bulan ini apakah ada hari libur?"_';
     }
 

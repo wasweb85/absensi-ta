@@ -87,17 +87,30 @@ class WhatsAppService
     }
 
     /**
+     * Mengambil nomor kontak bendahara dari pengaturan dengan fallback nomor resmi
+     */
+    protected function getKontakBendahara(): string
+    {
+        return trim((string) (
+            Pengaturan::getValue('no_hp_bendahara')
+            ?: Pengaturan::getValue('kontak_bendahara')
+            ?: '085235567818'
+        )) ?: '085235567818';
+    }
+
+    /**
      * Template pesan pengingat tunggakan santri ke orang tua (Japri)
      */
     public function buildPesanJapriOrtu(string $namaSantri, float $nominalTunggakan, string $bulanTahun): string
     {
         $nominalFormat = number_format($nominalTunggakan, 0, ',', '.');
         $namaInstansi = $this->getNamaInstansi();
+        $kontakBendahara = $this->getKontakBendahara();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
             ."Kami dari pihak *{$namaInstansi}* menginformasikan mengenai kewajiban pembayaran SPP bulan *{$bulanTahun}* sebesar *Rp {$nominalFormat}* yang belum terselesaikan.\n\n"
-            ."Mohon agar dapat segera melakukan pembayaran melalui Bendahara TPQ atau transfer. Apabila Bapak/Ibu telah menyelesaikan pembayaran, mohon abaikan pesan ini dan konfirmasikan bukti pembayarannya.\n\n"
+            ."Mohon agar dapat segera melakukan pembayaran melalui Bendahara TPQ ({$kontakBendahara}) atau transfer. Apabila Bapak/Ibu telah menyelesaikan pembayaran, mohon abaikan pesan ini dan konfirmasikan bukti pembayarannya.\n\n"
             ."Jazakumullah khairan katsiran atas perhatian dan kerjasamanya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }
@@ -109,11 +122,12 @@ class WhatsAppService
     {
         $nominalFormat = number_format($totalNominal, 0, ',', '.');
         $namaInstansi = $this->getNamaInstansi();
+        $kontakBendahara = $this->getKontakBendahara();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Yth. Bapak/Ibu Wali dari ananda *{$namaSantri}*,\n\n"
             ."Kami dari pihak *{$namaInstansi}* menginformasikan rekapitulasi kewajiban SPP ananda yang saat ini masih tercatat belum lunas sebanyak *{$totalBulan} bulan* ({$daftarBulanStr}) dengan total tunggakan sebesar *Rp {$nominalFormat}*.\n\n"
-            ."Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara TPQ demi kelancaran kegiatan belajar mengajar ananda.\n\n"
+            ."Besar harapan kami agar Bapak/Ibu dapat segera menyelesaikan kewajiban administrasi ini melalui Bendahara TPQ ({$kontakBendahara}) demi kelancaran kegiatan belajar mengajar ananda.\n\n"
             ."Jazakumullah khairan katsiran atas perhatian dan dukungannya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }
@@ -125,11 +139,12 @@ class WhatsAppService
     {
         $nominalFormat = number_format($nominalSpp, 0, ',', '.');
         $namaInstansi = $this->getNamaInstansi();
+        $kontakBendahara = $this->getKontakBendahara();
 
         return "Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\n"
             ."Pengumuman untuk seluruh Wali Santri *{$namaKelas}* - *{$namaInstansi}*:\n\n"
             ."Mengingatkan kembali bahwa masa pembayaran SPP untuk bulan *{$bulanTahun}* (Nominal: *Rp {$nominalFormat}*) telah dibuka. Batas akhir pembayaran jatuh pada tanggal *{$jatuhTempo}*.\n\n"
-            ."Pembayaran dapat dilakukan langsung melalui Bendahara TPQ atau melalui transfer.\n\n"
+            ."Pembayaran dapat dilakukan langsung melalui Bendahara TPQ ({$kontakBendahara}) atau melalui transfer.\n\n"
             ."Terima kasih atas perhatian dan dukungannya.\n\n"
             ."Wassalamu'alaikum Warahmatullahi Wabarakatuh.";
     }

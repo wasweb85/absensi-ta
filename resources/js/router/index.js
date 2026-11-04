@@ -28,7 +28,7 @@ const routes = [
                 path: 'absensi/scanner',
                 name: 'absensi-scanner',
                 component: () => import('../views/absensi/ScannerView.vue'),
-                meta: { title: 'Scanner', roles: ['admin', 'sekretaris', 'guru'] },
+                meta: { title: 'Scanner', roles: ['admin', 'sekretaris', 'bendahara', 'guru'] },
             },
             {
                 path: 'absensi/monitoring',

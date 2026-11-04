@@ -634,4 +634,64 @@ class ChatbotWebhookTest extends TestCase
         $this->assertStringContainsString('Fatimah Az-Zahra', $replyCombined);
         $this->assertStringContainsString('Pembayaran SPP dapat diselesaikan melalui Bendahara', $replyCombined);
     }
+
+    public function test_spp_response_includes_default_bendahara_number_and_numeric_menu_navigation(): void
+    {
+        $this->siswa2->update(['no_hp_ortu' => '089999999999']);
+        Pengaturan::where('key', 'no_hp_bendahara')->delete();
+
+        // 1. Cek SPP menyertakan nomor resmi bendahara 085235567818
+        $resSpp = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'cek spp',
+        ]);
+        $resSpp->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'spp_notice',
+            ]);
+        $this->assertStringContainsString('085235567818', $resSpp->json('reply'));
+
+        // 2. Tanya ke siapa bayar menyertakan nomor bendahara 085235567818
+        $resTarget = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => 'bayar ke siapa?',
+        ]);
+        $resTarget->assertStatus(200);
+        $this->assertStringContainsString('085235567818', $resTarget->json('reply'));
+
+        // 3. Ketik angka 1 memilih topik Absensi
+        $res1 = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => '1',
+        ]);
+        $res1->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'absensi',
+            ]);
+
+        // 4. Ketik angka 2 memilih topik SPP
+        $res2 = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => '2',
+        ]);
+        $res2->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'spp_notice',
+            ]);
+        $this->assertStringContainsString('085235567818', $res2->json('reply'));
+
+        // 5. Ketik angka 3 memilih topik Hari Libur
+        $res3 = $this->postJson('/api/webhook/whatsapp', [
+            'sender' => '6281234567890',
+            'message' => '3',
+        ]);
+        $res3->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'intent' => 'agenda',
+            ]);
+    }
 }

@@ -219,7 +219,7 @@
                 id="noHpBendahara"
                 v-model="settings.no_hp_bendahara"
                 type="text"
-                placeholder="0812-3456-7899"
+                placeholder="085235567818"
                 class="h-9 text-xs"
               />
             </div>
@@ -967,7 +967,7 @@ const settings = ref({
   tahun_ajaran_aktif: '2026/2027',
   alamat_instansi: '',
   kontak_instansi: '',
-  no_hp_bendahara: '',
+  no_hp_bendahara: '085235567818',
   logo_lembaga: '',
   jam_masuk: '07:00',
   jam_terlambat: '07:15',
