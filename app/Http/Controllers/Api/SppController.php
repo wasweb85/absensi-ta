@@ -357,7 +357,7 @@ class SppController extends Controller
                     'id_tagihan' => $tagihan->id,
                     'jumlah_bayar' => $nominal,
                     'metode_pembayaran' => $metode,
-                    'catatan' => 'Input Cepat SPP',
+                    'catatan' => null,
                 ], $petugasId);
 
                 $kw = $res['kuitansi'];

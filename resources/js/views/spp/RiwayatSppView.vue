@@ -679,13 +679,28 @@ const activeKuitansi = ref(null);
 const kuitansiDataForWa = computed(() => {
   if (!activeKuitansi.value) return null;
   const k = activeKuitansi.value;
-  const bulanTagihan = k.tagihan ? `${getNamaBulan(k.tagihan?.bulan)} ${k.tagihan?.tahun || ''}`.trim() : (k.catatan || 'SPP');
+  let bulanTagihan = '';
+  if (k.tagihan?.bulan) {
+    bulanTagihan = `${getNamaBulan(k.tagihan.bulan)} ${k.tagihan.tahun || ''}`.trim();
+  } else if (k.nomor_kuitansi) {
+    const match = String(k.nomor_kuitansi).match(/KW-(\d{4})(\d{2})-/i);
+    if (match) {
+      bulanTagihan = `${getNamaBulan(parseInt(match[2], 10))} ${match[1]}`;
+    }
+  }
+  if (!bulanTagihan) {
+    bulanTagihan = 'SPP Bulanan';
+  }
+
   return {
     nomor_kuitansi: k.nomor_kuitansi,
     tanggal_bayar: formatTanggal(k.tanggal_bayar),
     nama_santri: k.siswa?.nama_lengkap || '-',
     nisn: k.siswa?.nisn || '-',
     kelas: k.siswa?.kelas?.nama_kelas || '-',
+    periode: bulanTagihan,
+    daftar_bulan_str: bulanTagihan,
+    bulan_tagihan: bulanTagihan,
     pembayaran_untuk: `SPP ${bulanTagihan}`.trim(),
     metode: k.metode_pembayaran || 'Tunai',
     jumlah_bayar: k.jumlah_bayar,

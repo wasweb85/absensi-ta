@@ -209,6 +209,64 @@ function cleanPhoneNumber(phone) {
   return cleaned;
 }
 
+// Resolusi nama periode/bulan pembayaran kuitansi secara cerdas dan akurat
+function getPeriodeText(k) {
+  if (!k) return 'SPP';
+
+  // 1. Cek properti periode eksplisit (misal: "November 2026")
+  if (k.periode && String(k.periode).trim()) {
+    return String(k.periode).replace(/^SPP\s+/i, '').trim();
+  }
+
+  // 2. Cek daftar_bulan_str (misal: "November 2026" atau "November 2026, Desember 2026")
+  if (k.daftar_bulan_str && String(k.daftar_bulan_str).trim()) {
+    return String(k.daftar_bulan_str).trim();
+  }
+
+  // 3. Cek pembayaran_untuk (misal: "SPP November 2026" -> hilangkan awalan "SPP ")
+  if (k.pembayaran_untuk && String(k.pembayaran_untuk).trim()) {
+    const cleaned = String(k.pembayaran_untuk).replace(/^SPP\s+/i, '').trim();
+    if (cleaned) return cleaned;
+  }
+
+  // 4. Cek bulan_tagihan (misal: "November 2026")
+  if (k.bulan_tagihan && String(k.bulan_tagihan).trim()) {
+    return String(k.bulan_tagihan).replace(/^SPP\s+/i, '').trim();
+  }
+
+  const namaBulanMap = {
+    1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+    5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+    9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember',
+  };
+
+  // 5. Cek bulan dan tahun langsung dari data
+  const bln = k.bulan || k.tagihan?.bulan;
+  const thn = k.tahun || k.tagihan?.tahun;
+  if (bln && namaBulanMap[Number(bln)]) {
+    return `${namaBulanMap[Number(bln)]} ${thn || ''}`.trim();
+  }
+
+  // 6. Cek array daftar_bulan
+  if (Array.isArray(k.daftar_bulan) && k.daftar_bulan.length > 0) {
+    return k.daftar_bulan.map(b => b.label || b.nama_bulan || (namaBulanMap[b.bulan] ? `${namaBulanMap[b.bulan]} ${b.tahun}` : b)).join(', ');
+  }
+
+  // 7. Ekstraksi otomatis dari nomor kuitansi (Format standar: KW-YYYYMM-XXXXX, misal KW-202611-00031 -> November 2026)
+  if (k.nomor_kuitansi) {
+    const match = String(k.nomor_kuitansi).match(/KW-(\d{4})(\d{2})-/i);
+    if (match) {
+      const year = match[1];
+      const monthNum = parseInt(match[2], 10);
+      if (namaBulanMap[monthNum]) {
+        return `${namaBulanMap[monthNum]} ${year}`;
+      }
+    }
+  }
+
+  return 'SPP Bulanan';
+}
+
 // Render Gambar Kuitansi setiap kali modal dibuka
 async function renderImage() {
   if (!props.kuitansiData) return;
@@ -272,12 +330,15 @@ async function sendViaGateway() {
     const santri = k.nama_santri || 'Santri';
     const kelas = k.kelas ? ` (${k.kelas})` : '';
     const noKw = k.nomor_kuitansi || '-';
-    const periode = k.daftar_bulan_str || k.bulan_tagihan || k.catatan || 'SPP';
+    const periode = getPeriodeText(k);
     const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
     const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const bendahara = k.nama_bendahara || 'Bendahara TPQ';
+    const catatanTambahan = (k.catatan && k.catatan !== 'Input Cepat SPP' && !k.catatan.toLowerCase().startsWith('pelunasan multi-bulan'))
+      ? `\n• Catatan: _${k.catatan}_`
+      : '';
 
-    const caption = `*BUKTI PEMBAYARAN SPP RESMI*\nTPQ Nurul Mun'im\n\n• No. Kuitansi: *${noKw}*\n• Nama: *${santri}*${kelas}\n• Periode: *${periode}*\n• Total: *Rp ${nominal}*\n• Tanggal: *${tanggal}*\n• Status: *LUNAS*\n• Bendahara: *${bendahara}*\n\nJazakumullah khairan katsiran.`;
+    const caption = `*BUKTI PEMBAYARAN SPP RESMI*\nTPQ Nurul Mun'im\n\n• No. Kuitansi: *${noKw}*\n• Nama: *${santri}*${kelas}\n• Periode: *${periode}*\n• Total: *Rp ${nominal}*\n• Tanggal: *${tanggal}*\n• Status: *LUNAS*\n• Bendahara: *${bendahara}*${catatanTambahan}\n\nJazakumullah khairan katsiran.`;
 
     const res = await api.post('/wa/send-kuitansi-image', {
       phone: cleanPhone,
@@ -325,10 +386,13 @@ async function sendDirectWhatsApp() {
   const namaSantri = k.nama_santri || 'Santri';
   const kelas = k.kelas ? ` (${k.kelas})` : '';
   const noKw = k.nomor_kuitansi || '-';
-  const periode = k.daftar_bulan_str || k.bulan_tagihan || k.catatan || 'SPP';
+  const periode = getPeriodeText(k);
   const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
   const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const bendahara = k.nama_bendahara || 'Bendahara TPQ';
+  const catatanTambahan = (k.catatan && k.catatan !== 'Input Cepat SPP' && !k.catatan.toLowerCase().startsWith('pelunasan multi-bulan'))
+    ? `\n• Catatan: _${k.catatan}_`
+    : '';
 
   const textMessage = `Assalamu'alaikum Warahmatullahi Wabarakatuh.
 Yth. Bapak/Ibu Wali dari ananda *${namaSantri}*${kelas},
@@ -339,7 +403,7 @@ Alhamdulillah, pembayaran SPP telah kami terima dan tercatat di sistem:
 • Total Bayar: *Rp ${nominal}*
 • Tanggal: *${tanggal}*
 • Status: *LUNAS*
-• Bendahara: *${bendahara}*
+• Bendahara: *${bendahara}*${catatanTambahan}
 
 Jazakumullah khairan katsiran atas pembayaran kewajiban administrasi santri.
 Wassalamu'alaikum Warahmatullahi Wabarakatuh.`;

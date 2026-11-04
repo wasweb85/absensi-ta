@@ -561,10 +561,20 @@ const activeKuitansi = computed(() => {
 
 const kuitansiDataForWa = computed(() => {
   if (!activeKuitansi.value) return null;
+  const kw = activeKuitansi.value;
+  const namaBln = NAMA_BULAN[selectedBulan.value] || `Bulan ${selectedBulan.value}`;
+  const periodeStr = `${namaBln} ${selectedTahun.value}`;
   return {
-    ...activeKuitansi.value,
+    ...kw,
+    bulan: kw.bulan || selectedBulan.value,
+    tahun: kw.tahun || selectedTahun.value,
+    nama_bulan: kw.nama_bulan || namaBln,
+    periode: kw.periode || periodeStr,
+    daftar_bulan_str: kw.daftar_bulan_str || periodeStr,
+    bulan_tagihan: kw.bulan_tagihan || periodeStr,
+    pembayaran_untuk: kw.pembayaran_untuk || `SPP ${periodeStr}`,
     appLogo: appLogo.value,
-    nama_bendahara: activeKuitansi.value.nama_bendahara || namaBendahara.value,
+    nama_bendahara: kw.nama_bendahara || namaBendahara.value,
   };
 });
 

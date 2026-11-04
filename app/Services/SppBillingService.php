@@ -314,6 +314,7 @@ class SppBillingService
             }
 
             $namaBulan = self::NAMA_BULAN[$tagihan->bulan] ?? "Bulan {$tagihan->bulan}";
+            $periodeStr = "{$namaBulan} {$tagihan->tahun}";
 
             return [
                 'success' => true,
@@ -325,7 +326,13 @@ class SppBillingService
                     'nisn' => $tagihan->siswa->nisn,
                     'no_hp_ortu' => $tagihan->siswa->no_hp_ortu,
                     'kelas' => $tagihan->siswa->kelas?->nama_kelas,
-                    'pembayaran_untuk' => "SPP {$namaBulan} {$tagihan->tahun}",
+                    'bulan' => $tagihan->bulan,
+                    'tahun' => $tagihan->tahun,
+                    'nama_bulan' => $namaBulan,
+                    'periode' => $periodeStr,
+                    'daftar_bulan_str' => $periodeStr,
+                    'bulan_tagihan' => $periodeStr,
+                    'pembayaran_untuk' => "SPP {$periodeStr}",
                     'jumlah_bayar' => $jumlahBayar,
                     'metode' => $metode,
                     'status_tagihan' => $tagihan->fresh()->status,
@@ -457,7 +464,11 @@ class SppBillingService
                     'total_bulan' => count($daftarBulan),
                     'daftar_bulan' => $daftarBulan,
                     'daftar_bulan_str' => $bulanStr,
+                    'periode' => $bulanStr,
+                    'bulan_tagihan' => $bulanStr,
+                    'pembayaran_untuk' => "SPP {$bulanStr}",
                     'total_bayar' => $totalBayar,
+                    'jumlah_bayar' => $totalBayar,
                     'metode' => $metode,
                     'catatan' => $catatan,
                     'nama_bendahara' => User::getNamaBendahara(),
