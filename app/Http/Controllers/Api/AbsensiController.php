@@ -11,6 +11,7 @@ use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\User;
 use App\Services\AbsensiScannerService;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -144,6 +145,10 @@ class AbsensiController extends Controller
             'keterangan' => 'nullable|string|max:255',
         ]);
 
+        $previousStatus = Absensi::where('id_siswa', $validated['id_siswa'])
+            ->whereDate('tanggal', $validated['tanggal'])
+            ->value('status');
+
         $absensi = Absensi::updateOrCreate(
             [
                 'id_siswa' => $validated['id_siswa'],
@@ -181,7 +186,29 @@ class AbsensiController extends Controller
                 ]
             );
 
-            defer(function () use ($siswa, $status, $waktuMasuk, $tanggal, $waktuPulang, $keterangan) {
+            // Kirim notifikasi WA ke wali hanya untuk kehadiran (Hadir/Terlambat) hari ini
+            // dan hanya saat status berubah, agar tidak terkirim ganda.
+            $waPlan = null;
+            $isToday = $tanggal === Carbon::now('Asia/Jakarta')->format('Y-m-d');
+            if ($isToday && in_array($status, ['Hadir', 'Terlambat'], true) && $previousStatus !== $status) {
+                $waPlan = $this->scannerService->preparePresensiNotification(
+                    $siswa,
+                    $status,
+                    substr((string) $waktuMasuk, 0, 5),
+                    $tanggal
+                );
+            }
+
+            defer(function () use ($siswa, $status, $waktuMasuk, $tanggal, $waktuPulang, $keterangan, $waPlan) {
+                if ($waPlan && ! empty($waPlan['should_send']) && ! empty($waPlan['payload'])) {
+                    try {
+                        $p = $waPlan['payload'];
+                        app(WhatsAppService::class)->sendViaFonnte($p['phone'], $p['message'], $p['token'], $p['metadata']);
+                    } catch (\Throwable $e) {
+                        Log::warning('Gagal kirim notifikasi WA presensi manual: '.$e->getMessage());
+                    }
+                }
+
                 try {
                     $this->scannerService->syncToGoogleSheet(
                         $siswa,

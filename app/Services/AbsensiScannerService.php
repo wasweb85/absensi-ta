@@ -186,7 +186,7 @@ class AbsensiScannerService
      *
      * @return array{should_send: bool, status: string, message: string, note: ?string, target: ?string, payload?: array}
      */
-    protected function preparePresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
+    public function preparePresensiNotification(Siswa $siswa, string $status, string $waktuShort, string $tanggal): array
     {
         // 1. Periksa apakah fitur notifikasi WA aktif di pengaturan
         $isWaEnabled = Pengaturan::getValue('wa_notif_presensi', '1') !== '0';
