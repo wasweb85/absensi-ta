@@ -17,7 +17,7 @@
               Kirim Kuitansi WhatsApp ke Wali Santri
             </h3>
             <p class="text-[10px] text-zinc-400 truncate max-w-[220px] sm:max-w-none">
-              Format gambar resmi &bull; Langsung ke nomor tujuan &bull; Tanpa teks penjelasan
+              Format gambar resmi &bull; Langsung ke nomor tujuan wali santri
             </p>
           </div>
         </div>
@@ -34,7 +34,6 @@
 
       <!-- Body: Scrollable -->
       <div class="flex-1 overflow-y-auto my-2 pr-0.5 space-y-3">
-        
         <!-- Input Nomor WhatsApp Tujuan -->
         <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 space-y-1.5">
           <div class="flex items-center justify-between">
@@ -101,23 +100,22 @@
           </div>
         </div>
 
-        <!-- Info Card Singkat -->
-        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1.5">
-          <div class="flex items-start gap-1.5 font-bold">
+        <!-- Info Singkat Metode Pengiriman -->
+        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1">
+          <div class="flex items-center gap-1.5 font-bold">
             <span>💡</span>
-            <span>Panduan Pengiriman di HP:</span>
+            <span>Pilihan Pengiriman WhatsApp:</span>
           </div>
           <ul class="list-disc pl-5 space-y-0.5 text-[10.5px] leading-relaxed text-zinc-700 dark:text-zinc-300">
-            <li><b>Kirim via Gateway (Paling Praktis):</b> Otomatis terkirim dari server ke WhatsApp wali santri tanpa perlu membuka WhatsApp atau paste.</li>
-            <li><b>Bagikan ke WA (Bawaan HP):</b> Menempelkan gambar kuitansi langsung ke WhatsApp via menu bagikan HP tanpa perlu simpan ke galeri atau paste.</li>
+            <li><b>Kirim via Gateway:</b> Mengirim gambar kuitansi otomatis langsung dari server ke WhatsApp wali santri tanpa perlu membuka WhatsApp.</li>
+            <li><b>Buka Chat WA:</b> Langsung membuka chat nomor wali santri dengan rincian bukti pembayaran otomatis terisi (tinggal klik kirim di WhatsApp).</li>
           </ul>
         </div>
-
       </div>
 
       <!-- Action Buttons (Sticky Footer) -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
-        <div class="flex items-center gap-2 order-3 sm:order-1">
+        <div class="flex items-center gap-2 order-2 sm:order-1">
           <button
             type="button"
             @click="emit('close')"
@@ -126,7 +124,7 @@
             Tutup
           </button>
 
-          <!-- Tombol Unduh PNG Eksplisit (HANYA unduh bila tombol ini diklik) -->
+          <!-- Tombol Unduh PNG -->
           <button
             v-if="imageUrl"
             type="button"
@@ -140,12 +138,12 @@
         </div>
 
         <div class="order-1 sm:order-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
-          <!-- Tombol Kirim Gateway (Fonnte API) Mengirimkan Gambar Murni Langsung ke Wali Santri -->
+          <!-- Tombol Kirim Gateway (Fonnte API) -->
           <button
             type="button"
             @click="sendViaGateway"
             :disabled="!targetPhone || isSendingGateway || isGenerating"
-            class="h-8 px-3 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+            class="h-8 px-3.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
             title="Kirim gambar kuitansi langsung ke WhatsApp wali santri via gateway server"
           >
             <RefreshCw v-if="isSendingGateway" class="w-3.5 h-3.5 animate-spin" />
@@ -153,29 +151,16 @@
             <span>{{ isSendingGateway ? 'Mengirim...' : 'Kirim via Gateway' }}</span>
           </button>
 
-          <!-- Tombol Bagikan Gambar HP (Web Share API - Langsung Nempel Gambar Tanpa Paste & Tanpa Galeri) -->
-          <button
-            v-if="canShareMobile"
-            type="button"
-            @click="shareViaMobile"
-            :disabled="isGenerating || !imageFile"
-            class="h-8 px-3.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md shadow-teal-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Bagikan kuitansi langsung ke WhatsApp via menu HP (tanpa paste)"
-          >
-            <Share2 class="w-3.5 h-3.5" />
-            <span>Bagikan ke WA (HP)</span>
-          </button>
-
           <!-- Tombol Buka Chat WhatsApp Langsung ke Nomor Wali Santri -->
           <button
             type="button"
             @click="sendDirectWhatsApp"
             :disabled="!targetPhone || isGenerating"
-            class="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            :title="canShareMobile ? 'Buka ruang obrolan nomor wali santri' : 'Buka obrolan WhatsApp langsung ke nomor wali santri'"
+            class="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Buka obrolan WhatsApp langsung ke nomor wali santri dengan teks otomatis terisi"
           >
             <BaseIcon name="whatsapp" class="w-3.5 h-3.5" />
-            <span>{{ canShareMobile ? 'Buka Chat WA' : 'Kirim ke WA Wali Santri' }}</span>
+            <span>Buka Chat WA</span>
           </button>
         </div>
       </div>
@@ -184,9 +169,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 import BaseIcon from './BaseIcon.vue';
-import { X, RefreshCw, Send, Download, Share2 } from '@lucide/vue';
+import { X, RefreshCw, Send, Download } from '@lucide/vue';
 import { generateKuitansiCanvas } from '../utils/kuitansiCanvas';
 import api from '../services/api';
 import { useToast } from '../composables/useToast';
@@ -211,18 +196,6 @@ const imageUrl = ref('');
 const imageBlob = ref(null);
 const imageFile = ref(null);
 const targetPhone = ref('');
-
-// Cek apakah browser mendukung Web Share dengan file (fitur bawaan smartphone Android & iOS)
-const canShareMobile = computed(() => {
-  if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare || !imageFile.value) {
-    return false;
-  }
-  try {
-    return navigator.canShare({ files: [imageFile.value] });
-  } catch (e) {
-    return false;
-  }
-});
 
 // Format nomor internasional (62...)
 function cleanPhoneNumber(phone) {
@@ -265,7 +238,7 @@ watch(
       imageFile.value = null;
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // Download Gambar Kuitansi (HANYA dijalankan saat tombol 'Unduh PNG' diklik secara eksplisit)
@@ -280,58 +253,7 @@ function downloadImage() {
   toast.success('Gambar kuitansi berhasil diunduh ke perangkat.');
 }
 
-// Fitur Bagikan Bawaan Smartphone (Web Share API: Langsung nempel di WA tanpa copy-paste dan tanpa galeri)
-async function shareViaMobile() {
-  if (!imageFile.value) {
-    toast.warning('Gambar kuitansi belum siap.');
-    return;
-  }
-
-  try {
-    await navigator.share({
-      files: [imageFile.value],
-      title: 'Kuitansi Pembayaran SPP',
-    });
-    toast.success('Membuka menu bagikan. Pilih WhatsApp untuk langsung mengirim kuitansi.');
-    emit('sent');
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-      console.warn('Gagal membagikan kuitansi via Web Share:', err);
-    }
-  }
-}
-
-// 1. Pengiriman Langsung Mengarah Otomatis ke Nomor Wali Santri (Tanpa Perlu Memilih Kontak & TANPA auto download)
-async function sendDirectWhatsApp() {
-  const cleanPhone = cleanPhoneNumber(targetPhone.value);
-  if (!cleanPhone) {
-    toast.warning('Nomor WhatsApp tujuan belum diisi.');
-    return;
-  }
-
-  // A. Salin gambar kuitansi ke Clipboard secara otomatis (jika didukung peramban desktop untuk Ctrl+V)
-  try {
-    if (imageBlob.value && navigator.clipboard && window.ClipboardItem) {
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': imageBlob.value })
-      ]);
-    }
-  } catch (err) {
-    // Graceful ignore jika peramban membatasi akses clipboard image
-  }
-
-  // PENTING: TIDAK ADA downloadImage() di sini!
-  // Unduh kuitansi HANYA berjalan jika user secara sengaja mengklik tombol 'Unduh PNG'.
-
-  // B. Buka WhatsApp LANGSUNG ke nomor tujuan wali santri tanpa perlu mencari/memilih kontak
-  const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}`;
-  window.open(waUrl, '_blank');
-
-  toast.success('Membuka chat nomor wali santri. Gambar telah disalin ke clipboard (Ctrl+V jika di komputer).');
-  emit('sent');
-}
-
-// 2. Pengiriman Otomatis via Gateway Fonnte API (Server Mengirim Gambar Murni Tanpa Tulisan)
+// 1. Pengiriman Otomatis via Gateway Fonnte API (Server Mengirim Gambar Kuitansi Langsung ke Wali Santri)
 async function sendViaGateway() {
   const cleanPhone = cleanPhoneNumber(targetPhone.value);
   if (!cleanPhone) {
@@ -346,10 +268,13 @@ async function sendViaGateway() {
 
   isSendingGateway.value = true;
   try {
-    // Sesuai permintaan: hanya mengirimkan gambar murni tanpa teks penjelasan di bawahnya
+    const santri = props.kuitansiData?.nama_santri || 'Santri';
+    const noKw = props.kuitansiData?.nomor_kuitansi || '';
+    const caption = `Kuitansi Pembayaran SPP an. ${santri}${noKw ? ' (' + noKw + ')' : ''}`;
+
     const res = await api.post('/wa/send-kuitansi-image', {
       phone: cleanPhone,
-      message: '', // Kosongkan caption: hanya gambar kuitansi murni
+      message: caption,
       image_base64: imageUrl.value,
       nomor_kuitansi: props.kuitansiData?.nomor_kuitansi,
       nama_penerima: props.kuitansiData?.nama_santri,
@@ -368,5 +293,55 @@ async function sendViaGateway() {
   } finally {
     isSendingGateway.value = false;
   }
+}
+
+// 2. Buka Chat WhatsApp Langsung Mengarah Otomatis ke Nomor Wali Santri dengan Teks Otomatis Terisi
+async function sendDirectWhatsApp() {
+  const cleanPhone = cleanPhoneNumber(targetPhone.value);
+  if (!cleanPhone) {
+    toast.warning('Nomor WhatsApp tujuan belum diisi.');
+    return;
+  }
+
+  // Salin gambar kuitansi ke Clipboard secara otomatis (jika didukung peramban desktop untuk Ctrl+V)
+  try {
+    if (imageBlob.value && navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': imageBlob.value }),
+      ]);
+    }
+  } catch (err) {
+    // Graceful ignore
+  }
+
+  const k = props.kuitansiData || {};
+  const namaSantri = k.nama_santri || 'Santri';
+  const kelas = k.kelas ? ` (${k.kelas})` : '';
+  const noKw = k.nomor_kuitansi || '-';
+  const periode = k.daftar_bulan_str || k.bulan_tagihan || k.catatan || 'SPP';
+  const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
+  const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const bendahara = k.nama_bendahara || 'Bendahara TPQ';
+
+  const textMessage = `Assalamu'alaikum Warahmatullahi Wabarakatuh.
+Yth. Bapak/Ibu Wali dari ananda *${namaSantri}*${kelas},
+
+Alhamdulillah, pembayaran SPP telah kami terima dan tercatat di sistem:
+• No. Kuitansi: *${noKw}*
+• Periode: *${periode}*
+• Total Bayar: *Rp ${nominal}*
+• Tanggal: *${tanggal}*
+• Status: *LUNAS*
+• Bendahara: *${bendahara}*
+
+Jazakumullah khairan katsiran atas pembayaran kewajiban administrasi santri.
+Wassalamu'alaikum Warahmatullahi Wabarakatuh.`;
+
+  const encodedText = encodeURIComponent(textMessage);
+  const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+  window.open(waUrl, '_blank');
+
+  toast.success('Membuka chat WhatsApp nomor wali santri dengan rincian kuitansi otomatis terisi.');
+  emit('sent');
 }
 </script>

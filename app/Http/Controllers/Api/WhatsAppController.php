@@ -240,8 +240,14 @@ class WhatsAppController extends Controller
         ]);
 
         $phone = (string) $request->input('phone');
-        $message = (string) ($request->input('message') ?? '');
         $nomorKuitansi = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) $request->input('nomor_kuitansi', 'SPP'));
+        $namaPenerima = (string) $request->input('nama_penerima', '');
+        $message = trim((string) ($request->input('message') ?? ''));
+
+        if (empty($message)) {
+            $message = 'Kuitansi Pembayaran SPP'.(! empty($namaPenerima) ? " an. {$namaPenerima}" : '').(! empty($nomorKuitansi) ? " ({$nomorKuitansi})" : '');
+        }
+
         $filename = 'Kuitansi-'.($nomorKuitansi ?: 'SPP').'.png';
 
         $tempPath = null;

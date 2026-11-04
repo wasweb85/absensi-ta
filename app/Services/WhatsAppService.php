@@ -224,9 +224,10 @@ class WhatsAppService
         }
 
         try {
+            $fallbackMsg = 'Kuitansi Pembayaran SPP';
             $payload = [
                 'target' => $target,
-                'message' => $message ?: '',
+                'message' => ! empty($message) ? $message : $fallbackMsg,
                 'countryCode' => '62',
             ];
 
@@ -241,12 +242,9 @@ class WhatsAppService
                     $postData = [
                         'target' => $target,
                         'file' => new \CURLFile($filePath, 'image/png', $filename ?: basename($filePath)),
+                        'message' => ! empty($message) ? $message : $fallbackMsg,
                         'countryCode' => '62',
                     ];
-
-                    if (! empty($message)) {
-                        $postData['message'] = $message;
-                    }
 
                     if (! empty($filename)) {
                         $postData['filename'] = $filename;
