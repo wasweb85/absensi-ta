@@ -362,19 +362,19 @@
             id="printCardArea"
             class="ktp-card-root mx-auto w-[280px] h-[444px] rounded-[22px] overflow-hidden border border-[#D4E0EC] bg-[#F4F7FB] shadow-xl flex flex-col justify-between text-center select-none"
           >
-            <!-- Header Kartu: Deep Navy dengan Radial Glow & Pola Titik Halus -->
-            <div class="relative pt-4 pb-3 px-3 bg-[#0C1830] text-center overflow-hidden shrink-0 header-navy-bg">
-              <div class="absolute inset-0 opacity-20 pointer-events-none stars-pattern"></div>
+            <!-- Header Kartu: Deep Navy Kompak dengan Radial Glow & Pola Bintang Halus -->
+            <div class="relative pt-2.5 pb-2 px-3 bg-[#0C1830] text-center overflow-hidden shrink-0 header-navy-bg flex flex-col items-center justify-center">
+              <div class="absolute inset-0 opacity-10 pointer-events-none stars-pattern"></div>
               
               <div class="relative z-10 flex flex-col items-center">
-                <p class="text-[9.5px] font-bold text-[#F4BE2C] tracking-[0.18em] uppercase">
+                <p class="text-[8.5px] font-bold text-[#F5B82E] tracking-[0.16em] uppercase leading-none">
                   TAMAN PENDIDIKAN AL-QUR'AN
                 </p>
-                <h3 class="text-[20px] font-black text-white tracking-[0.06em] uppercase mt-0.5 mb-2 leading-none">
+                <h3 class="text-[18px] font-black text-white tracking-wide uppercase mt-1 mb-1 leading-none">
                   NURUL MUN'IM
                 </h3>
-                <div class="inline-flex items-center justify-center px-6 py-1 rounded-full bg-gradient-to-b from-[#FCD34D] via-[#F59E0B] to-[#D97706] shadow-sm shadow-amber-500/30">
-                  <span class="text-[10px] font-black tracking-[0.14em] text-[#1E1B18] uppercase">
+                <div class="inline-flex items-center justify-center px-4 py-0.5 rounded-full bg-gradient-to-b from-[#FCD34D] via-[#F59E0B] to-[#D97706] shadow-sm shadow-amber-500/25">
+                  <span class="text-[9px] font-black tracking-[0.12em] text-[#1E1B18] uppercase">
                     KARTU SANTRI
                   </span>
                 </div>
@@ -382,18 +382,18 @@
             </div>
 
             <!-- Garis Aksen Oranye Bawah Header -->
-            <div class="h-[3px] w-full bg-gradient-to-r from-[#B45309] via-[#F59E0B] to-[#D97706] shrink-0"></div>
+            <div class="h-[2.5px] w-full bg-gradient-to-r from-[#B45309] via-[#F59E0B] to-[#D97706] shrink-0"></div>
 
             <!-- Badan Kartu: Soft Light Blue-White -->
-            <div class="flex-1 flex flex-col items-center justify-between pt-3 pb-3 px-4 bg-[#F4F7FB]">
+            <div class="flex-1 flex flex-col items-center justify-between pt-3 pb-2.5 px-3 bg-[#F4F7FB]">
               <!-- Wadah QR Code Putih Sudut Membulat -->
-              <div class="bg-white rounded-[20px] p-2.5 border border-[#E2E8F0] shadow-[0_4px_14px_rgba(0,0,0,0.04)] flex items-center justify-center">
+              <div class="bg-white rounded-[18px] p-2 border border-[#E2E8F0] shadow-[0_4px_12px_rgba(0,0,0,0.03)] flex items-center justify-center">
                 <canvas ref="qrCanvasRef" class="w-[145px] h-[145px] block"></canvas>
               </div>
 
               <!-- Bagian Nama Santri -->
               <div class="w-full text-center mt-1">
-                <span class="block text-[9px] font-bold text-[#7E8B9B] tracking-[0.2em] uppercase mb-0.5">
+                <span class="block text-[8.5px] font-bold text-[#7E8B9B] tracking-[0.18em] uppercase mb-0.5 leading-none">
                   NAMA
                 </span>
                 <h4 class="text-[15px] font-black text-[#0B132B] uppercase tracking-normal leading-tight text-center max-w-[245px] mx-auto break-words line-clamp-2">
@@ -402,16 +402,16 @@
               </div>
 
               <!-- Lencana Kapsul ID / NISN -->
-              <div class="inline-flex items-center justify-center gap-1.5 px-4 py-1 rounded-xl bg-[#EDF3F8] border border-[#D2DDE8]">
-                <span class="text-[10px] font-bold text-[#64748B] tracking-wider">ID</span>
-                <span class="text-[13px] font-black text-[#0B132B] tracking-wider">{{ selectedCardStudent?.nisn }}</span>
+              <div class="inline-flex items-center justify-center gap-1.5 px-3.5 py-0.5 rounded-xl bg-[#EDF3F8] border border-[#D2DDE8]">
+                <span class="text-[9.5px] font-bold text-[#64748B] tracking-wider">ID</span>
+                <span class="text-[12.5px] font-black text-[#0B132B] tracking-wider">{{ selectedCardStudent?.nisn }}</span>
               </div>
 
               <!-- Garis Pembatas Putus-putus -->
-              <div class="w-[74%] border-t border-dashed border-[#CBD5E1] my-1.5"></div>
+              <div class="w-[74%] border-t border-dashed border-[#CBD5E1] my-1"></div>
 
               <!-- Branding Footer -->
-              <p class="text-[8.5px] font-bold text-[#7E8B9B] tracking-[0.14em] uppercase mb-0.5">
+              <p class="text-[8px] font-bold text-[#7E8B9B] tracking-[0.14em] uppercase mb-0.5 leading-none">
                 TPQ NURUL MUN'IM . SISTEM DIGITAL
               </p>
             </div>
@@ -724,60 +724,60 @@ const downloadCardImage = () => {
   ctx.fillStyle = '#F4F7FB';
   ctx.fillRect(0, 0, width, height);
 
-  // 3. Header Navy Gradient
-  const headerHeight = 255;
-  const headerGrad = ctx.createRadialGradient(width / 2, 60, 20, width / 2, 100, 260);
-  headerGrad.addColorStop(0, '#1d345a');
-  headerGrad.addColorStop(0.65, '#0c1830');
+  // 3. Header Navy Gradient (Tinggi 22.9% sesuai referensi)
+  const headerHeight = 196;
+  const headerGrad = ctx.createRadialGradient(width / 2, 60, 20, width / 2, 85, 200);
+  headerGrad.addColorStop(0, '#1b3560');
+  headerGrad.addColorStop(0.55, '#0c1830');
   headerGrad.addColorStop(1, '#070e1c');
   ctx.fillStyle = headerGrad;
   ctx.fillRect(0, 0, width, headerHeight);
 
-  // Pola titik halus (micro-stars) pada header
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-  for (let x = 16; x < width; x += 24) {
-    for (let y = 16; y < headerHeight - 12; y += 24) {
+  // Pola titik halus (micro-stars) pada header yang lembut
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  for (let x = 16; x < width; x += 22) {
+    for (let y = 14; y < headerHeight - 8; y += 22) {
       ctx.beginPath();
-      ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+      ctx.arc(x, y, 1.1, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  // 4. Subtitle: TAMAN PENDIDIKAN AL-QUR'AN
+  // 4. Subtitle: TAMAN PENDIDIKAN AL-QUR'AN (posisi kompak di atas)
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#F4BE2C';
-  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  try { ctx.letterSpacing = '3px'; } catch (_) {}
-  ctx.fillText("TAMAN PENDIDIKAN AL-QUR'AN", width / 2, 58);
+  ctx.fillStyle = '#F5B82E';
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '2.5px'; } catch (_) {}
+  ctx.fillText("TAMAN PENDIDIKAN AL-QUR'AN", width / 2, 48);
 
   // 5. Title Utama: NURUL MUN'IM
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '900 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  try { ctx.letterSpacing = '2px'; } catch (_) {}
-  ctx.fillText("NURUL MUN'IM", width / 2, 110);
+  ctx.font = '900 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '1.5px'; } catch (_) {}
+  ctx.fillText("NURUL MUN'IM", width / 2, 88);
 
-  // 6. Tombol Lencana Emas: KARTU SANTRI
-  const pillW = 230;
-  const pillH = 46;
+  // 6. Tombol Lencana Emas: KARTU SANTRI (posisi kompak proporsional)
+  const pillW = 210;
+  const pillH = 40;
   const pillX = (width - pillW) / 2;
-  const pillY = 140;
+  const pillY = 120;
   ctx.save();
-  drawRoundedRect(pillX, pillY, pillW, pillH, 23);
+  drawRoundedRect(pillX, pillY, pillW, pillH, 20);
   const pillGrad = ctx.createLinearGradient(pillX, pillY, pillX, pillY + pillH);
   pillGrad.addColorStop(0, '#FCD34D');
   pillGrad.addColorStop(0.5, '#F59E0B');
   pillGrad.addColorStop(1, '#D97706');
   ctx.fillStyle = pillGrad;
-  ctx.shadowColor = 'rgba(217, 119, 6, 0.45)';
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 4;
+  ctx.shadowColor = 'rgba(217, 119, 6, 0.35)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 3;
   ctx.fill();
   ctx.restore();
 
   ctx.fillStyle = '#1E1B18';
-  ctx.font = '900 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  try { ctx.letterSpacing = '2.5px'; } catch (_) {}
-  ctx.fillText('KARTU SANTRI', width / 2, 170);
+  ctx.font = '900 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '2px'; } catch (_) {}
+  ctx.fillText('KARTU SANTRI', width / 2, 146);
 
   // 7. Garis Pembatas Oranye
   const divGrad = ctx.createLinearGradient(0, 0, width, 0);
@@ -785,18 +785,18 @@ const downloadCardImage = () => {
   divGrad.addColorStop(0.5, '#F59E0B');
   divGrad.addColorStop(1, '#D97706');
   ctx.fillStyle = divGrad;
-  ctx.fillRect(0, headerHeight, width, 6);
+  ctx.fillRect(0, headerHeight, width, 5);
 
   // 8. Wadah Putih QR Code
   const qrBoxSize = 310;
   const qrBoxX = (width - qrBoxSize) / 2;
-  const qrBoxY = 282;
+  const qrBoxY = 226;
   ctx.save();
-  drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 40);
+  drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 38);
   ctx.fillStyle = '#FFFFFF';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.05)';
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 6;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.04)';
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetY = 4;
   ctx.fill();
   ctx.strokeStyle = '#E2E8F0';
   ctx.lineWidth = 2;
@@ -813,9 +813,9 @@ const downloadCardImage = () => {
 
   // 10. Label NAMA
   ctx.fillStyle = '#7E8B9B';
-  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '3px'; } catch (_) {}
-  ctx.fillText('NAMA', width / 2, 630);
+  ctx.fillText('NAMA', width / 2, 574);
 
   // 11. Nama Santri
   const nameStr = (student.nama_lengkap || '').toUpperCase();
@@ -824,17 +824,17 @@ const downloadCardImage = () => {
   if (nameStr.length > 25) {
     ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   } else {
-    ctx.font = '900 29px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   }
-  ctx.fillText(nameStr, width / 2, 668);
+  ctx.fillText(nameStr, width / 2, 612);
 
   // 12. Lencana Kapsul ID
-  const idBadgeW = 260;
-  const idBadgeH = 48;
+  const idBadgeW = 250;
+  const idBadgeH = 44;
   const idBadgeX = (width - idBadgeW) / 2;
-  const idBadgeY = 696;
+  const idBadgeY = 642;
   ctx.save();
-  drawRoundedRect(idBadgeX, idBadgeY, idBadgeW, idBadgeH, 18);
+  drawRoundedRect(idBadgeX, idBadgeY, idBadgeW, idBadgeH, 16);
   ctx.fillStyle = '#EDF3F8';
   ctx.fill();
   ctx.strokeStyle = '#D1DCE7';
@@ -843,14 +843,14 @@ const downloadCardImage = () => {
   ctx.restore();
 
   ctx.fillStyle = '#64748B';
-  ctx.font = 'bold 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '1px'; } catch (_) {}
-  ctx.fillText('ID', width / 2 - 40, 727);
+  ctx.fillText('ID', width / 2 - 38, 671);
 
   ctx.fillStyle = '#0B132B';
   ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '2px'; } catch (_) {}
-  ctx.fillText(String(student.nisn || '-'), width / 2 + 18, 728);
+  ctx.fillText(String(student.nisn || '-'), width / 2 + 18, 672);
 
   // 13. Garis Putus-putus
   ctx.save();
@@ -858,16 +858,16 @@ const downloadCardImage = () => {
   ctx.strokeStyle = '#CBD5E1';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(80, 775);
-  ctx.lineTo(width - 80, 775);
+  ctx.moveTo(75, 724);
+  ctx.lineTo(width - 75, 724);
   ctx.stroke();
   ctx.restore();
 
   // 14. Footer
   ctx.fillStyle = '#7E8B9B';
-  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '2.5px'; } catch (_) {}
-  ctx.fillText("TPQ NURUL MUN'IM . SISTEM DIGITAL", width / 2, 815);
+  ctx.fillText("TPQ NURUL MUN'IM . SISTEM DIGITAL", width / 2, 768);
 
   // 15. Garis Tepi Luar Kartu
   ctx.strokeStyle = '#D4E0EC';
@@ -926,13 +926,13 @@ onMounted(() => {
 
 <style scoped>
 .header-navy-bg {
-  background: radial-gradient(circle at 50% 20%, #1e365d 0%, #0c1830 65%, #070e1c 100%);
+  background: radial-gradient(circle at 50% 25%, #1b3560 0%, #0c1830 55%, #070e1c 100%);
   background-color: #0c1830;
 }
 
 .stars-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px);
-  background-size: 13px 13px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 14px 14px;
 }
 
 @media print {
