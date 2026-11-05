@@ -14,13 +14,17 @@
       <!-- Jadwal Presensi Badges -->
       <div class="flex items-center gap-2 text-xs flex-wrap">
         <Badge variant="outline" class="gap-1 font-normal text-xs py-1">
-          <span class="text-muted-foreground">Masuk:</span>
+          <span class="text-muted-foreground">Buka:</span>
           <strong class="font-semibold text-foreground">{{ configData.jam_masuk }}</strong>
         </Badge>
         <Badge variant="secondary" class="gap-1 font-normal text-xs py-1 border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
           <Clock class="size-3" />
-          <span>Terlambat:</span>
+          <span>Batas Terlambat:</span>
           <strong class="font-semibold">{{ configData.jam_terlambat }}</strong>
+        </Badge>
+        <Badge variant="outline" class="gap-1 font-normal text-xs py-1 border-rose-500/30 bg-rose-500/5 text-rose-700 dark:text-rose-400">
+          <span class="text-muted-foreground">Tutup Scan:</span>
+          <strong class="font-semibold">{{ configData.jam_tutup_scan || configData.jam_pulang || '12:00' }}</strong>
         </Badge>
       </div>
     </div>
@@ -381,6 +385,8 @@ const scanLogs = ref([]);
 const configData = ref({
   jam_masuk: '07:00',
   jam_terlambat: '07:15',
+  jam_pulang: '12:00',
+  jam_tutup_scan: '12:00',
 });
 
 let html5QrCode = null;
@@ -845,6 +851,8 @@ const loadConfig = async () => {
       configData.value = {
         jam_masuk: res.data.jam_masuk,
         jam_terlambat: res.data.jam_terlambat,
+        jam_pulang: res.data.jam_pulang || '12:00',
+        jam_tutup_scan: res.data.jam_tutup_scan || res.data.jam_pulang || '12:00',
       };
     }
   } catch (e) {}

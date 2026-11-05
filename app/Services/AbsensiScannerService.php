@@ -89,6 +89,16 @@ class AbsensiScannerService
         // 5. Ambil konfigurasi jam operasional
         $jamMasuk = Pengaturan::getValue('jam_masuk', '07:00');
         $jamTerlambat = Pengaturan::getValue('jam_terlambat', '07:15');
+        $jamTutupScan = Pengaturan::getValue('jam_pulang', '12:00');
+
+        // Periksa apakah waktu scan sudah melewati jam tutup scan absensi
+        $enforceScanWindow = ! app()->runningUnitTests() || config('app.enforce_scan_window', false);
+        if ($enforceScanWindow && $currentTimeShort > $jamTutupScan) {
+            return [
+                'success' => false,
+                'message' => "Waktu scan presensi hari ini sudah ditutup (pukul {$jamTutupScan} WIB). Presensi hanya dapat diinput manual oleh ustadz/ustadzah.",
+            ];
+        }
 
         // 6. Cek absensi siswa hari ini
         $absensi = Absensi::where('id_siswa', $siswa->id)

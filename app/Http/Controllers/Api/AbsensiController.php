@@ -166,31 +166,43 @@ class AbsensiController extends Controller
 
         // Sinkronkan perubahan status manual ke Google Spreadsheet secara deferred di background
         $siswa = Siswa::with('kelas')->find($validated['id_siswa']);
+        $isWithinScanWindow = false;
         if ($siswa) {
             $currentTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
+            $currentTimeShort = substr($currentTime, 0, 5);
             $status = $validated['status'];
             $waktuMasuk = $absensi->waktu_masuk ?: $currentTime;
             $tanggal = $validated['tanggal'];
             $waktuPulang = $absensi->waktu_pulang ?: '-';
             $keterangan = ($validated['keterangan'] ?? null) ?: ($status === 'Hadir' ? 'Tepat Waktu' : '-');
 
+            $jamMasuk = Pengaturan::getValue('jam_masuk', '07:00');
+            $jamTutupScan = Pengaturan::getValue('jam_pulang', '12:00');
+            $isWithinScanWindow = ($currentTimeShort >= $jamMasuk && $currentTimeShort <= $jamTutupScan);
+
+            $waStatusNote = '';
+            if (in_array($status, ['Hadir', 'Terlambat'], true)) {
+                $waStatusNote = $isWithinScanWindow ? '' : ' [Di luar rentang buka-tutup scan: notif WA tidak dikirim]';
+            }
+
             ActivityLog::record(
                 modul: 'presensi',
                 aksi: 'ubah',
-                deskripsi: "Perubahan manual presensi {$siswa->nama_lengkap} tanggal {$tanggal} menjadi {$status}".(! empty($validated['keterangan']) ? " ({$validated['keterangan']})" : ''),
+                deskripsi: "Perubahan manual presensi {$siswa->nama_lengkap} tanggal {$tanggal} menjadi {$status}".(! empty($validated['keterangan']) ? " ({$validated['keterangan']})" : '').$waStatusNote,
                 properties: [
                     'id_siswa' => $siswa->id,
                     'status' => $status,
                     'tanggal' => $tanggal,
                     'keterangan' => $validated['keterangan'] ?? null,
+                    'wa_sent' => $isWithinScanWindow && in_array($status, ['Hadir', 'Terlambat'], true) && $previousStatus !== $status,
                 ]
             );
 
             // Kirim notifikasi WA ke wali hanya untuk kehadiran (Hadir/Terlambat) hari ini
-            // dan hanya saat status berubah, agar tidak terkirim ganda.
+            // dan hanya saat status berubah, serta HANYA pada rentang waktu buka scan absen s/d tutup scan.
             $waPlan = null;
             $isToday = $tanggal === Carbon::now('Asia/Jakarta')->format('Y-m-d');
-            if ($isToday && in_array($status, ['Hadir', 'Terlambat'], true) && $previousStatus !== $status) {
+            if ($isToday && in_array($status, ['Hadir', 'Terlambat'], true) && $previousStatus !== $status && $isWithinScanWindow) {
                 $waPlan = $this->scannerService->preparePresensiNotification(
                     $siswa,
                     $status,
@@ -224,9 +236,14 @@ class AbsensiController extends Controller
             });
         }
 
+        $message = 'Status absensi berhasil diperbarui';
+        if (in_array($validated['status'], ['Hadir', 'Terlambat'], true) && ! $isWithinScanWindow) {
+            $message .= ' (Di luar jam scan: notifikasi WA tidak dikirim)';
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Status absensi berhasil diperbarui',
+            'message' => $message,
             'data' => $absensi->load('siswa'),
         ]);
     }
@@ -276,6 +293,7 @@ class AbsensiController extends Controller
     public function config(): JsonResponse
     {
         $now = Carbon::now('Asia/Jakarta');
+        $jamPulang = Pengaturan::getValue('jam_pulang', '12:00');
 
         return response()->json([
             'success' => true,
@@ -285,7 +303,8 @@ class AbsensiController extends Controller
             'server_date_formatted' => $now->translatedFormat('l, d F Y'),
             'jam_masuk' => Pengaturan::getValue('jam_masuk', '07:00'),
             'jam_terlambat' => Pengaturan::getValue('jam_terlambat', '07:15'),
-            'jam_pulang' => Pengaturan::getValue('jam_pulang', '12:00'),
+            'jam_pulang' => $jamPulang,
+            'jam_tutup_scan' => $jamPulang,
             'nama_instansi' => Pengaturan::getValue('nama_instansi', 'Sekolah / Lembaga'),
         ]);
     }

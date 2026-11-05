@@ -259,7 +259,7 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm font-semibold text-foreground">Jam Operasional Presensi</span>
                 <span class="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
-                  {{ settings.jam_masuk }} - {{ settings.jam_terlambat }} WIB
+                  {{ settings.jam_masuk }} - {{ settings.jam_pulang }} WIB (Batas: {{ settings.jam_terlambat }})
                 </span>
               </div>
               <p class="text-xs text-muted-foreground truncate mt-0.5">
@@ -281,14 +281,14 @@
           <!-- Time Inputs -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             <div class="space-y-1.5">
-              <Label for="jamMasuk" class="text-xs font-medium">Jam Masuk</Label>
+              <Label for="jamMasuk" class="text-xs font-medium">Buka Scan Absensi (Jam Masuk)</Label>
               <Input
                 id="jamMasuk"
                 v-model="settings.jam_masuk"
                 type="time"
                 class="h-9 text-xs"
               />
-              <p class="text-[10px] text-muted-foreground">Mulai tap scan masuk</p>
+              <p class="text-[10px] text-muted-foreground">Waktu mulai scan presensi dibuka</p>
             </div>
 
             <div class="space-y-1.5">
@@ -303,14 +303,14 @@
             </div>
 
             <div class="space-y-1.5">
-              <Label for="jamPulang" class="text-xs font-medium">Jam Pulang</Label>
+              <Label for="jamPulang" class="text-xs font-medium">Jam Tutup Scan Absensi</Label>
               <Input
                 id="jamPulang"
                 v-model="settings.jam_pulang"
                 type="time"
                 class="h-9 text-xs"
               />
-              <p class="text-[10px] text-muted-foreground">Waktu tap kepulangan santri</p>
+              <p class="text-[10px] text-muted-foreground">Batas akhir waktu scan presensi (tutup scan)</p>
             </div>
           </div>
 
