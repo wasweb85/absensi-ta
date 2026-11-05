@@ -537,15 +537,17 @@ const loadMonitoring = async () => {
 };
 
 onMounted(async () => {
+  // Ambil profil terbaru agar perubahan penugasan jilid & binaan langsung sinkron
+  await fetchUser();
+
   if (user.value?.id_kelas && !selectedKelas.value) {
     selectedKelas.value = user.value.id_kelas;
   }
-  if (user.value?.role === 'guru') {
-    // Ambil profil terbaru agar perubahan kelompok binaan oleh admin langsung berlaku
-    await fetchUser();
-    const binaan = user.value?.gender_binaan;
-    selectedGender.value = ['L', 'P'].includes(binaan) ? binaan : '';
+  const binaan = user.value?.gender_binaan;
+  if (['L', 'P'].includes(binaan) && !selectedGender.value) {
+    selectedGender.value = binaan;
   }
+
   await Promise.all([loadKelas(), loadMonitoring()]);
 });
 </script>

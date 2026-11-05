@@ -65,7 +65,7 @@ class AbsensiScannerService
         }
 
         // 3. Validasi akses kelas hanya jika scanner meminta pembatasan kelas jilidnya saja
-        if ($restrictKelas && $scannerRole === 'guru' && ! empty($scannerKelas) && $scannerKelas !== 'semua') {
+        if ($restrictKelas && in_array($scannerRole, ['guru', 'bendahara'], true) && ! empty($scannerKelas) && $scannerKelas !== 'semua') {
             if ($siswa->kelas && strtoupper(trim($siswa->kelas->nama_kelas)) !== strtoupper(trim($scannerKelas))) {
                 return [
                     'success' => false,

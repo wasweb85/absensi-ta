@@ -63,9 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/siswa/{id}', [SiswaController::class, 'destroy'])->whereNumber('id');
     });
 
-    // Modul Absensi (Lihat: Semua Staff & Kepala; Ubah Status: Pengajar, Sekretaris, Admin)
+    // Modul Absensi (Lihat: Semua Staff & Kepala; Ubah Status: Pengajar, Bendahara, Sekretaris, Admin)
     Route::prefix('absensi')->group(function () {
-        Route::post('/status', [AbsensiController::class, 'updateStatus'])->middleware('role:admin,sekretaris,guru');
+        Route::post('/status', [AbsensiController::class, 'updateStatus'])->middleware('role:admin,sekretaris,guru,bendahara');
         Route::get('/matrix', [AbsensiController::class, 'matrix'])->middleware('role:admin,kepala,sekretaris,bendahara,guru');
         Route::get('/riwayat', [AbsensiController::class, 'riwayat'])->middleware('role:admin,kepala,sekretaris,bendahara,guru');
     });

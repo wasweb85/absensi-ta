@@ -39,7 +39,7 @@ class AbsensiController extends Controller
         $user = $request->user();
         if ($user) {
             $role = $user->role;
-            $kelas = ($restrictKelas && $user->role === 'guru' && $user->kelas)
+            $kelas = ($restrictKelas && in_array($user->role, ['guru', 'bendahara'], true) && $user->kelas)
                 ? $user->kelas->nama_kelas
                 : ($request->input('scanner_kelas') ?: null);
         } else {
@@ -65,9 +65,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
-        // Default filter gender mengikuti kelompok binaan guru jika parameter tidak dikirimkan, namun tetap fleksibel jika guru memilih opsi lain
+        // Default filter gender mengikuti kelompok binaan guru/bendahara jika parameter tidak dikirimkan, namun tetap fleksibel jika memilih opsi lain
         $jenisKelamin = $request->input('jenis_kelamin');
-        if (! $request->has('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if (! $request->has('jenis_kelamin') && $user && in_array($user->role, ['guru', 'bendahara'], true) && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 
@@ -102,9 +102,9 @@ class AbsensiController extends Controller
             ? $user->gender_binaan
             : null;
 
-        // Default filter gender mengikuti kelompok binaan guru jika parameter tidak dikirimkan, namun tetap fleksibel jika guru memilih opsi lain
+        // Default filter gender mengikuti kelompok binaan guru/bendahara jika parameter tidak dikirimkan, namun tetap fleksibel jika memilih opsi lain
         $jenisKelamin = $request->input('jenis_kelamin');
-        if (! $request->has('jenis_kelamin') && $user && $user->role === 'guru' && in_array($userGenderBinaan, ['L', 'P'], true)) {
+        if (! $request->has('jenis_kelamin') && $user && in_array($user->role, ['guru', 'bendahara'], true) && in_array($userGenderBinaan, ['L', 'P'], true)) {
             $jenisKelamin = $userGenderBinaan;
         }
 
@@ -116,7 +116,7 @@ class AbsensiController extends Controller
 
         $waliInfo = null;
         if ($idKelas && $idKelas !== -1) {
-            $teachers = User::where('id_kelas', $idKelas)->where('role', 'guru')->get();
+            $teachers = User::where('id_kelas', $idKelas)->whereIn('role', ['guru', 'bendahara', 'sekretaris'])->get();
             $waliInfo = [
                 'nama_kelas' => Kelas::find($idKelas)?->nama_kelas,
                 'wali_putra' => $teachers->firstWhere('gender_binaan', 'L')?->name,

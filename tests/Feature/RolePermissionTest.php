@@ -194,17 +194,26 @@ class RolePermissionTest extends TestCase
         $resAdmin->assertStatus(200);
     }
 
-    public function test_bendahara_cannot_update_absensi_status(): void
+    public function test_bendahara_can_update_absensi_status(): void
     {
         $today = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
-        // Bendahara tries to update absensi status -> 403 Forbidden
+        // Bendahara can update absensi status (because bendahara also teaches / acts as wali jilid)
         $resBendahara = $this->actingAs($this->bendahara, 'sanctum')->postJson('/api/absensi/status', [
             'id_siswa' => $this->siswa->id,
             'tanggal' => $today,
             'status' => 'Izin',
         ]);
-        $resBendahara->assertStatus(403);
+        $resBendahara->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $this->assertDatabaseHas('absensi', [
+            'id_siswa' => $this->siswa->id,
+            'tanggal' => $today,
+            'status' => 'Izin',
+        ]);
     }
 
     public function test_kepala_and_bendahara_can_view_wa_logs_but_cannot_broadcast(): void

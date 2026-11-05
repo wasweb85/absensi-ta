@@ -17,8 +17,8 @@ export function useAuth() {
     const isGuru = computed(() => role.value === 'guru');
 
     // Matriks Wewenang Baru (RBAC Standar Lembaga Pendidikan)
-    const canScanQr = computed(() => ['admin', 'sekretaris', 'guru'].includes(role.value));
-    const canEditAbsensi = computed(() => ['admin', 'sekretaris', 'guru'].includes(role.value));
+    const canScanQr = computed(() => ['admin', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
+    const canEditAbsensi = computed(() => ['admin', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
     const canDoAbsensi = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
     const canViewRekapMatrix = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
     
