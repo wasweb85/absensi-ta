@@ -183,6 +183,34 @@ class AbsensiJamOperasionalTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_scanner_rejects_scan_before_jam_masuk(): void
+    {
+        config(['app.enforce_scan_window' => true]);
+        // Set jam masuk 15:30, uji coba scan pukul 13:46 WIB
+        Pengaturan::setValue('jam_masuk', '15:30');
+        Pengaturan::setValue('jam_pulang', '17:30');
+        Carbon::setTestNow(Carbon::parse('2026-11-05 13:46:00', 'Asia/Jakarta'));
+
+        $response = $this->postJson('/api/absensi/scan', [
+            'nisn' => '9901',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
+
+        $this->assertStringContainsString('Waktu scan presensi hari ini belum dibuka', $response->json('message'));
+        $this->assertStringContainsString('15:30', $response->json('message'));
+
+        $this->assertDatabaseMissing('absensi', [
+            'id_siswa' => $this->siswa->id,
+            'tanggal' => '2026-11-05',
+        ]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_scanner_rejects_scan_after_jam_tutup_scan(): void
     {
         config(['app.enforce_scan_window' => true]);

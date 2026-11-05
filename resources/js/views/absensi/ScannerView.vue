@@ -26,6 +26,11 @@
           <span class="text-muted-foreground">Tutup Scan:</span>
           <strong class="font-semibold">{{ configData.jam_tutup_scan || configData.jam_pulang || '12:00' }}</strong>
         </Badge>
+        <!-- Status Operasional Realtime -->
+        <Badge variant="outline" class="gap-1.5 font-medium text-xs py-1 transition-colors" :class="scanStatusInfo.classes">
+          <span class="size-2 rounded-full" :class="scanStatusInfo.dotClass"></span>
+          <span>{{ scanStatusInfo.label }}</span>
+        </Badge>
       </div>
     </div>
 
@@ -356,7 +361,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import {
   Camera,
@@ -401,6 +406,33 @@ const configData = ref({
   jam_terlambat: '07:15',
   jam_pulang: '12:00',
   jam_tutup_scan: '12:00',
+});
+
+const scanStatusInfo = computed(() => {
+  const now = new Date();
+  const currentShort = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const buka = configData.value.jam_masuk || '07:00';
+  const tutup = configData.value.jam_tutup_scan || configData.value.jam_pulang || '12:00';
+
+  if (currentShort < buka) {
+    return {
+      label: `Belum Buka (Buka ${buka})`,
+      classes: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+      dotClass: 'bg-amber-500',
+    };
+  }
+  if (currentShort > tutup) {
+    return {
+      label: `Scan Ditutup (${tutup})`,
+      classes: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400',
+      dotClass: 'bg-rose-500',
+    };
+  }
+  return {
+    label: 'Scan Aktif',
+    classes: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    dotClass: 'bg-emerald-500 animate-pulse',
+  };
 });
 
 let html5QrCode = null;
