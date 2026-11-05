@@ -61,6 +61,19 @@
 
             <!-- Tombol Aksi Kamera (Sejajar dengan Pilihan Kamera, Cukup Icon Saja) -->
             <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Tombol Tes Suara (Ting!) -->
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="size-8 p-0 shrink-0 shadow-2xs text-muted-foreground hover:text-emerald-600 hover:border-emerald-500/50"
+                title="Tes Suara Scan (Ting!)"
+                @click="testSound"
+              >
+                <Volume2 class="size-4" />
+                <span class="sr-only">Tes Suara Scan</span>
+              </Button>
+
               <!-- Tombol Balik Kamera (Icon Saja) -->
               <Button
                 v-if="cameraActive"
@@ -356,6 +369,7 @@ import {
   AlertCircle,
   ChevronDown,
   SwitchCamera,
+  Volume2,
 } from '@lucide/vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -392,6 +406,62 @@ const configData = ref({
 let html5QrCode = null;
 
 let audioCtx = null;
+let tingAudioBlobUrl = null;
+let tingAudioElement = null;
+
+// Menghasilkan audio WAV murni 16-bit PCM (Suara "TING!" lonceng kasir/scanner jernih & nyaring)
+function getTingAudioElement() {
+  if (!tingAudioElement && typeof window !== 'undefined') {
+    try {
+      if (!tingAudioBlobUrl) {
+        const sampleRate = 44100;
+        const duration = 0.7;
+        const numSamples = Math.floor(sampleRate * duration);
+        const buffer = new ArrayBuffer(44 + numSamples * 2);
+        const view = new DataView(buffer);
+
+        function writeString(offset, string) {
+          for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+          }
+        }
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + numSamples * 2, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM format
+        view.setUint16(22, 1, true); // Mono
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, numSamples * 2, true);
+
+        for (let i = 0; i < numSamples; i++) {
+          const t = i / sampleRate;
+          const env = Math.exp(-t * 6.5);
+          // Lonceng "TING!": Harmonik A6 (1760 Hz) + E7 (2640 Hz) + A7 (3520 Hz)
+          const val = (0.58 * Math.sin(2 * Math.PI * 1760 * t) +
+                       0.28 * Math.sin(2 * Math.PI * 2640 * t) +
+                       0.14 * Math.sin(2 * Math.PI * 3520 * t)) * env;
+          const clamped = Math.max(-1, Math.min(1, val));
+          view.setInt16(44 + i * 2, clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF, true);
+        }
+
+        const blob = new Blob([buffer], { type: 'audio/wav' });
+        tingAudioBlobUrl = URL.createObjectURL(blob);
+      }
+      tingAudioElement = new Audio(tingAudioBlobUrl);
+      tingAudioElement.volume = 0.95;
+    } catch (e) {
+      console.warn('Gagal inisialisasi audio ting:', e);
+    }
+  }
+  return tingAudioElement;
+}
 
 function getAudioContext() {
   if (!audioCtx) {
@@ -406,77 +476,107 @@ function getAudioContext() {
   return audioCtx;
 }
 
-function unlockAudioOnGesture() {
+function unlockAudio() {
   const ctx = getAudioContext();
   if (ctx && ctx.state === 'suspended') {
     ctx.resume().catch(() => {});
   }
+  const audio = getTingAudioElement();
+  if (audio && audio.paused) {
+    audio.load();
+  }
 }
 
-// Audio Chime Synthesis using Web Audio API (Suara "TING!" lonceng jernih)
+// Audio Synthesis & Playback (Suara "TING!" lonceng jernih saat scan berhasil)
 const playSound = (isSuccess) => {
   try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(() => playSound(isSuccess)).catch(() => {});
-      return;
-    }
-
-    const now = ctx.currentTime;
-
     if (isSuccess) {
-      // Suara "TING!" lonceng jernih bernada tinggi (C6 & C7 harmonik lonceng)
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      const gain2 = ctx.createGain();
+      // 1. Putar melalui HTML5 Audio Element (WAV Chime)
+      const audio = getTingAudioElement();
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
 
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1046.5, now); // C6 (1046.5 Hz)
-      osc1.frequency.exponentialRampToValueAtTime(1046.5, now + 0.35);
+      // 2. Putar melalui Web Audio API Oscillator (Multi-Harmonik Lonceng)
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'running') {
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const osc3 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const gain2 = ctx.createGain();
+        const gain3 = ctx.createGain();
 
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(2093.0, now); // C7 (oktaf atas lonceng)
-      osc2.frequency.exponentialRampToValueAtTime(2093.0, now + 0.25);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(1760, now); // A6 (1760 Hz)
 
-      gain1.gain.setValueAtTime(0.35, now);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(2640, now); // E7 (2640 Hz)
 
-      gain2.gain.setValueAtTime(0.15, now);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(3520, now); // A7 (3520 Hz)
 
-      osc1.connect(gain1);
-      osc2.connect(gain2);
-      gain1.connect(ctx.destination);
-      gain2.connect(ctx.destination);
+        gain1.gain.setValueAtTime(0.001, now);
+        gain1.gain.linearRampToValueAtTime(0.75, now + 0.003);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
 
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 0.35);
-      osc2.stop(now + 0.25);
+        gain2.gain.setValueAtTime(0.001, now);
+        gain2.gain.linearRampToValueAtTime(0.35, now + 0.003);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+        gain3.gain.setValueAtTime(0.001, now);
+        gain3.gain.linearRampToValueAtTime(0.2, now + 0.003);
+        gain3.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+        osc1.connect(gain1);
+        osc2.connect(gain2);
+        osc3.connect(gain3);
+
+        gain1.connect(ctx.destination);
+        gain2.connect(ctx.destination);
+        gain3.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc3.start(now);
+
+        osc1.stop(now + 0.75);
+        osc2.stop(now + 0.55);
+        osc3.stop(now + 0.4);
+      }
     } else {
       // Suara peringatan scan gagal / ditolak (buzz tone)
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'running') {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(140, now + 0.25);
 
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
 
-      osc.start(now);
-      osc.stop(now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
     }
   } catch (e) {
     console.warn('Audio playback error:', e);
   }
+};
+
+const testSound = () => {
+  unlockAudio();
+  playSound(true);
+  toast.info('Suara scan aktif (Ting!)');
 };
 
 function extractNisn(raw) {
@@ -859,15 +959,19 @@ const loadConfig = async () => {
 };
 
 onMounted(() => {
-  window.addEventListener('click', unlockAudioOnGesture, { once: true });
-  window.addEventListener('touchstart', unlockAudioOnGesture, { once: true });
+  window.addEventListener('pointerdown', unlockAudio, { passive: true });
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
+  window.addEventListener('keydown', unlockAudio, { passive: true });
+  window.addEventListener('click', unlockAudio, { passive: true });
   loadConfig();
   startCamera();
 });
 
 onUnmounted(() => {
-  window.removeEventListener('click', unlockAudioOnGesture);
-  window.removeEventListener('touchstart', unlockAudioOnGesture);
+  window.removeEventListener('pointerdown', unlockAudio);
+  window.removeEventListener('touchstart', unlockAudio);
+  window.removeEventListener('keydown', unlockAudio);
+  window.removeEventListener('click', unlockAudio);
   stopCamera();
 });
 </script>
