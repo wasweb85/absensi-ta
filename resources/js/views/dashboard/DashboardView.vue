@@ -328,8 +328,8 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- 1. JIKA ROLE GURU -->
         <template v-if="isGuru">
-          <!-- Col 1: Progress Presensi Jilid Binaan -->
-          <Card class="lg:col-span-5 flex flex-col justify-between">
+          <!-- Progress Presensi Jilid Binaan (Full Width) -->
+          <Card class="lg:col-span-12 flex flex-col justify-between">
             <CardHeader class="pb-3">
               <div class="flex items-center justify-between">
                 <div>
@@ -347,150 +347,86 @@
               </div>
             </CardHeader>
 
-            <CardContent class="space-y-4 pt-2">
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-emerald-600 dark:text-emerald-400">Hadir Tepat Waktu</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(guruClassStats.hadir, guruClassStats.total) }}% ({{ guruClassStats.hadir }})
-                  </span>
+            <CardContent class="pt-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1.5">
+                    <span class="text-emerald-600 dark:text-emerald-400">Hadir Tepat Waktu</span>
+                    <span class="text-foreground">
+                      {{ attendancePercentage(guruClassStats.hadir, guruClassStats.total) }}% ({{ guruClassStats.hadir }})
+                    </span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      class="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      :style="{ width: `${attendancePercentage(guruClassStats.hadir, guruClassStats.total)}%` }"
+                    ></div>
+                  </div>
                 </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(guruClassStats.hadir, guruClassStats.total)}%` }"
-                  ></div>
-                </div>
-              </div>
 
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-amber-600 dark:text-amber-400">Terlambat</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(guruClassStats.terlambat, guruClassStats.total) }}% ({{ guruClassStats.terlambat }})
-                  </span>
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1.5">
+                    <span class="text-amber-600 dark:text-amber-400">Terlambat</span>
+                    <span class="text-foreground">
+                      {{ attendancePercentage(guruClassStats.terlambat, guruClassStats.total) }}% ({{ guruClassStats.terlambat }})
+                    </span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      class="h-full bg-amber-500 rounded-full transition-all duration-500"
+                      :style="{ width: `${attendancePercentage(guruClassStats.terlambat, guruClassStats.total)}%` }"
+                    ></div>
+                  </div>
                 </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-amber-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(guruClassStats.terlambat, guruClassStats.total)}%` }"
-                  ></div>
-                </div>
-              </div>
 
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-blue-600 dark:text-blue-400">Izin / Sakit</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total) }}% ({{ guruClassStats.izin + guruClassStats.sakit }})
-                  </span>
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1.5">
+                    <span class="text-blue-600 dark:text-blue-400">Izin / Sakit</span>
+                    <span class="text-foreground">
+                      {{ attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total) }}% ({{ guruClassStats.izin + guruClassStats.sakit }})
+                    </span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                      :style="{ width: `${attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total)}%` }"
+                    ></div>
+                  </div>
                 </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(guruClassStats.izin + guruClassStats.sakit, guruClassStats.total)}%` }"
-                  ></div>
-                </div>
-              </div>
 
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-rose-600 dark:text-rose-400">Belum Presensi / Alpa</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total) }}% ({{ guruClassStats.belum_absen + guruClassStats.alpa }})
-                  </span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-rose-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total)}%` }"
-                  ></div>
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1.5">
+                    <span class="text-rose-600 dark:text-rose-400">Belum Presensi / Alpa</span>
+                    <span class="text-foreground">
+                      {{ attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total) }}% ({{ guruClassStats.belum_absen + guruClassStats.alpa }})
+                    </span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      class="h-full bg-rose-500 rounded-full transition-all duration-500"
+                      :style="{ width: `${attendancePercentage(guruClassStats.belum_absen + guruClassStats.alpa, guruClassStats.total)}%` }"
+                    ></div>
+                  </div>
                 </div>
               </div>
             </CardContent>
 
-            <CardFooter class="pt-4 border-t flex gap-2">
-              <Button as-child variant="outline" size="sm" class="flex-1 text-xs">
-                <router-link to="/absensi/monitoring" class="flex items-center justify-center gap-1.5">
-                  <span>Live Monitoring</span>
-                  <ChevronRight class="size-3.5" />
-                </router-link>
-              </Button>
-              <Button as-child v-if="canScanQr" size="sm" class="px-4 text-xs">
-                <router-link to="/absensi/scanner" class="flex items-center justify-center gap-1.5">
-                  <ScanLine class="size-3.5" />
-                  <span>Scan QR</span>
-                </router-link>
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <!-- Col 2: Daftar Santri Binaan Realtime -->
-          <Card class="lg:col-span-7 flex flex-col justify-between">
-            <div>
-              <CardHeader class="pb-3 border-b">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                      <GraduationCap class="size-4 text-primary" />
-                      <span>Presensi Santri {{ kelasBinaan || 'Jilid' }}</span>
-                    </CardTitle>
-                    <CardDescription class="text-xs mt-0.5">
-                      Daftar status absensi realtime santri jilid hari ini
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" class="text-xs font-medium">
-                    {{ guruClassStats.hadir + guruClassStats.terlambat }} / {{ guruClassStats.total }} Hadir
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent class="p-0">
-                <div v-if="guruStudents.length > 0" class="divide-y max-h-80 overflow-y-auto px-4 py-1">
-                  <div
-                    v-for="s in guruStudents"
-                    :key="s.id_siswa"
-                    class="py-2.5 flex items-center justify-between gap-3 text-xs transition-colors hover:bg-muted/50 rounded-lg px-2"
-                  >
-                    <div class="min-w-0">
-                      <p class="font-medium text-foreground truncate">{{ s.nama_lengkap }}</p>
-                      <p class="text-[11px] text-muted-foreground">
-                        NISN: {{ s.nisn }} &bull; {{ s.jenis_kelamin === 'L' ? 'L' : 'P' }}
-                      </p>
-                    </div>
-
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span v-if="s.waktu_masuk" class="text-[10px] text-muted-foreground font-mono">
-                        {{ s.waktu_masuk }}
-                      </span>
-                      <Badge
-                        :variant="getStatusBadgeVariant(s.status)"
-                        class="text-[10px] font-medium"
-                      >
-                        {{ s.status }}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Empty State -->
-                <div v-else class="py-12 text-center text-muted-foreground">
-                  <Users class="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                  <p class="text-xs font-semibold text-foreground">Belum ada santri di jilid {{ kelasBinaan || 'ini' }}.</p>
-                  <p class="text-[11px] text-muted-foreground mt-0.5">Plot santri dilakukan oleh Pengurus / Sekretaris.</p>
-                </div>
-              </CardContent>
-            </div>
-
-            <CardFooter class="pt-3 border-t flex justify-between items-center text-xs text-muted-foreground">
-              <span>Ubah status absensi manual dapat dilakukan di Monitoring.</span>
-              <router-link
-                to="/absensi/monitoring"
-                class="font-medium text-primary hover:underline flex items-center gap-1"
-              >
-                <span>Monitoring Lengkap</span>
-                <ChevronRight class="size-3.5" />
-              </router-link>
+            <CardFooter class="pt-4 border-t flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs text-muted-foreground">Detail dan input kehadiran santri dapat dikelola di Live Monitoring.</span>
+              <div class="flex items-center gap-2">
+                <Button as-child variant="outline" size="sm" class="text-xs">
+                  <router-link to="/absensi/monitoring" class="flex items-center justify-center gap-1.5">
+                    <span>Live Monitoring</span>
+                    <ChevronRight class="size-3.5" />
+                  </router-link>
+                </Button>
+                <Button as-child v-if="canScanQr" size="sm" class="px-4 text-xs">
+                  <router-link to="/absensi/scanner" class="flex items-center justify-center gap-1.5">
+                    <ScanLine class="size-3.5" />
+                    <span>Scan QR</span>
+                  </router-link>
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </template>
