@@ -164,13 +164,13 @@
                 </Button>
               </div>
 
-              <!-- Processing Scan Feedback Overlay -->
+              <!-- Non-blocking Kiosk Status Pill (Kamera tetap menyala jernih tanpa layar hitam) -->
               <div
                 v-if="isProcessing"
-                class="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white z-20"
+                class="absolute top-3 inset-x-0 mx-auto w-fit bg-zinc-950/85 border border-emerald-500/40 text-emerald-400 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-lg z-20 pointer-events-none transition-all duration-200"
               >
-                <LoaderCircle class="size-8 text-primary animate-spin mb-2" />
-                <p class="text-xs font-semibold tracking-wide">Mencatat Presensi...</p>
+                <LoaderCircle class="size-3.5 animate-spin text-emerald-400" />
+                <span class="text-[11px] font-semibold tracking-wide">Mencatat Presensi...</span>
               </div>
             </div>
 
@@ -642,6 +642,32 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
   const nisnToScan = extractNisn(rawCode);
   if (!nisnToScan || isProcessing.value) return;
 
+  // 1. Validasi waktu operasional langsung di browser (0 ms - instan tanpa tunggu HTTP)
+  const now = new Date();
+  const currentShort = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const buka = configData.value.jam_masuk || '07:00';
+  const tutup = configData.value.jam_tutup_scan || configData.value.jam_pulang || '12:00';
+
+  if (currentShort < buka) {
+    playSound(false);
+    isScanErrorFlash.value = true;
+    setTimeout(() => { isScanErrorFlash.value = false; }, 600);
+    const msg = `Waktu scan presensi hari ini belum dibuka (buka pukul ${buka} WIB). Silakan scan saat jam buka presensi dimulai.`;
+    lastResult.value = { success: false, message: msg, data: null };
+    toast.error(msg);
+    return;
+  }
+
+  if (currentShort > tutup) {
+    playSound(false);
+    isScanErrorFlash.value = true;
+    setTimeout(() => { isScanErrorFlash.value = false; }, 600);
+    const msg = `Waktu scan presensi hari ini sudah ditutup (tutup pukul ${tutup} WIB). Presensi hanya dapat diinput manual oleh ustadz/ustadzah.`;
+    lastResult.value = { success: false, message: msg, data: null };
+    toast.error(msg);
+    return;
+  }
+
   isProcessing.value = true;
   lastScannedCode.value = nisnToScan;
   lastScannedTime.value = Date.now();
@@ -660,7 +686,7 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
     playSound(true);
 
     isScanSuccessFlash.value = true;
-    setTimeout(() => { isScanSuccessFlash.value = false; }, 600);
+    setTimeout(() => { isScanSuccessFlash.value = false; }, 500);
 
     scanLogs.value.unshift({
       nama: res.data?.nama_lengkap || nisnToScan,
@@ -677,7 +703,7 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
   } catch (err) {
     const msg = err.response?.data?.message || 'Gagal memproses absensi.';
     const data = err.response?.data?.data || null;
-    
+
     lastResult.value = {
       success: false,
       message: msg,
@@ -686,7 +712,7 @@ const executeScan = async (rawCode, metode = 'qr_kamera') => {
     playSound(false);
 
     isScanErrorFlash.value = true;
-    setTimeout(() => { isScanErrorFlash.value = false; }, 600);
+    setTimeout(() => { isScanErrorFlash.value = false; }, 500);
 
     toast.error(msg);
   } finally {
@@ -701,7 +727,12 @@ const handleCameraScan = (decodedText) => {
   if (!code) return;
 
   const now = Date.now();
-  if (code === lastScannedCode.value && (now - lastScannedTime.value) < 3000) {
+  // Anti double-scan untuk kartu santri yang sama (jeda 2.5 detik)
+  if (code === lastScannedCode.value && (now - lastScannedTime.value) < 2500) {
+    return;
+  }
+  // Cooldown antar kartu santri berbeda (200 ms untuk alur antrean super cepat)
+  if (code !== lastScannedCode.value && (now - lastScannedTime.value) < 200) {
     return;
   }
 

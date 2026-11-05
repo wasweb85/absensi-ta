@@ -317,7 +317,7 @@ class WhatsAppService
                     $responseBody = $response->body();
                 }
             } else {
-                $response = Http::withoutVerifying()->timeout(15)->withHeaders([
+                $response = Http::withoutVerifying()->connectTimeout(2)->timeout(4)->withHeaders([
                     'Authorization' => $token,
                 ])->post('https://api.fonnte.com/send', $payload);
 
