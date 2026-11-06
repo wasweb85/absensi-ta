@@ -27,8 +27,12 @@ function formatTanggalIndo(str) {
 
 function loadImage(src) {
   return new Promise((resolve) => {
+    if (!src) return resolve(null);
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Hanya gunakan anonymous jika URL eksternal http/https untuk mencegah tainted canvas pada path lokal
+    if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;

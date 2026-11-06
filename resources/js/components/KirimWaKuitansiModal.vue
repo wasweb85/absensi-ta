@@ -267,12 +267,14 @@ function getPeriodeText(k) {
   return 'SPP Bulanan';
 }
 
-// Render Gambar Kuitansi setiap kali modal dibuka
+// Render Gambar Kuitansi setiap kali modal dibuka atau data kuitansi tersedia
 async function renderImage() {
   if (!props.kuitansiData) return;
   isGenerating.value = true;
   try {
-    targetPhone.value = props.kuitansiData.no_hp_ortu || '';
+    if (props.kuitansiData.no_hp_ortu) {
+      targetPhone.value = props.kuitansiData.no_hp_ortu;
+    }
     const result = await generateKuitansiCanvas(props.kuitansiData);
     imageUrl.value = result.dataUrl;
     imageBlob.value = result.blob;
@@ -286,17 +288,18 @@ async function renderImage() {
 }
 
 watch(
-  () => props.show,
-  (val) => {
-    if (val && props.kuitansiData) {
+  [() => props.show, () => props.kuitansiData],
+  ([showVal, dataVal]) => {
+    if (showVal && dataVal) {
+      targetPhone.value = dataVal.no_hp_ortu || targetPhone.value || '';
       renderImage();
-    } else {
+    } else if (!showVal) {
       imageUrl.value = '';
       imageBlob.value = null;
       imageFile.value = null;
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 // Download Gambar Kuitansi (HANYA dijalankan saat tombol 'Unduh PNG' diklik secara eksplisit)

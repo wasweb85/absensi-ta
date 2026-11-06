@@ -261,6 +261,36 @@ class SppBillingService
     }
 
     /**
+     * Menghasilkan nomor kuitansi unik berikutnya (format: KW-YYYYMM-XXXXX)
+     */
+    public function generateNomorKuitansi(): string
+    {
+        $prefix = 'KW-'.date('Ym').'-';
+        $lastPayment = PembayaranSpp::where('nomor_kuitansi', 'like', $prefix.'%')
+            ->lockForUpdate()
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastPayment) {
+            $rest = substr((string) $lastPayment->nomor_kuitansi, strlen($prefix));
+            $parts = explode('-', $rest);
+            $lastNumber = (int) $parts[0];
+            $nextNumber = $lastNumber + 1;
+        }
+
+        do {
+            $candidate = $prefix.str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+            $exists = PembayaranSpp::where('nomor_kuitansi', 'like', $candidate.'%')->exists();
+            if ($exists) {
+                $nextNumber++;
+            }
+        } while ($exists);
+
+        return $candidate;
+    }
+
+    /**
      * Memproses transaksi pembayaran SPP dengan transaksi database aman
      */
     public function prosesPembayaran(array $data, int $idPetugas): array
@@ -275,19 +305,8 @@ class SppBillingService
             $metode = $data['metode_pembayaran'] ?? 'Tunai';
             $catatan = $data['catatan'] ?? null;
 
-            // Generate nomor kuitansi unik: KW-YYYYMM-XXXXX dengan kunci pesimis mencegah duplikasi concurrent
-            $prefix = 'KW-'.date('Ym').'-';
-            $lastPayment = PembayaranSpp::where('nomor_kuitansi', 'like', $prefix.'%')
-                ->lockForUpdate()
-                ->orderBy('id', 'desc')
-                ->first();
-
-            $nextNumber = 1;
-            if ($lastPayment) {
-                $lastNumber = (int) substr($lastPayment->nomor_kuitansi, strlen($prefix), 5);
-                $nextNumber = $lastNumber + 1;
-            }
-            $noKuitansi = $prefix.str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+            // Generate nomor kuitansi unik: KW-YYYYMM-XXXXX
+            $noKuitansi = $this->generateNomorKuitansi();
 
             // Simpan data pembayaran
             $pembayaran = PembayaranSpp::create([
@@ -389,18 +408,7 @@ class SppBillingService
             }
 
             // Generate nomor kuitansi unik bersamaan
-            $prefix = 'KW-'.date('Ym').'-';
-            $lastPayment = PembayaranSpp::where('nomor_kuitansi', 'like', $prefix.'%')
-                ->lockForUpdate()
-                ->orderBy('id', 'desc')
-                ->first();
-
-            $nextNumber = 1;
-            if ($lastPayment) {
-                $lastNumber = (int) substr($lastPayment->nomor_kuitansi, strlen($prefix), 5);
-                $nextNumber = $lastNumber + 1;
-            }
-            $baseKuitansi = $prefix.str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+            $baseKuitansi = $this->generateNomorKuitansi();
 
             $now = Carbon::now('Asia/Jakarta');
             $totalBayar = 0;
@@ -467,6 +475,152 @@ class SppBillingService
                     'periode' => $bulanStr,
                     'bulan_tagihan' => $bulanStr,
                     'pembayaran_untuk' => "SPP {$bulanStr}",
+                    'total_bayar' => $totalBayar,
+                    'jumlah_bayar' => $totalBayar,
+                    'metode' => $metode,
+                    'catatan' => $catatan,
+                    'nama_bendahara' => User::getNamaBendahara(),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * Memproses pembayaran SPP cerdas dengan alokasi otomatis untuk multi-bulan berturut-turut
+     */
+    public function bayarCerdasMultiBulan(
+        int $idSiswa,
+        int $startBulan,
+        int $startTahun,
+        float $totalUangBayar,
+        string $metode,
+        ?string $catatan,
+        int $idPetugas
+    ): array {
+        self::ensureSppSchemaExists();
+
+        return DB::transaction(function () use ($idSiswa, $startBulan, $startTahun, $totalUangBayar, $metode, $catatan, $idPetugas) {
+            $siswa = Siswa::with('kelas')->findOrFail($idSiswa);
+            $now = Carbon::now('Asia/Jakarta');
+
+            $prefix = 'KW-'.date('Ym').'-';
+            $baseKuitansi = $this->generateNomorKuitansi();
+
+            $sisaUang = $totalUangBayar;
+            $currBulan = $startBulan;
+            $currTahun = $startTahun;
+            $daftarBulan = [];
+            $totalBayar = 0;
+            $idx = 1;
+            $safetyLoop = 0;
+
+            while ($sisaUang > 0 && $safetyLoop < 24) {
+                $safetyLoop++;
+
+                $tagihan = $this->ensureTagihan($idSiswa, $currBulan, $currTahun);
+
+                $sudahBayar = (float) PembayaranSpp::where('id_tagihan', $tagihan->id)
+                    ->where('status_transaksi', 'valid')
+                    ->sum('jumlah_bayar');
+
+                $kewajibanBulanIni = max(0, (float) $tagihan->nominal_tagihan - $sudahBayar);
+
+                if ($kewajibanBulanIni <= 0) {
+                    $tagihan->update(['status' => 'lunas']);
+                    // Lanjut ke bulan berikutnya karena bulan ini sudah lunas
+                    if ($currBulan === 12) {
+                        $currBulan = 1;
+                        $currTahun++;
+                    } else {
+                        $currBulan++;
+                    }
+
+                    continue;
+                }
+
+                $bayarBulanIni = min($sisaUang, $kewajibanBulanIni);
+                $itemKuitansi = ($idx > 1 || $sisaUang > $bayarBulanIni) ? "{$baseKuitansi}-{$idx}" : $baseKuitansi;
+                $idx++;
+
+                $namaBln = self::NAMA_BULAN[$currBulan] ?? "Bulan {$currBulan}";
+
+                PembayaranSpp::create([
+                    'id_tagihan' => $tagihan->id,
+                    'id_siswa' => $idSiswa,
+                    'nomor_kuitansi' => $itemKuitansi,
+                    'tanggal_bayar' => $now,
+                    'jumlah_bayar' => $bayarBulanIni,
+                    'metode_pembayaran' => $metode,
+                    'id_petugas' => $idPetugas,
+                    'status_transaksi' => 'valid',
+                    'catatan' => $catatan ?: "Pembayaran SPP {$namaBln} {$currTahun}",
+                ]);
+
+                $totalValid = $sudahBayar + $bayarBulanIni;
+                if ($totalValid >= $tagihan->nominal_tagihan) {
+                    $tagihan->update(['status' => 'lunas']);
+                } else {
+                    $tagihan->update(['status' => 'kurang_bayar']);
+                }
+
+                $daftarBulan[] = [
+                    'id_tagihan' => $tagihan->id,
+                    'bulan' => $currBulan,
+                    'tahun' => $currTahun,
+                    'label' => "{$namaBln} {$currTahun}",
+                    'nominal' => $bayarBulanIni,
+                    'status' => ($totalValid >= $tagihan->nominal_tagihan) ? 'lunas' : 'kurang_bayar',
+                    'nomor_kuitansi' => $itemKuitansi,
+                ];
+
+                $totalBayar += $bayarBulanIni;
+                $sisaUang -= $bayarBulanIni;
+
+                if ($currBulan === 12) {
+                    $currBulan = 1;
+                    $currTahun++;
+                } else {
+                    $currBulan++;
+                }
+            }
+
+            // Jika karena suatu hal tidak ada bulan yang teralokasi
+            if (empty($daftarBulan)) {
+                $tagihan = $this->ensureTagihan($idSiswa, $startBulan, $startTahun);
+                $namaBln = self::NAMA_BULAN[$startBulan] ?? "Bulan {$startBulan}";
+                $daftarBulan[] = [
+                    'id_tagihan' => $tagihan->id,
+                    'bulan' => $startBulan,
+                    'tahun' => $startTahun,
+                    'label' => "{$namaBln} {$startTahun}",
+                    'nominal' => $totalUangBayar,
+                    'status' => $tagihan->status,
+                    'nomor_kuitansi' => $baseKuitansi,
+                ];
+            }
+
+            $bulanLabels = array_column($daftarBulan, 'label');
+            $bulanStr = implode(', ', $bulanLabels);
+            $totalBulan = count($daftarBulan);
+            $periodeStr = ($totalBulan > 1) ? "{$bulanStr} ({$totalBulan} Bulan)" : $bulanStr;
+
+            return [
+                'success' => true,
+                'message' => "Pembayaran {$periodeStr} berhasil disimpan. Kuitansi: {$baseKuitansi}",
+                'kuitansi' => [
+                    'id_siswa' => $siswa->id,
+                    'nomor_kuitansi' => $baseKuitansi,
+                    'tanggal_bayar' => $now->format('d/m/Y H:i'),
+                    'nama_santri' => $siswa->nama_lengkap,
+                    'nisn' => $siswa->nisn,
+                    'no_hp_ortu' => $siswa->no_hp_ortu,
+                    'kelas' => $siswa->kelas?->nama_kelas ?: '-',
+                    'total_bulan' => $totalBulan,
+                    'daftar_bulan' => $daftarBulan,
+                    'daftar_bulan_str' => $bulanStr,
+                    'periode' => $periodeStr,
+                    'bulan_tagihan' => $periodeStr,
+                    'pembayaran_untuk' => "SPP {$periodeStr}",
                     'total_bayar' => $totalBayar,
                     'jumlah_bayar' => $totalBayar,
                     'metode' => $metode,

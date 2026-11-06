@@ -349,16 +349,16 @@ class SppController extends Controller
                 $nominal = (float) $item['nominal'];
                 $metode = $item['metode'] ?? 'Tunai';
 
-                // Pastikan tagihan ada
-                $tagihan = $this->billingService->ensureTagihan($idSiswa, $bulan, $tahun);
-
-                // Bayar
-                $res = $this->billingService->prosesPembayaran([
-                    'id_tagihan' => $tagihan->id,
-                    'jumlah_bayar' => $nominal,
-                    'metode_pembayaran' => $metode,
-                    'catatan' => null,
-                ], $petugasId);
+                // Gunakan alokasi cerdas multi-bulan berturut-turut
+                $res = $this->billingService->bayarCerdasMultiBulan(
+                    $idSiswa,
+                    $bulan,
+                    $tahun,
+                    $nominal,
+                    $metode,
+                    null,
+                    $petugasId
+                );
 
                 $kw = $res['kuitansi'];
                 $kw['petugas'] = $namaPetugas;

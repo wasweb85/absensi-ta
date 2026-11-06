@@ -252,6 +252,12 @@
                   :disabled="!item.selected || item.status === 'lunas'"
                   class="w-full px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-bold focus:ring-2 focus:ring-emerald-500 text-xs disabled:opacity-40"
                 />
+                <p
+                  v-if="getAlokasiMultiBulanLabel(item)"
+                  class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 flex items-center gap-1"
+                >
+                  {{ getAlokasiMultiBulanLabel(item) }}
+                </p>
               </td>
               <td class="p-3">
                 <select
@@ -563,13 +569,21 @@ const kuitansiDataForWa = computed(() => {
   if (!activeKuitansi.value) return null;
   const kw = activeKuitansi.value;
   const namaBln = NAMA_BULAN[selectedBulan.value] || `Bulan ${selectedBulan.value}`;
-  const periodeStr = `${namaBln} ${selectedTahun.value}`;
+  const periodeStr = kw.daftar_bulan_str || kw.periode || `${namaBln} ${selectedTahun.value}`;
+
+  // Ambil fallback data santri dari tabel jika di kw belum terisi lengkap
+  const matchingSantri = santriItems.value.find(s => s.id_siswa === kw.id_siswa || s.nisn === kw.nisn);
+
   return {
     ...kw,
+    nama_santri: kw.nama_santri || matchingSantri?.nama_lengkap || '-',
+    nisn: kw.nisn || matchingSantri?.nisn || '-',
+    kelas: kw.kelas || matchingSantri?.nama_kelas || '-',
+    no_hp_ortu: kw.no_hp_ortu || matchingSantri?.no_hp_ortu || '',
     bulan: kw.bulan || selectedBulan.value,
     tahun: kw.tahun || selectedTahun.value,
     nama_bulan: kw.nama_bulan || namaBln,
-    periode: kw.periode || periodeStr,
+    periode: periodeStr,
     daftar_bulan_str: kw.daftar_bulan_str || periodeStr,
     bulan_tagihan: kw.bulan_tagihan || periodeStr,
     pembayaran_untuk: kw.pembayaran_untuk || `SPP ${periodeStr}`,
@@ -577,6 +591,31 @@ const kuitansiDataForWa = computed(() => {
     nama_bendahara: kw.nama_bendahara || namaBendahara.value,
   };
 });
+
+function getAlokasiMultiBulanLabel(item) {
+  if (!item.nominal || item.status === 'lunas') return null;
+  const kData = kelasList.value.find(k => k.id === Number(selectedKelasId.value));
+  const tarif = kData ? Number(kData.nominal_spp) : 15000;
+  if (item.nominal <= tarif) return null;
+
+  const jmlBulan = Math.floor(item.nominal / tarif);
+  const sisa = item.nominal % tarif;
+
+  const startBln = Number(selectedBulan.value);
+  const startThn = Number(selectedTahun.value);
+
+  const blnNames = [];
+  for (let i = 0; i < jmlBulan; i++) {
+    const m = ((startBln - 1 + i) % 12) + 1;
+    blnNames.push(NAMA_BULAN[m]);
+  }
+
+  if (sisa > 0) {
+    const mNext = ((startBln - 1 + jmlBulan) % 12) + 1;
+    return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')}) + Cicil Rp ${formatRupiah(sisa)} ${NAMA_BULAN[mNext]}`;
+  }
+  return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')})`;
+}
 
 function formatRupiah(val) {
   if (!val) return '0';
