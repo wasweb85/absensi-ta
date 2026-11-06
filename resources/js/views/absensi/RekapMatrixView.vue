@@ -210,7 +210,11 @@
               <TableHead
                 v-for="day in daysInMonth"
                 :key="day"
-                class="px-1 text-center min-w-[22px] border-l border-border/60 text-[10px] print:min-w-0 print:px-0.5 print:text-[8px] print:text-black"
+                class="px-1 text-center min-w-[22px] border-l border-border/60 text-[10px] print:min-w-0 print:px-0.5 print:text-[8px] transition-colors"
+                :class="isHolidayDay(day)
+                  ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 font-bold print:text-black print:bg-neutral-100'
+                  : 'print:text-black'"
+                :title="isHolidayDay(day) ? `Tanggal ${day}: Hari Libur` : `Tanggal ${day}`"
               >
                 {{ day }}
               </TableHead>
@@ -263,6 +267,7 @@
                   'bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'S',
                   'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'I',
                   'bg-rose-500/15 text-rose-700 dark:text-rose-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'A',
+                  'bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold print:bg-transparent print:text-black': row.daily[d] === 'L',
                   'text-muted-foreground/30 print:text-neutral-300': row.daily[d] === '-' || !row.daily[d]
                 }"
               >
@@ -290,6 +295,7 @@
       <span><strong>S:</strong> Sakit</span>
       <span><strong>I:</strong> Izin</span>
       <span><strong>A:</strong> Alpa</span>
+      <span><strong>L:</strong> Libur</span>
     </div>
 
     <!-- Blok Pengesahan Tanda Tangan Resmi (Cetak - Muat dalam 1 Lembar A4) -->
@@ -343,6 +349,10 @@
           <Badge variant="destructive" class="size-5 p-0 flex items-center justify-center font-bold text-[10px]">A</Badge>
           <span>Alpa</span>
         </div>
+        <div class="flex items-center gap-1.5">
+          <Badge variant="outline" class="size-5 p-0 flex items-center justify-center font-bold text-[10px] text-rose-600 dark:text-rose-400 bg-rose-500/15 border-rose-500/20">L</Badge>
+          <span>Libur</span>
+        </div>
       </CardContent>
     </Card>
   </div>
@@ -389,6 +399,8 @@ const waliInfo = ref(null);
 const kelasList = ref([]);
 const matrixData = ref([]);
 const daysInMonth = ref(31);
+const holidayDays = ref([]);
+const isHolidayDay = (day) => holidayDays.value.includes(day);
 const searchQuery = ref('');
 
 const filteredMatrixData = computed(() => {
@@ -510,6 +522,7 @@ const loadMatrix = async () => {
     if (res.data.success) {
       matrixData.value = res.data.data.data;
       daysInMonth.value = res.data.data.days_in_month;
+      holidayDays.value = res.data.data.holiday_days || [];
       waliInfo.value = res.data.data.wali_info || null;
     }
   } catch (e) {
@@ -598,7 +611,7 @@ const exportCsv = () => {
 
   rows.push([]);
   rows.push(['KETERANGAN STATUS:']);
-  rows.push(['H = Hadir', 'T = Terlambat', 'S = Sakit', 'I = Izin', 'A = Alpa']);
+  rows.push(['H = Hadir', 'T = Terlambat', 'S = Sakit', 'I = Izin', 'A = Alpa', 'L = Libur']);
   rows.push([]);
   const walis = waliSignatories.value;
   const waliCols = (pick) => walis.flatMap((w) => [pick(w), '']);

@@ -447,7 +447,12 @@ class AbsensiScannerService
             $dateStr = $curDate->format('Y-m-d');
 
             $isDayOff = ! in_array($dayName, $activeDaysList, true);
-            $isHoliday = $holidays->contains(fn ($h) => $dateStr >= $h->tanggal_mulai && $dateStr <= $h->tanggal_selesai);
+            $isHoliday = $holidays->contains(function ($h) use ($dateStr) {
+                $start = Carbon::parse($h->tanggal_mulai)->format('Y-m-d');
+                $end = Carbon::parse($h->tanggal_selesai)->format('Y-m-d');
+
+                return $dateStr >= $start && $dateStr <= $end;
+            });
 
             $isEffective = (! $isDayOff && ! $isHoliday);
             $effectiveDaysMap[$d] = $isEffective;
@@ -471,7 +476,7 @@ class AbsensiScannerService
 
         $siswaList = $query->orderBy('id_kelas')->orderBy('nama_lengkap')->get();
 
-        $rows = $siswaList->map(function ($s) use ($daysInMonth, $divisor) {
+        $rows = $siswaList->map(function ($s) use ($daysInMonth, $divisor, $effectiveDaysMap) {
             $absensiByDay = [];
             foreach ($s->absensi as $absen) {
                 $day = (int) Carbon::parse($absen->tanggal)->format('j');
@@ -494,7 +499,15 @@ class AbsensiScannerService
             $daily = [];
 
             for ($d = 1; $d <= $daysInMonth; $d++) {
-                $c = $absensiByDay[$d] ?? '-';
+                if (isset($absensiByDay[$d])) {
+                    $c = $absensiByDay[$d];
+                } elseif (! ($effectiveDaysMap[$d] ?? true)) {
+                    // Libur rutinan (hari non-aktif) atau libur kalender (agenda/libur)
+                    $c = 'L';
+                } else {
+                    $c = '-';
+                }
+
                 $daily[$d] = $c;
                 if ($c === 'H') {
                     $h++;
@@ -535,6 +548,7 @@ class AbsensiScannerService
             'tahun' => $tahun,
             'days_in_month' => $daysInMonth,
             'effective_days' => $effectiveDaysCount,
+            'holiday_days' => array_values(array_keys(array_filter($effectiveDaysMap, fn ($isEff) => ! $isEff))),
             'data' => $rows,
         ];
     }
