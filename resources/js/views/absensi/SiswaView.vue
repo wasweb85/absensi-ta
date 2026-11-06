@@ -223,14 +223,30 @@
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
               <Label for="formNisn" class="text-xs font-medium">NISN *</Label>
-              <Input
-                id="formNisn"
-                v-model="form.nisn"
-                type="text"
-                required
-                placeholder="Cth: 1001"
-                class="h-9 font-mono text-xs"
-              />
+              <div class="relative">
+                <Input
+                  id="formNisn"
+                  v-model="form.nisn"
+                  type="text"
+                  required
+                  placeholder="Cth: 1001"
+                  :class="[
+                    'h-9 font-mono text-xs pr-8 transition-colors',
+                    nisnCheckError ? 'border-rose-500 focus-visible:ring-rose-500 text-rose-600 dark:text-rose-400' : ''
+                  ]"
+                  @input="onNisnInput"
+                />
+                <div v-if="isCheckingNisn" class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                  <LoaderCircle class="size-3.5 animate-spin text-muted-foreground" />
+                </div>
+              </div>
+              <p
+                v-if="nisnCheckError"
+                class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1 animate-fadeIn"
+              >
+                <CircleAlert class="size-3.5 shrink-0" />
+                <span>{{ nisnCheckError }}</span>
+              </p>
             </div>
             <div class="space-y-1.5">
               <Label for="formJk" class="text-xs font-medium">Jenis Kelamin *</Label>
@@ -335,6 +351,7 @@
               type="submit"
               size="sm"
               class="text-xs"
+              :disabled="!!nisnCheckError || isCheckingNisn"
             >
               Simpan Data
             </Button>
@@ -504,6 +521,7 @@ import {
   Printer,
   Download,
   LoaderCircle,
+  CircleAlert,
 } from '@lucide/vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -608,9 +626,60 @@ const onSearchInput = () => {
   }, 300);
 };
 
+const nisnCheckError = ref('');
+const isCheckingNisn = ref(false);
+let nisnDebounceTimer = null;
+
+const checkNisnAvailability = async () => {
+  const val = (form.value.nisn || '').trim();
+  if (!val) {
+    nisnCheckError.value = '';
+    return;
+  }
+
+  // 1. Cek instan di memori data santri yang sudah dimuat
+  const localMatch = siswaList.value.find(s => 
+    String(s.nisn).trim().toLowerCase() === val.toLowerCase() && 
+    (!isEditing.value || s.id !== editingId.value)
+  );
+
+  if (localMatch) {
+    nisnCheckError.value = `NIS sudah terdaftar (atas nama: ${localMatch.nama_lengkap}).`;
+    return;
+  }
+
+  // 2. Cek ke database backend untuk mencakup seluruh santri
+  try {
+    isCheckingNisn.value = true;
+    const params = { nisn: val };
+    if (isEditing.value && editingId.value) {
+      params.except_id = editingId.value;
+    }
+    const res = await api.get('/siswa/check-nisn', { params });
+    if (res.data.exists) {
+      const nama = res.data.nama_santri ? ` (atas nama: ${res.data.nama_santri})` : '';
+      nisnCheckError.value = `NIS sudah terdaftar${nama}.`;
+    } else {
+      nisnCheckError.value = '';
+    }
+  } catch (err) {
+    // fallback senyap
+  } finally {
+    isCheckingNisn.value = false;
+  }
+};
+
+const onNisnInput = () => {
+  if (nisnDebounceTimer) clearTimeout(nisnDebounceTimer);
+  nisnDebounceTimer = setTimeout(() => {
+    checkNisnAvailability();
+  }, 250);
+};
+
 const openAddModal = () => {
   isEditing.value = false;
   editingId.value = null;
+  nisnCheckError.value = '';
   form.value = {
     nisn: '',
     nama_lengkap: '',
@@ -627,6 +696,7 @@ const openAddModal = () => {
 const openEditModal = (student) => {
   isEditing.value = true;
   editingId.value = student.id;
+  nisnCheckError.value = '';
   form.value = {
     nisn: student.nisn,
     nama_lengkap: student.nama_lengkap,
@@ -641,6 +711,11 @@ const openEditModal = (student) => {
 };
 
 const saveStudent = async () => {
+  if (nisnCheckError.value) {
+    toast.warning('NIS sudah terdaftar. Silakan gunakan nomor NIS lain.');
+    return;
+  }
+
   try {
     if (isEditing.value) {
       await api.put(`/siswa/${editingId.value}`, form.value);

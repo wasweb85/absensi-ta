@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Master Data Siswa: Baca (Admin, Kepala, Sekretaris, Bendahara)
     Route::middleware('role:admin,kepala,sekretaris,bendahara')->group(function () {
+        Route::get('/siswa/check-nisn', [SiswaController::class, 'checkNisn']);
         Route::get('/siswa', [SiswaController::class, 'index']);
         Route::get('/siswa/{id}', [SiswaController::class, 'show'])->whereNumber('id');
     });

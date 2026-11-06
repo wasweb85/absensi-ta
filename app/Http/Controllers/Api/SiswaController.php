@@ -16,6 +16,35 @@ use Illuminate\Support\Facades\DB;
 
 class SiswaController extends Controller
 {
+    /**
+     * Cek apakah NISN sudah terdaftar (validasi realtime frontend)
+     */
+    public function checkNisn(Request $request): JsonResponse
+    {
+        $nisn = trim((string) $request->input('nisn', ''));
+        $exceptId = $request->input('except_id') ? (int) $request->input('except_id') : null;
+
+        if ($nisn === '') {
+            return response()->json([
+                'exists' => false,
+                'message' => '',
+            ]);
+        }
+
+        $query = Siswa::where('nisn', $nisn);
+        if ($exceptId) {
+            $query->where('id', '!=', $exceptId);
+        }
+
+        $siswa = $query->first(['id', 'nama_lengkap', 'nisn']);
+
+        return response()->json([
+            'exists' => ! is_null($siswa),
+            'nama_santri' => $siswa?->nama_lengkap,
+            'message' => $siswa ? "NIS sudah terdaftar atas nama {$siswa->nama_lengkap}." : '',
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Siswa::with('kelas');
