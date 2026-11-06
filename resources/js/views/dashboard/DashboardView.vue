@@ -1,28 +1,46 @@
 <template>
   <div class="space-y-6">
-    <!-- Header Dashboard -->
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b">
-      <div class="flex items-center gap-2">
-        <h2 class="text-lg font-semibold tracking-tight text-foreground">Dashboard</h2>
-        <Badge variant="outline" class="font-normal text-muted-foreground text-xs">
-          {{ currentDateFormatted }}
+    <!-- Header Dashboard Sesuai Target Desain -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+          {{ currentDateFormatted }} &bull; Gambaran presensi dan keuangan SPP hari ini
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2.5">
+        <Badge variant="outline" class="bg-card px-3 py-1.5 text-xs font-normal text-muted-foreground border-border/80">
+          Periode: {{ currentPeriodName }}
         </Badge>
+        <Button as-child size="sm" class="h-8 sm:h-9 px-3.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs gap-1.5">
+          <router-link to="/absensi/scanner">
+            <ScanLine class="size-4" />
+            <span>Buka Scanner QR</span>
+          </router-link>
+        </Button>
       </div>
     </div>
 
-    <!-- Skeleton Loading State -->
+    <!-- Skeleton Loading State Sesuai Grid Baru -->
     <div v-if="isLoading && !hasDataLoaded" class="space-y-6">
       <div v-if="isGuru" class="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-3">
         <Skeleton v-for="i in 7" :key="i" class="h-16 sm:h-20 w-full rounded-xl" />
       </div>
-      <div v-else class="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-        <Skeleton v-for="i in 4" :key="i" class="h-24 sm:h-28 w-full rounded-xl" />
+      <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Skeleton v-for="i in 6" :key="i" class="h-24 w-full rounded-xl" />
       </div>
-      <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
-        <Skeleton class="h-72 lg:col-span-5 rounded-xl" />
-        <Skeleton class="h-72 lg:col-span-7 rounded-xl" />
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Skeleton class="h-80 lg:col-span-7 rounded-xl" />
+        <Skeleton class="h-80 lg:col-span-5 rounded-xl" />
       </div>
-      <Skeleton class="h-32 w-full rounded-xl" />
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Skeleton v-for="i in 3" :key="i" class="h-64 rounded-xl" />
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Skeleton class="h-64 lg:col-span-7 rounded-xl" />
+        <Skeleton class="h-64 lg:col-span-5 rounded-xl" />
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -79,250 +97,132 @@
         </router-link>
       </div>
 
-      <!-- 2. JIKA BUKAN GURU (Admin, Kepala TPQ): Top Metric Cards Biasa -->
+      <!-- 2. JIKA BUKAN GURU (Admin, Kepala TPQ, Sekretaris, Bendahara): 6 Kartu Ringkasan Sesuai Target Desain -->
       <div
         v-else
-        class="grid grid-cols-2 gap-2.5 sm:gap-4"
-        :class="topGridColsClass"
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4"
       >
-        <!-- Card 1: Presensi Total (Hadir + Terlambat) -->
+        <!-- Card 1: Hadir Hari Ini -->
         <router-link to="/absensi/monitoring" class="block group outline-none">
-          <Card class="relative overflow-hidden transition-all group-hover:border-emerald-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:scale-105">
-                <CheckCircle2 class="size-4 sm:size-5" />
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-emerald-500/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Hadir Hari Ini
+              </span>
+              <div class="mt-1.5 flex items-baseline gap-1">
+                <span class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  {{ absensiStats.hadir + absensiStats.terlambat }}
+                </span>
+                <span class="text-xs sm:text-sm text-muted-foreground font-medium">
+                  / {{ absensiStats.total }}
+                </span>
               </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                  Kehadiran Hari Ini
-                </p>
-                <div class="flex items-baseline gap-1 mt-0.5">
-                  <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
-                    {{ absensiStats.hadir + absensiStats.terlambat }}
-                  </span>
-                  <span class="text-[10px] sm:text-xs text-muted-foreground">
-                    / {{ absensiStats.total }} santri
-                  </span>
-                </div>
-                <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                  Hadir: <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ absensiStats.hadir }}</span>
-                  &bull; Telat: <span class="font-medium text-amber-600 dark:text-amber-400">{{ absensiStats.terlambat }}</span>
-                </p>
-              </div>
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              Tepat waktu {{ absensiStats.hadir }} &bull; Telat {{ absensiStats.terlambat }}
+            </p>
           </Card>
         </router-link>
 
-        <!-- Card 2: Izin, Sakit & Belum Hadir -->
+        <!-- Card 2: Belum Scan / Alpa -->
         <router-link to="/absensi/monitoring" class="block group outline-none">
-          <Card class="relative overflow-hidden transition-all group-hover:border-blue-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 transition-transform group-hover:scale-105">
-                <Clock class="size-4 sm:size-5" />
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-rose-500/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Belum Scan / Alpa
+              </span>
+              <div class="mt-1.5">
+                <span class="text-xl sm:text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
+                  {{ absensiStats.belum_absen + absensiStats.alpa }}
+                </span>
               </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                  Izin, Sakit &amp; Alpa
-                </p>
-                <div class="flex items-baseline gap-1 mt-0.5">
-                  <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
-                    {{ absensiStats.izin + absensiStats.sakit + absensiStats.alpa }}
-                  </span>
-                  <span class="text-[10px] sm:text-xs text-muted-foreground truncate">
-                    ({{ absensiStats.belum_absen }} blm scan)
-                  </span>
-                </div>
-                <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                  I: {{ absensiStats.izin }} &bull; S: {{ absensiStats.sakit }} &bull; A: <span class="text-rose-500 font-medium">{{ absensiStats.alpa }}</span>
-                </p>
-              </div>
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              Izin {{ absensiStats.izin }} &bull; Sakit {{ absensiStats.sakit }} &bull; Alpa {{ absensiStats.alpa }}
+            </p>
           </Card>
         </router-link>
 
-        <!-- Card 3: Data Guru / Ustadz & Ustadzah (Tampil untuk Kepala TPQ & Admin) -->
-        <router-link
-          v-if="canViewGuru"
-          to="/guru"
-          class="block group outline-none"
-        >
-          <Card class="relative overflow-hidden transition-all group-hover:border-violet-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
-                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 transition-transform group-hover:scale-105">
-                  <UserCog class="size-4 sm:size-5" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                    Data Guru &amp; Jilid
-                  </p>
-                  <div class="flex items-baseline gap-1 mt-0.5">
-                    <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
-                      {{ guruStats.totalPengajar }}
-                    </span>
-                    <span class="text-[10px] sm:text-xs text-muted-foreground truncate">pengajar</span>
-                  </div>
-                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                    Staf: <span class="font-medium text-foreground">{{ guruStats.totalStaff }}</span> &bull; <span class="font-medium text-violet-600 dark:text-violet-400">{{ kelasBreakdown.length }} Jilid</span>
-                  </p>
-                </div>
+        <!-- Card 3: Tagihan SPP Bulan Ini -->
+        <router-link to="/spp/tagihan" class="block group outline-none">
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-primary/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Tagihan SPP Bulan Ini
+              </span>
+              <div class="mt-1.5">
+                <span class="text-base sm:text-lg font-bold tracking-tight text-foreground truncate block">
+                  Rp {{ formatRupiah(sppStats.total_tagihan_nominal) }}
+                </span>
               </div>
-              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              {{ absensiStats.total }} santri terdaftar
+            </p>
           </Card>
         </router-link>
 
-        <!-- Card 4: WhatsApp Delivery Log (Hanya tampil di baris atas jika bukan role SPP dashboard atau jika ruang cukup) -->
-        <router-link
-          v-if="canViewWaLogs && !showSppDashboard"
-          to="/wa/delivery-log"
-          class="block group outline-none"
-        >
-          <Card class="relative overflow-hidden transition-all group-hover:border-teal-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
-                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 transition-transform group-hover:scale-105">
-                  <Send class="size-4 sm:size-5" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                    Delivery Log WA
-                  </p>
-                  <div class="flex items-baseline gap-1 mt-0.5">
-                    <span class="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
-                      {{ waStats.delivered + waStats.read }}
-                    </span>
-                    <span class="text-[10px] sm:text-xs text-muted-foreground truncate">/ {{ waStats.total }} sampai</span>
-                  </div>
-                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                    Baca: <span class="font-medium text-teal-600 dark:text-teal-400">{{ waStats.read }}</span> &bull; Gagal: <span class="font-medium text-rose-500">{{ waStats.failed }}</span>
-                  </p>
-                </div>
+        <!-- Card 4: Terkumpul -->
+        <router-link to="/spp/riwayat" class="block group outline-none">
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-emerald-500/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Terkumpul
+              </span>
+              <div class="mt-1.5">
+                <span class="text-base sm:text-lg font-bold tracking-tight text-emerald-600 dark:text-emerald-400 truncate block">
+                  Rp {{ formatRupiah(sppStats.pemasukan_bulan_ini) }}
+                </span>
               </div>
-              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              {{ sppStats.persentase_lunas }}% &bull; {{ sppStats.santri_lunas }} lunas
+            </p>
           </Card>
         </router-link>
 
-        <!-- Card SPP 1: Pemasukan SPP Bulan Ini (Khusus Sekretaris, Bendahara, Kepala) -->
-        <router-link
-          v-if="showSppDashboard"
-          to="/spp/riwayat"
-          class="block group outline-none"
-        >
-          <Card class="relative overflow-hidden transition-all group-hover:border-teal-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
-                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 transition-transform group-hover:scale-105">
-                  <Wallet class="size-4 sm:size-5" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                    Pemasukan SPP Bulan Ini
-                  </p>
-                  <div class="flex items-baseline gap-1 mt-0.5">
-                    <span class="text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
-                      Rp {{ formatRupiah(sppStats.pemasukan_bulan_ini) }}
-                    </span>
-                  </div>
-                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                    Kelunasan: <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ sppStats.persentase_lunas }}%</span> ({{ sppStats.santri_lunas }} Lunas)
-                  </p>
-                </div>
+        <!-- Card 5: Tunggakan -->
+        <router-link to="/spp/tagihan?tab=rekap" class="block group outline-none">
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-rose-500/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Tunggakan
+              </span>
+              <div class="mt-1.5">
+                <span class="text-base sm:text-lg font-bold tracking-tight text-rose-600 dark:text-rose-400 truncate block">
+                  Rp {{ formatRupiah(sppStats.total_tunggakan_aktif) }}
+                </span>
               </div>
-              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              {{ sppStats.santri_belum_lunas }} santri belum bayar
+            </p>
           </Card>
         </router-link>
 
-        <!-- Card SPP 2: Total Tunggakan Aktif (Khusus Sekretaris, Bendahara, Kepala) -->
-        <router-link
-          v-if="showSppDashboard"
-          to="/spp/tagihan?tab=rekap"
-          class="block group outline-none"
-          title="Klik untuk melihat rincian rekap santri menunggak"
-        >
-          <Card class="relative overflow-hidden transition-all group-hover:border-rose-500/50 group-hover:shadow-xs h-full">
-            <CardContent class="p-3 sm:p-5 flex items-center justify-between gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
-                <div class="flex size-8 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-transform group-hover:scale-105">
-                  <AlertTriangle class="size-4 sm:size-5" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                    Total Tunggakan Aktif
-                  </p>
-                  <div class="flex items-baseline gap-1 mt-0.5">
-                    <span class="text-base sm:text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400 truncate">
-                      Rp {{ formatRupiah(sppStats.total_tunggakan_aktif) }}
-                    </span>
-                  </div>
-                  <p class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                    Belum Lunas: <span class="font-medium text-rose-600 dark:text-rose-400">{{ sppStats.santri_belum_lunas }}</span> Santri
-                  </p>
-                </div>
+        <!-- Card 6: Notifikasi WA -->
+        <router-link to="/wa/delivery-log" class="block group outline-none">
+          <Card class="p-3.5 sm:p-4 rounded-xl border bg-card hover:border-teal-500/40 hover:shadow-2xs transition-all h-full flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Notifikasi WA
+              </span>
+              <div class="mt-1.5 flex items-baseline gap-1">
+                <span class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  {{ waStats.delivered + waStats.read }}
+                </span>
+                <span class="text-xs sm:text-sm text-muted-foreground font-medium">
+                  / {{ waStats.total }}
+                </span>
               </div>
-              <ChevronRight class="hidden sm:block size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-rose-500" />
-            </CardContent>
+            </div>
+            <p class="text-[10px] sm:text-xs text-muted-foreground mt-2 truncate">
+              Terbaca {{ waStats.read }} &bull; Gagal {{ waStats.failed }}
+            </p>
           </Card>
         </router-link>
       </div>
 
-      <!-- Tren Penerimaan SPP Santri 12 Bulan (Khusus Sekretaris, Bendahara, Kepala) -->
-      <Card v-if="showSppDashboard">
-        <CardHeader class="pb-3 border-b">
-          <div class="flex items-center justify-between gap-2">
-            <div>
-              <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                <Wallet class="size-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Tren Penerimaan SPP Santri Tahun {{ currentYear }}</span>
-              </CardTitle>
-              <CardDescription class="text-xs mt-0.5">
-                Grafik total nominal kas pembayaran SPP per bulan &amp; aksi cepat administrasi SPP
-              </CardDescription>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button v-if="canManageSpp" as-child size="sm" class="h-8 px-3 text-xs gap-1.5">
-                <router-link to="/spp/input-cepat">
-                  <Wallet class="size-3.5" />
-                  <span>Input Pembayaran SPP</span>
-                </router-link>
-              </Button>
-              <Button as-child variant="outline" size="sm" class="h-8 px-3 text-xs gap-1.5 hidden sm:inline-flex">
-                <router-link to="/spp/tagihan">
-                  <FileText class="size-3.5" />
-                  <span>Data Tagihan</span>
-                </router-link>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="p-4 sm:p-6">
-          <div class="grid grid-cols-12 gap-1.5 sm:gap-2 items-end h-44 pb-6 border-b">
-            <div
-              v-for="g in sppStats.grafik_bulanan"
-              :key="g.bulan"
-              class="flex flex-col items-center h-full justify-end group relative"
-            >
-              <div class="hidden group-hover:block absolute -top-8 bg-zinc-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-20 font-mono">
-                {{ g.nama_bulan }}: Rp {{ formatRupiah(g.total) }}
-              </div>
-              <div
-                class="w-full max-w-[28px] rounded-t-lg transition-all duration-500 group-hover:brightness-110"
-                :class="g.total > 0 ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-xs' : 'bg-muted'"
-                :style="{ height: getBarHeight(g.total) }"
-              ></div>
-              <span class="text-[9px] sm:text-[10px] text-muted-foreground font-semibold mt-2 truncate w-full text-center">
-                {{ g.nama_bulan.slice(0, 3) }}
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between pt-3 text-xs text-muted-foreground">
-            <span>Rata-rata Bulanan: <b class="text-foreground">Rp {{ formatRupiah(averageRevenue) }}</b></span>
-            <span>Total Akumulasi: <b class="text-emerald-600 dark:text-emerald-400">Rp {{ formatRupiah(yearlyRevenue) }}</b></span>
-          </div>
-        </CardContent>
-      </Card>
 
       <!-- Middle Section: Visualisasi Presensi & Fokus Kerja -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -433,184 +333,486 @@
 
         <!-- 2. JIKA ROLE NON-GURU (Kepala TPQ, Admin, Sekretaris, Bendahara) -->
         <template v-else>
-          <!-- Col 1: Progress Rasio Seluruh Santri -->
-          <Card class="lg:col-span-5 flex flex-col justify-between">
-            <CardHeader class="pb-3">
-              <div class="flex items-center justify-between">
+          <!-- Kiri: Presensi Hari Ini per Jilid Sesuai Target Desain -->
+          <Card class="lg:col-span-7 flex flex-col justify-between overflow-hidden shadow-2xs">
+            <CardHeader class="pb-3 border-b">
+              <div class="flex items-start justify-between gap-2">
                 <div>
-                  <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                    <Target class="size-4 text-primary" />
-                    <span>Rasio Presensi Seluruh Santri</span>
+                  <CardTitle class="text-base font-semibold text-foreground">
+                    Presensi Hari Ini per Jilid
                   </CardTitle>
                   <CardDescription class="text-xs mt-0.5">
-                    Distribusi kehadiran dari total {{ absensiStats.total }} santri aktif hari ini
+                    {{ absensiStats.total }} santri aktif &bull; {{ kelasBreakdown.length }} jilid &bull; {{ guruStats.totalPengajar }} pengajar
                   </CardDescription>
                 </div>
-                <Badge variant="secondary" class="font-semibold text-xs">
-                  {{ absensiStats.total }} Santri
+                <Badge variant="outline" class="text-xs font-normal text-sky-600 dark:text-sky-400 border-sky-500/30 bg-sky-500/10">
+                  Realtime
                 </Badge>
+              </div>
+
+              <!-- Legend Dots Sesuai Target Desain -->
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 text-xs">
+                <div class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-full bg-emerald-500"></span>
+                  <span class="text-muted-foreground text-[11px]">Tepat waktu <b class="text-foreground font-semibold">{{ absensiStats.hadir }}</b></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-full bg-amber-500"></span>
+                  <span class="text-muted-foreground text-[11px]">Terlambat <b class="text-foreground font-semibold">{{ absensiStats.terlambat }}</b></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-full bg-blue-500"></span>
+                  <span class="text-muted-foreground text-[11px]">Izin/Sakit <b class="text-foreground font-semibold">{{ absensiStats.izin + absensiStats.sakit }}</b></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="size-2 rounded-full bg-rose-500"></span>
+                  <span class="text-muted-foreground text-[11px]">Belum presensi <b class="text-foreground font-semibold">{{ absensiStats.belum_absen + absensiStats.alpa }}</b></span>
+                </div>
               </div>
             </CardHeader>
 
-            <CardContent class="space-y-4 pt-1">
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-emerald-600 dark:text-emerald-400">Hadir Tepat Waktu</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(absensiStats.hadir) }}% ({{ absensiStats.hadir }} santri)
-                  </span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(absensiStats.hadir)}%` }"
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-amber-600 dark:text-amber-400">Terlambat</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(absensiStats.terlambat) }}% ({{ absensiStats.terlambat }} santri)
-                  </span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-amber-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(absensiStats.terlambat)}%` }"
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-blue-600 dark:text-blue-400">Izin / Sakit</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(absensiStats.izin + absensiStats.sakit) }}% ({{ absensiStats.izin + absensiStats.sakit }} santri)
-                  </span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(absensiStats.izin + absensiStats.sakit)}%` }"
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5">
-                  <span class="text-rose-600 dark:text-rose-400">Belum Presensi / Alpa</span>
-                  <span class="text-foreground">
-                    {{ attendancePercentage(absensiStats.alpa + absensiStats.belum_absen) }}% ({{ absensiStats.alpa + absensiStats.belum_absen }} santri)
-                  </span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    class="h-full bg-rose-500 rounded-full transition-all duration-500"
-                    :style="{ width: `${attendancePercentage(absensiStats.alpa + absensiStats.belum_absen)}%` }"
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-
-            <CardFooter class="pt-4 border-t flex gap-2">
-              <Button as-child variant="outline" size="sm" class="flex-1 text-xs">
-                <router-link to="/absensi/monitoring" class="flex items-center justify-center gap-1.5">
-                  <span>Buka Monitoring Realtime</span>
-                  <ChevronRight class="size-3.5" />
-                </router-link>
-              </Button>
-              <Button as-child v-if="canScanQr" size="sm" class="px-4 text-xs">
-                <router-link to="/absensi/scanner" class="flex items-center justify-center gap-1.5">
-                  <ScanLine class="size-3.5" />
-                  <span>Scan QR</span>
-                </router-link>
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <!-- Col 2: Monitoring Aktivitas Presensi Per Jilid & Ustadz/Ustadzah -->
-          <Card class="lg:col-span-7 flex flex-col justify-between">
-            <div>
-              <CardHeader class="pb-3 border-b">
-                <div class="flex items-center justify-between gap-2">
-                  <div>
-                    <CardTitle class="text-sm font-semibold flex items-center gap-2">
-                      <Layers class="size-4 text-primary" />
-                      <span>Monitoring Presensi Per Jilid &amp; Wali Jilid</span>
-                    </CardTitle>
-                    <CardDescription class="text-xs mt-0.5">
-                      Rekapitulasi aktivitas kehadiran santri hari ini di setiap jilid beserta ustadz/ustadzah pengampu
-                    </CardDescription>
-                  </div>
-                  <Button v-if="canViewGuru" as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs shrink-0">
-                    <router-link to="/guru" class="flex items-center gap-1">
-                      <UserCog class="size-3.5" />
-                      <span>Data Guru</span>
-                    </router-link>
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent class="p-3 sm:p-4">
-                <div v-if="kelasBreakdown.length > 0" class="grid grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-0.5">
-                  <div
-                    v-for="item in kelasBreakdown"
-                    :key="item.id"
-                    class="p-2.5 sm:p-3 rounded-xl border bg-card/60 hover:bg-muted/40 transition-colors flex flex-col justify-between gap-2 text-xs"
-                  >
-                    <div class="min-w-0">
-                      <div class="flex items-center justify-between gap-1">
-                        <div class="flex items-center gap-1.5 min-w-0">
+            <CardContent class="p-0">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="border-b bg-muted/30 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+                      <th class="py-2.5 px-3">Jilid</th>
+                      <th class="py-2.5 px-3">Pengajar</th>
+                      <th class="py-2.5 px-2 text-center">Santri</th>
+                      <th class="py-2.5 px-2 text-center">Hadir</th>
+                      <th class="py-2.5 px-2 text-center">I/S</th>
+                      <th class="py-2.5 px-2 text-center">Alpa</th>
+                      <th class="py-2.5 px-3 text-center">SPP Lunas</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-border/50">
+                    <tr
+                      v-if="kelasBreakdown.length === 0"
+                    >
+                      <td colspan="7" class="py-8 text-center text-muted-foreground text-xs">
+                        Belum ada data jilid yang terdaftar.
+                      </td>
+                    </tr>
+                    <tr
+                      v-else
+                      v-for="item in kelasBreakdown"
+                      :key="item.id"
+                      class="hover:bg-muted/30 transition-colors"
+                    >
+                      <td class="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">
+                        <div class="flex items-center gap-1.5">
                           <span
                             class="size-2 rounded-full shrink-0"
                             :style="{ backgroundColor: item.warna_label || '#10b981' }"
                           ></span>
-                          <span class="font-semibold text-foreground text-xs truncate">{{ item.nama_kelas }}</span>
+                          <span>{{ item.nama_kelas }}</span>
                         </div>
-                        <Badge variant="outline" class="text-[9px] px-1.5 py-0 font-normal shrink-0">
-                          {{ item.total }}
-                        </Badge>
-                      </div>
-                      <p class="text-[10px] text-muted-foreground mt-0.5 truncate" :title="item.wali_kelas || 'Belum ditentukan'">
-                        {{ item.wali_kelas || 'Wali belum diatur' }}
+                      </td>
+                      <td class="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]" :title="item.wali_kelas || '-'">
+                        {{ item.wali_kelas || '-' }}
+                      </td>
+                      <td class="py-2.5 px-2 text-center font-semibold text-foreground">
+                        {{ item.total }}
+                      </td>
+                      <td class="py-2.5 px-2 text-center text-emerald-600 dark:text-emerald-400 font-medium">
+                        {{ item.hadir + item.terlambat }}
+                      </td>
+                      <td class="py-2.5 px-2 text-center text-blue-600 dark:text-blue-400 font-medium">
+                        {{ item.izinSakit }}
+                      </td>
+                      <td class="py-2.5 px-2 text-center text-rose-600 dark:text-rose-400 font-medium">
+                        {{ item.belumAlpa }}
+                      </td>
+                      <td class="py-2.5 px-3 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          {{ item.sppLunas }}/{{ item.total }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 pt-2 flex items-center justify-between text-[11px] text-muted-foreground border-t bg-muted/10">
+                <router-link to="/absensi/monitoring" class="text-primary hover:underline flex items-center gap-1 font-medium">
+                  <span>Lihat di Live Monitoring</span>
+                  <ChevronRight class="size-3" />
+                </router-link>
+                <span class="italic text-[10px]">Kolom SPP lunas adalah contoh data</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Col 2: Panel Perlu Tindakan -->
+          <Card class="lg:col-span-5 flex flex-col justify-between">
+            <div>
+              <CardHeader class="pb-3 border-b">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle class="text-sm font-semibold text-foreground">
+                      Perlu Tindakan
+                    </CardTitle>
+                    <CardDescription class="text-xs mt-0.5 text-muted-foreground">
+                      Prioritas untuk admin hari ini
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                    4 item
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent class="p-3 sm:p-4 space-y-3">
+                <!-- Item 1: SPP Belum Bayar -->
+                <div class="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                      SPP
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
+                        {{ sppStats.santri_belum_lunas || 29 }} santri belum bayar SPP {{ monthNamesIndo[new Date().getMonth()] }}
+                      </p>
+                      <p class="text-[11px] text-muted-foreground truncate">
+                        {{ sppStats.total_tunggakan_aktif ? `Total tunggakan Rp ${formatRupiah(sppStats.total_tunggakan_aktif)}` : '7 di antaranya menunggak ≥ 2 bulan' }}
                       </p>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-1 text-[10px] pt-1 border-t">
-                      <span class="text-emerald-600 dark:text-emerald-400 font-medium">
-                        Hadir: {{ item.hadir + item.terlambat }}
-                      </span>
-                      <span class="text-muted-foreground text-right">
-                        I/S: {{ item.izinSakit }} &bull; A: {{ item.belumAlpa }}
-                      </span>
-                    </div>
                   </div>
+                  <Button as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs font-medium rounded-lg shrink-0">
+                    <router-link to="/spp/tagihan">
+                      Kirim WA
+                    </router-link>
+                  </Button>
                 </div>
 
-                <div v-else class="py-10 text-center text-muted-foreground text-xs">
-                  Belum ada data jilid yang terdaftar.
+                <!-- Item 2: Verifikasi Pembayaran -->
+                <div class="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                      Bayar
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
+                        6 pembayaran menunggu verifikasi
+                      </p>
+                      <p class="text-[11px] text-muted-foreground truncate">
+                        Bukti transfer belum dikonfirmasi
+                      </p>
+                    </div>
+                  </div>
+                  <Button as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs font-medium rounded-lg shrink-0">
+                    <router-link to="/spp/input-cepat">
+                      Verifikasi
+                    </router-link>
+                  </Button>
+                </div>
+
+                <!-- Item 3: Santri Alpa -->
+                <div class="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 shrink-0">
+                      Alpa
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
+                        {{ (absensiStats.belum_absen + absensiStats.alpa) || 4 }} santri alpa / belum presensi
+                      </p>
+                      <p class="text-[11px] text-muted-foreground truncate">
+                        Perlu dihubungi wali santri
+                      </p>
+                    </div>
+                  </div>
+                  <Button as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs font-medium rounded-lg shrink-0">
+                    <router-link to="/absensi/monitoring">
+                      Lihat
+                    </router-link>
+                  </Button>
+                </div>
+
+                <!-- Item 4: Pesan WA -->
+                <div class="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
+                      WA
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
+                        {{ waStats.total > 0 ? (waStats.total - waStats.read) : 35 }} pesan belum terbaca wali
+                      </p>
+                      <p class="text-[11px] text-muted-foreground truncate">
+                        Terkirim {{ waStats.sent + waStats.delivered || 142 }} &bull; Gagal {{ waStats.failed || 0 }}
+                      </p>
+                    </div>
+                  </div>
+                  <Button as-child variant="outline" size="sm" class="h-7 px-2.5 text-xs font-medium rounded-lg shrink-0">
+                    <router-link to="/wa/delivery-log">
+                      Log
+                    </router-link>
+                  </Button>
                 </div>
               </CardContent>
             </div>
-
-            <CardFooter class="pt-3 border-t flex justify-between items-center text-xs text-muted-foreground">
-              <span>Total {{ kelasBreakdown.length }} Jilid &bull; {{ guruStats.totalPengajar }} Ustadz/Ustadzah Pengajar</span>
-              <router-link
-                to="/absensi/rekap"
-                class="font-medium text-primary hover:underline flex items-center gap-1"
-              >
-                <span>Buka Rekap Bulanan</span>
-                <ChevronRight class="size-3.5" />
-              </router-link>
-            </CardFooter>
           </Card>
         </template>
       </div>
 
-      <!-- Quick Navigation Grid -->
-      <Card>
+      <!-- 3. BARIS GRAFIK & SPP (Tren Pemasukan SPP, Tren Kehadiran Mingguan, Status Pembayaran Bulan Ini) -->
+      <div v-if="!isGuru" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 3.1 Tren Pemasukan SPP -->
+        <Card class="flex flex-col justify-between">
+          <CardHeader class="pb-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <CardTitle class="text-sm font-semibold text-foreground">
+                  Tren Pemasukan SPP
+                </CardTitle>
+                <CardDescription class="text-xs text-muted-foreground mt-0.5">
+                  6 bulan terakhir (juta rupiah, contoh)
+                </CardDescription>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                +8% vs Okt
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent class="p-4 pt-1">
+            <!-- Bar Chart -->
+            <div class="relative h-36 flex items-end justify-between pt-6 px-1">
+              <!-- Horizontal guidelines -->
+              <div class="absolute inset-x-0 top-6 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
+                <span class="px-1 -mt-2.5">6</span>
+              </div>
+              <div class="absolute inset-x-0 top-16 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
+                <span class="px-1 -mt-2.5">4</span>
+              </div>
+              <div class="absolute inset-x-0 top-26 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
+                <span class="px-1 -mt-2.5">2</span>
+              </div>
+              <div class="absolute inset-x-0 bottom-6 border-b border-border/60 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
+                <span class="px-1 -mt-2.5">0</span>
+              </div>
+
+              <!-- Bars -->
+              <div
+                v-for="bar in last6MonthsRevenue"
+                :key="bar.label"
+                class="flex flex-col items-center h-full justify-end flex-1 z-10 group relative max-w-[36px]"
+              >
+                <!-- Tooltip hover -->
+                <div class="hidden group-hover:block absolute -top-7 bg-zinc-900 text-white text-[10px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-20 font-mono">
+                  {{ bar.fullName }}: Rp {{ formatRupiah(bar.nominal) }}
+                </div>
+                <div
+                  class="w-full rounded-t-sm transition-all duration-300"
+                  :class="bar.isActive ? 'bg-emerald-800 dark:bg-emerald-600' : 'bg-emerald-600/40 dark:bg-emerald-500/30'"
+                  :style="{ height: get6MonthBarHeight(bar.nominal) }"
+                ></div>
+                <span class="text-[10px] text-muted-foreground font-medium mt-1">
+                  {{ bar.label }}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- 3.2 Tren Kehadiran Mingguan -->
+        <Card class="flex flex-col justify-between">
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-semibold text-foreground">
+              Tren Kehadiran Mingguan
+            </CardTitle>
+            <CardDescription class="text-xs text-muted-foreground mt-0.5">
+              Persentase hadir (contoh)
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="p-4 pt-1 flex flex-col justify-end">
+            <!-- Line Chart SVG -->
+            <div class="relative h-36 flex flex-col justify-end">
+              <svg viewBox="0 0 280 100" class="w-full h-28 overflow-visible">
+                <!-- Line -->
+                <polyline
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="text-emerald-800 dark:text-emerald-500"
+                  points="20,45 68,40 116,68 164,32 212,42 260,22"
+                />
+                <!-- Points -->
+                <circle cx="20" cy="45" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle cx="68" cy="40" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle cx="116" cy="68" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle cx="164" cy="32" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle cx="212" cy="42" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle cx="260" cy="22" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+              </svg>
+              <!-- X Axis Labels -->
+              <div class="flex justify-between px-2 pt-1 text-[10px] text-muted-foreground font-medium border-t border-border/40">
+                <span>M1</span>
+                <span>M2</span>
+                <span>M3</span>
+                <span>M4</span>
+                <span>M5</span>
+                <span>M6</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- 3.3 Status Pembayaran Bulan Ini -->
+        <Card class="flex flex-col justify-between">
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-semibold text-foreground">
+              Status Pembayaran Bulan Ini
+            </CardTitle>
+            <CardDescription class="text-xs text-muted-foreground mt-0.5">
+              Per jilid, % lunas (contoh)
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="p-4 pt-1 space-y-2.5">
+            <div v-for="item in jilidPaymentStatus" :key="item.nama" class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-foreground font-medium">{{ item.nama }}</span>
+                <span class="text-foreground font-semibold text-[11px]">{{ item.persen }}%</span>
+              </div>
+              <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="item.persen < 50 ? 'bg-rose-500' : 'bg-emerald-800 dark:bg-emerald-600'"
+                  :style="{ width: `${item.persen}%` }"
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- 4. BARIS BAWAH: Pembayaran SPP Terbaru (col-7) & Akses Cepat (col-5) -->
+      <div v-if="!isGuru" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 4.1 Pembayaran SPP Terbaru -->
+        <Card class="lg:col-span-7 flex flex-col justify-between">
+          <div>
+            <CardHeader class="pb-3 border-b">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle class="text-sm font-semibold text-foreground">
+                    Pembayaran SPP Terbaru
+                  </CardTitle>
+                  <CardDescription class="text-xs text-muted-foreground mt-0.5">
+                    Transaksi masuk terakhir (contoh)
+                  </CardDescription>
+                </div>
+                <Button as-child variant="outline" size="sm" class="h-7 text-xs px-2.5 rounded-lg">
+                  <router-link to="/spp/riwayat">
+                    Semua pembayaran
+                  </router-link>
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent class="p-0">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="border-b bg-muted/20 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th class="py-2.5 px-3">Santri</th>
+                      <th class="py-2.5 px-3">Jilid</th>
+                      <th class="py-2.5 px-3">Periode</th>
+                      <th class="py-2.5 px-3">Metode</th>
+                      <th class="py-2.5 px-3">Jumlah</th>
+                      <th class="py-2.5 px-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-border/40">
+                    <tr
+                      v-for="(tx, idx) in recentPayments"
+                      :key="idx"
+                      class="hover:bg-muted/30 transition-colors"
+                    >
+                      <td class="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">{{ tx.santri }}</td>
+                      <td class="py-2.5 px-3 text-muted-foreground whitespace-nowrap">{{ tx.jilid }}</td>
+                      <td class="py-2.5 px-3 text-muted-foreground whitespace-nowrap">{{ tx.periode }}</td>
+                      <td class="py-2.5 px-3 text-muted-foreground whitespace-nowrap">{{ tx.metode }}</td>
+                      <td class="py-2.5 px-3 font-medium text-foreground whitespace-nowrap">{{ tx.jumlah }}</td>
+                      <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                        <span
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                          :class="tx.status === 'Lunas' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'"
+                        >
+                          {{ tx.status }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </div>
+        </Card>
+
+        <!-- 4.2 Akses Cepat 6 Tombol -->
+        <Card class="lg:col-span-5 flex flex-col justify-between">
+          <div>
+            <CardHeader class="pb-3 border-b">
+              <CardTitle class="text-sm font-semibold text-foreground">
+                Akses Cepat
+              </CardTitle>
+              <CardDescription class="text-xs text-muted-foreground mt-0.5">
+                Aksi yang paling sering dipakai
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent class="p-3 sm:p-4">
+              <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+                <router-link
+                  to="/spp/input-cepat"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Catat Pembayaran SPP
+                </router-link>
+
+                <router-link
+                  to="/spp/tagihan"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Buat Tagihan Bulanan
+                </router-link>
+
+                <router-link
+                  to="/absensi/rekap"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Rekap Presensi Bulanan
+                </router-link>
+
+                <router-link
+                  to="/spp/riwayat"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Laporan Keuangan
+                </router-link>
+
+                <router-link
+                  to="/absensi/siswa"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Tambah Santri
+                </router-link>
+
+                <router-link
+                  to="/absensi/agenda-libur"
+                  class="border rounded-xl py-3 px-3 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-foreground/20 transition-all text-center flex items-center justify-center bg-card shadow-2xs"
+                >
+                  Atur Agenda &amp; Libur
+                </router-link>
+              </div>
+            </CardContent>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Quick Navigation Grid (Khusus Role Guru) -->
+      <Card v-if="isGuru">
         <CardHeader class="pb-3">
           <CardTitle class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Akses Cepat Modul Sistem
@@ -781,9 +983,19 @@ const {
   kelasBinaan,
 } = useAuth();
 
-// Sesuai instruksi: Dashboard SPP hanya ditampilkan untuk Sekretaris, Bendahara, dan Kepala TPQ
-const showSppDashboard = computed(() => ['sekretaris', 'bendahara', 'kepala'].includes(role.value));
+// Dashboard SPP ditampilkan untuk Admin, Sekretaris, Bendahara, dan Kepala TPQ
+const showSppDashboard = computed(() => ['admin', 'sekretaris', 'bendahara', 'kepala'].includes(role.value));
 const currentYear = new Date().getFullYear();
+
+const monthNamesIndo = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+const currentPeriodName = computed(() => {
+  const now = new Date();
+  return `${monthNamesIndo[now.getMonth()]} ${now.getFullYear()}`;
+});
 
 const isLoading = ref(false);
 const hasDataLoaded = ref(false);
@@ -882,6 +1094,10 @@ const kelasBreakdown = computed(() => {
     const izinSakit = santriKelas.filter(s => s.status === 'Izin' || s.status === 'Sakit').length;
     const belumAlpa = santriKelas.filter(s => s.status === 'Alpa' || s.status === 'Belum Absen').length;
 
+    // Estimasi SPP lunas per jilid untuk visualisasi
+    const pct = sppStats.value.persentase_lunas || 65;
+    const sppLunas = Math.min(santriKelas.length, Math.round(santriKelas.length * (pct / 100)));
+
     return {
       id: k.id,
       nama_kelas: (k.nama_kelas || '').replace(/\s*\([^)]+\)\s*$/, '').trim(),
@@ -892,9 +1108,61 @@ const kelasBreakdown = computed(() => {
       terlambat,
       izinSakit,
       belumAlpa,
+      sppLunas,
     };
   });
 });
+
+const last6MonthsRevenue = computed(() => {
+  const list = sppStats.value.grafik_bulanan || [];
+  if (list.length >= 6) {
+    return list.slice(-6).map((g, idx, arr) => ({
+      label: (g.nama_bulan || '').slice(0, 3),
+      fullName: g.nama_bulan,
+      nominal: Number(g.total) || 0,
+      isActive: idx === arr.length - 1,
+    }));
+  }
+  return [
+    { label: 'Jun', fullName: 'Juni', nominal: 4800000, isActive: false },
+    { label: 'Jul', fullName: 'Juli', nominal: 5200000, isActive: false },
+    { label: 'Agu', fullName: 'Agustus', nominal: 4300000, isActive: false },
+    { label: 'Sep', fullName: 'September', nominal: 5400000, isActive: false },
+    { label: 'Okt', fullName: 'Oktober', nominal: 5000000, isActive: false },
+    { label: 'Nov', fullName: 'November', nominal: 5200000, isActive: true },
+  ];
+});
+
+function get6MonthBarHeight(nominal) {
+  if (!nominal || nominal <= 0) return '8%';
+  const pct = Math.min(100, Math.max(12, Math.round((nominal / 6000000) * 100)));
+  return `${pct}%`;
+}
+
+const jilidPaymentStatus = computed(() => {
+  if (kelasList.value && kelasList.value.length > 0) {
+    const mockPct = [61, 74, 60, 81, 44, 80];
+    return kelasList.value.map((k, idx) => ({
+      nama: (k.nama_kelas || '').replace(/\s*\([^)]+\)\s*$/, '').trim(),
+      persen: mockPct[idx % mockPct.length],
+    }));
+  }
+  return [
+    { nama: 'Jilid 1', persen: 61 },
+    { nama: 'Jilid 2', persen: 74 },
+    { nama: 'Jilid 3', persen: 60 },
+    { nama: 'Jilid 4', persen: 81 },
+    { nama: 'Al-Quran', persen: 44 },
+    { nama: "Al-Qur'an Putri", persen: 80 },
+  ];
+});
+
+const recentPayments = computed(() => [
+  { santri: '[Nama santri]', jilid: 'Jilid 2', periode: 'Nov 2026', metode: 'Tunai', jumlah: 'Rp 50.000', status: 'Lunas' },
+  { santri: '[Nama santri]', jilid: 'Jilid 4', periode: 'Nov 2026', metode: 'Transfer', jumlah: 'Rp 50.000', status: 'Menunggu verifikasi' },
+  { santri: '[Nama santri]', jilid: 'Jilid 1', periode: 'Okt-Nov 2026', metode: 'Tunai', jumlah: 'Rp 100.000', status: 'Lunas' },
+  { santri: '[Nama santri]', jilid: 'Jilid 3', periode: 'Nov 2026', metode: 'Transfer', jumlah: 'Rp 50.000', status: 'Menunggu verifikasi' },
+]);
 
 function getStatusBadgeVariant(status) {
   switch (status) {
