@@ -536,6 +536,7 @@ const bulanList = {
   11: 'November',
   12: 'Desember',
 };
+const NAMA_BULAN = bulanList;
 
 const currentDate = new Date();
 const selectedBulan = ref(currentDate.getMonth() + 1);
@@ -568,8 +569,10 @@ const activeKuitansi = computed(() => {
 const kuitansiDataForWa = computed(() => {
   if (!activeKuitansi.value) return null;
   const kw = activeKuitansi.value;
-  const namaBln = NAMA_BULAN[selectedBulan.value] || `Bulan ${selectedBulan.value}`;
-  const periodeStr = kw.daftar_bulan_str || kw.periode || `${namaBln} ${selectedTahun.value}`;
+  const currentBlnNum = Number(selectedBulan.value) || (new Date().getMonth() + 1);
+  const currentThnNum = Number(selectedTahun.value) || new Date().getFullYear();
+  const namaBln = bulanList[currentBlnNum] || `Bulan ${currentBlnNum}`;
+  const periodeStr = kw.daftar_bulan_str || kw.periode || `${namaBln} ${currentThnNum}`;
 
   // Ambil fallback data santri dari tabel jika di kw belum terisi lengkap
   const matchingSantri = santriItems.value.find(s => s.id_siswa === kw.id_siswa || s.nisn === kw.nisn);
@@ -580,8 +583,8 @@ const kuitansiDataForWa = computed(() => {
     nisn: kw.nisn || matchingSantri?.nisn || '-',
     kelas: kw.kelas || matchingSantri?.nama_kelas || '-',
     no_hp_ortu: kw.no_hp_ortu || matchingSantri?.no_hp_ortu || '',
-    bulan: kw.bulan || selectedBulan.value,
-    tahun: kw.tahun || selectedTahun.value,
+    bulan: kw.bulan || currentBlnNum,
+    tahun: kw.tahun || currentThnNum,
     nama_bulan: kw.nama_bulan || namaBln,
     periode: periodeStr,
     daftar_bulan_str: kw.daftar_bulan_str || periodeStr,
@@ -593,26 +596,32 @@ const kuitansiDataForWa = computed(() => {
 });
 
 function getAlokasiMultiBulanLabel(item) {
-  if (!item.nominal || item.status === 'lunas') return null;
+  if (!item || !item.nominal || item.status === 'lunas') return null;
+  const nominal = Number(item.nominal);
+  if (isNaN(nominal) || nominal <= 0) return null;
+
   const kData = kelasList.value.find(k => k.id === Number(selectedKelasId.value));
-  const tarif = kData ? Number(kData.nominal_spp) : 15000;
-  if (item.nominal <= tarif) return null;
+  const tarif = kData && Number(kData.nominal_spp) > 0 ? Number(kData.nominal_spp) : 15000;
+  if (nominal <= tarif) return null;
 
-  const jmlBulan = Math.floor(item.nominal / tarif);
-  const sisa = item.nominal % tarif;
+  const jmlBulan = Math.floor(nominal / tarif);
+  const sisa = nominal % tarif;
 
-  const startBln = Number(selectedBulan.value);
-  const startThn = Number(selectedTahun.value);
+  const startBln = Number(selectedBulan.value) || (new Date().getMonth() + 1);
+  const startThn = Number(selectedTahun.value) || new Date().getFullYear();
 
+  const maxBulan = Math.min(jmlBulan, 24);
   const blnNames = [];
-  for (let i = 0; i < jmlBulan; i++) {
-    const m = ((startBln - 1 + i) % 12) + 1;
-    blnNames.push(NAMA_BULAN[m]);
+  for (let i = 0; i < maxBulan; i++) {
+    const totalMonthIdx = startBln - 1 + i;
+    const m = (totalMonthIdx % 12) + 1;
+    blnNames.push(bulanList[m] || `Bulan ${m}`);
   }
 
   if (sisa > 0) {
     const mNext = ((startBln - 1 + jmlBulan) % 12) + 1;
-    return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')}) + Cicil Rp ${formatRupiah(sisa)} ${NAMA_BULAN[mNext]}`;
+    const nextBlnName = bulanList[mNext] || `Bulan ${mNext}`;
+    return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')}) + Cicil Rp ${formatRupiah(sisa)} ${nextBlnName}`;
   }
   return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')})`;
 }
