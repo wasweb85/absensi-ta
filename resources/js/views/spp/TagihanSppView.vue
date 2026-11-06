@@ -7,6 +7,7 @@
         Data Tagihan SPP
       </h2>
       <router-link
+        v-if="!isKepala"
         to="/spp/input-cepat"
         class="h-8 px-2.5 sm:px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition flex items-center gap-1.5 shadow-2xs shrink-0"
       >
@@ -239,7 +240,22 @@
 
                 <!-- Aksi Cepat -->
                 <TableCell class="text-center whitespace-nowrap">
-                  <div class="flex items-center justify-center gap-1.5">
+                  <!-- KHUSUS ROLE KEPALA: Hanya boleh melihat rincian tunggakan (Read-Only) -->
+                  <div v-if="isKepala" class="flex items-center justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="h-7 px-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-blue-200 dark:border-blue-800 gap-1 font-semibold cursor-pointer"
+                      title="Lihat Rincian Tunggakan"
+                      @click="openDetailModal(s)"
+                    >
+                      <Eye class="size-3.5" />
+                      <span>Lihat</span>
+                    </Button>
+                  </div>
+
+                  <!-- ROLE LAIN (Admin, Bendahara, Sekretaris): Tetap memiliki tombol Bayar & Japri WA -->
+                  <div v-else class="flex items-center justify-center gap-1.5">
                     <Button
                       size="sm"
                       class="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
@@ -403,6 +419,139 @@
               <span>Kirim Gateway</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Pop-up Detail Rincian Tunggakan SPP (Khusus Role Kepala - Read Only) -->
+    <div
+      v-if="showDetailModal && selectedDetailSantri"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+    >
+      <div
+        class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-4 sm:p-5 text-xs animate-slideUp"
+      >
+        <!-- Header Modal -->
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Eye class="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h3 class="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-tight">
+                  Rincian Tunggakan Santri
+                </h3>
+                <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                  Hanya Lihat
+                </span>
+              </div>
+              <p class="text-[10px] sm:text-[11px] text-zinc-500 truncate">Mode Pengawasan &amp; Supervisi Kepala TPQ</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="closeDetailModal"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            title="Tutup Modal"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Body Scrollable -->
+        <div class="flex-1 overflow-y-auto my-3 pr-0.5 space-y-3">
+          <!-- Info Santri -->
+          <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-zinc-900 dark:text-white text-xs sm:text-sm">
+                {{ selectedDetailSantri.nama_lengkap }}
+              </h4>
+              <p class="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
+                NISN: {{ selectedDetailSantri.nisn }} &bull; {{ selectedDetailSantri.nama_kelas }}
+              </p>
+            </div>
+            <div class="text-right">
+              <span v-if="selectedDetailSantri.no_hp_ortu" class="text-[10px] sm:text-[11px] text-zinc-500 font-mono flex items-center gap-1 justify-end">
+                <BaseIcon name="whatsapp" class="w-3.5 h-3.5 text-emerald-500" />
+                {{ selectedDetailSantri.no_hp_ortu }}
+              </span>
+              <span v-else class="text-[10px] text-zinc-400 italic">No WA belum ada</span>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="isLoadingDetailBills" class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400">
+            <RefreshCw class="w-5 h-5 mx-auto mb-1 animate-spin text-blue-600" />
+            <p class="text-[11px]">Memuat rincian bulan tagihan...</p>
+          </div>
+
+          <!-- Daftar Rincian Bulan Menunggak -->
+          <div v-else class="space-y-1.5">
+            <label class="font-bold text-zinc-700 dark:text-zinc-300 text-xs block mb-1">
+              Daftar Bulan Belum Lunas ({{ detailTagihanList.length }} Bulan)
+            </label>
+            <div v-if="detailTagihanList.length === 0" class="p-4 text-center rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs">
+              Santri tidak memiliki tunggakan tagihan aktif.
+            </div>
+            <div v-else class="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+              <div
+                v-for="b in detailTagihanList"
+                :key="b.id_tagihan"
+                class="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/70 bg-white dark:bg-zinc-800/60"
+              >
+                <div>
+                  <span class="font-bold text-zinc-900 dark:text-zinc-100 text-xs">
+                    {{ b.label || (b.nama_bulan + ' ' + b.tahun) }}
+                  </span>
+                  <span
+                    v-if="b.sudah_dibayar && b.sudah_dibayar > 0"
+                    class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium"
+                  >
+                    Kurang: Rp {{ formatRupiah(b.sisa || b.nominal_tagihan) }}
+                  </span>
+                  <span
+                    v-else
+                    class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-medium"
+                  >
+                    Belum Bayar
+                  </span>
+                </div>
+                <div class="text-right">
+                  <span class="font-mono font-bold text-xs text-rose-600 dark:text-rose-400">
+                    Rp {{ formatRupiah(b.sisa || b.nominal_tagihan) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Ringkasan -->
+          <div class="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">Total Akumulasi Tunggakan</p>
+              <p class="text-[10px] text-zinc-400 mt-0.5">{{ detailTagihanList.length }} Bulan tagihan</p>
+            </div>
+            <p class="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 font-mono">
+              Rp {{ formatRupiah(selectedDetailSantri.total_tunggakan) }}
+            </p>
+          </div>
+
+          <!-- Catatan Hak Akses Kepala TPQ -->
+          <div class="p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed">
+            <span class="font-bold">&bull; Informasi Hak Akses:</span> Akun Kepala TPQ hanya memiliki wewenang pengawasan untuk melihat data tunggakan (read-only). Perubahan status pembayaran hanya dapat diproses oleh Bendahara atau Sekretaris.
+          </div>
+        </div>
+
+        <!-- Footer Modal: Hanya tombol Tutup (Tidak ada tombol aksi ubah/bayar) -->
+        <div class="flex items-center justify-end pt-2.5 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
+          <button
+            type="button"
+            @click="closeDetailModal"
+            class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 font-bold text-xs shadow-sm transition cursor-pointer"
+          >
+            Tutup
+          </button>
         </div>
       </div>
     </div>
@@ -824,11 +973,12 @@ import {
   Copy,
   Printer,
   Send,
+  Eye,
 } from '@lucide/vue';
 
 const route = useRoute();
 const toast = useToast();
-const { canManageSpp } = useAuth();
+const { canManageSpp, isKepala } = useAuth();
 
 // Data Rekap Santri Menunggak
 const kelasList = ref([]);
@@ -977,6 +1127,47 @@ const totalNominalBayarModal = computed(() => {
     .filter(b => selectedTagihanIds.value.includes(b.id_tagihan))
     .reduce((sum, b) => sum + (Number(b.sisa) || Number(b.nominal_tagihan) || 0), 0);
 });
+
+// State Modal Detail Rincian (Khusus Role Kepala - Read-Only)
+const showDetailModal = ref(false);
+const selectedDetailSantri = ref(null);
+const detailTagihanList = ref([]);
+const isLoadingDetailBills = ref(false);
+
+const openDetailModal = async (santri) => {
+  selectedDetailSantri.value = {
+    id_siswa: santri.id_siswa,
+    nama_lengkap: santri.nama_lengkap,
+    nisn: santri.nisn,
+    nama_kelas: santri.nama_kelas,
+    no_hp_ortu: santri.no_hp_ortu,
+    total_tunggakan: santri.total_tunggakan,
+    jumlah_bulan: santri.jumlah_bulan,
+  };
+  detailTagihanList.value = santri.daftar_bulan || [];
+  isLoadingDetailBills.value = true;
+  showDetailModal.value = true;
+
+  try {
+    const res = await api.get(`/spp/santri/${santri.id_siswa}/tunggakan?all=1`);
+    if (res.data.success && (res.data.data?.daftar_tunggakan || res.data.data?.daftar_bulan)) {
+      const allBills = res.data.data.daftar_tunggakan || res.data.data.daftar_bulan || [];
+      if (allBills.length > 0) {
+        detailTagihanList.value = allBills;
+      }
+    }
+  } catch (err) {
+    // Fallback data santri.daftar_bulan
+  } finally {
+    isLoadingDetailBills.value = false;
+  }
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  selectedDetailSantri.value = null;
+  detailTagihanList.value = [];
+};
 
 const openBayarModal = async (santri) => {
   selectedBayarSantri.value = {

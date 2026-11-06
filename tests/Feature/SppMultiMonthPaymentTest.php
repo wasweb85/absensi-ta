@@ -303,4 +303,50 @@ class SppMultiMonthPaymentTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_role_kepala_can_view_tagihan_and_tunggakan_but_cannot_pay(): void
+    {
+        $kepala = User::create([
+            'name' => 'Kepala TPQ Test',
+            'username' => 'kepala_test',
+            'email' => 'kepala@test.local',
+            'password' => bcrypt('password'),
+            'role' => 'kepala',
+        ]);
+
+        $t1 = TagihanSpp::create([
+            'id_siswa' => $this->siswa1->id,
+            'bulan' => 7,
+            'tahun' => 2026,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 50000,
+            'status' => 'belum_lunas',
+        ]);
+
+        Sanctum::actingAs($kepala);
+
+        // Kepala boleh melihat daftar tagihan & rincian tunggakan
+        $resView = $this->getJson('/api/spp/tagihan');
+        $resView->assertStatus(200)->assertJson(['success' => true]);
+
+        $resTunggakan = $this->getJson('/api/spp/santri/'.$this->siswa1->id.'/tunggakan');
+        $resTunggakan->assertStatus(200)->assertJson(['success' => true]);
+
+        // Kepala TIDAK BISA memproses pembayaran atau mengubah status tagihan (403 Forbidden)
+        $resPaySingle = $this->postJson('/api/spp/bayar', [
+            'id_tagihan' => $t1->id,
+            'jumlah_bayar' => 50000,
+            'metode_pembayaran' => 'Tunai',
+        ]);
+        $resPaySingle->assertStatus(403);
+
+        $resPayMulti = $this->postJson('/api/spp/bayar-multi', [
+            'id_siswa' => $this->siswa1->id,
+            'tagihan_ids' => [$t1->id],
+            'metode_pembayaran' => 'Tunai',
+        ]);
+        $resPayMulti->assertStatus(403);
+
+        $this->assertEquals('belum_lunas', $t1->fresh()->status);
+    }
 }
