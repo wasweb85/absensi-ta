@@ -11,7 +11,7 @@
         </Badge>
       </div>
 
-      <!-- Tombol Tambah Manual (Hanya Admin) -->
+      <!-- Tombol Tambah Manual (Admin & Sekretaris) -->
       <div v-if="canManageAgenda" class="flex items-center gap-2">
         <Button
           size="sm"
@@ -212,16 +212,26 @@
                 <Badge variant="secondary" class="font-mono text-xs font-semibold">
                   {{ formatDateShort(item.tanggal) }}
                 </Badge>
-                <Button
-                  v-if="canManageAgenda"
-                  variant="ghost"
-                  size="icon-xs"
-                  class="size-7 text-destructive hover:bg-destructive/10"
-                  title="Hapus Agenda"
-                  @click="deleteAgenda(item.id)"
-                >
-                  <Trash2 class="size-3.5" />
-                </Button>
+                <div v-if="canManageAgenda" class="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    class="size-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    title="Edit Agenda"
+                    @click="openEditAgendaModal(item)"
+                  >
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    class="size-7 text-destructive hover:bg-destructive/10"
+                    title="Hapus Agenda"
+                    @click="deleteAgenda(item.id)"
+                  >
+                    <Trash2 class="size-3.5" />
+                  </Button>
+                </div>
               </div>
               <CardTitle class="text-sm font-semibold text-foreground pt-1">
                 {{ item.judul }}
@@ -359,16 +369,26 @@
                   <p class="text-xs font-semibold text-foreground pt-0.5">{{ ag.judul }}</p>
                   <p v-if="ag.keterangan" class="text-xs text-muted-foreground">{{ ag.keterangan }}</p>
                 </div>
-                <Button
-                  v-if="canManageAgenda"
-                  variant="ghost"
-                  size="icon-xs"
-                  class="size-7 text-destructive hover:bg-destructive/10 shrink-0"
-                  title="Hapus Agenda"
-                  @click="deleteAgenda(ag.id)"
-                >
-                  <Trash2 class="size-3.5" />
-                </Button>
+                <div v-if="canManageAgenda" class="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    class="size-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    title="Edit Agenda"
+                    @click="openEditAgendaModal(ag)"
+                  >
+                    <Pencil class="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    class="size-7 text-destructive hover:bg-destructive/10"
+                    title="Hapus Agenda"
+                    @click="deleteAgenda(ag.id)"
+                  >
+                    <Trash2 class="size-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -491,13 +511,73 @@
             </form>
           </div>
 
-          <!-- Footer Tutup untuk Non-Admin (Read-Only) -->
+          <!-- Footer Tutup untuk Read-Only (Non-Admin & Non-Sekretaris) -->
           <DialogFooter v-else class="pt-2">
             <Button type="button" variant="outline" size="sm" class="text-xs" @click="showDateModal = false">
               Tutup
             </Button>
           </DialogFooter>
         </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- DIALOG EDIT AGENDA KEGIATAN -->
+    <Dialog :open="showEditAgendaModal" @update:open="(val) => { showEditAgendaModal = val; }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold flex items-center gap-2">
+            <Pencil class="size-4 text-primary" />
+            <span>Edit Agenda Kegiatan</span>
+          </DialogTitle>
+          <DialogDescription class="text-xs">
+            Perbarui tanggal kegiatan, judul kegiatan, atau keterangan agenda di bawah ini.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form class="space-y-3 pt-1" @submit.prevent="updateAgenda">
+          <div class="space-y-1.5">
+            <Label for="editAgendaTanggal" class="text-xs font-medium">Tanggal Kegiatan *</Label>
+            <Input
+              id="editAgendaTanggal"
+              v-model="editAgendaForm.tanggal"
+              type="date"
+              required
+              class="h-9 text-xs font-mono"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <Label for="editAgendaJudul" class="text-xs font-medium">Judul Kegiatan *</Label>
+            <Input
+              id="editAgendaJudul"
+              v-model="editAgendaForm.judul"
+              type="text"
+              required
+              placeholder="Contoh: Ujian Kenaikan Jilid / Khataman"
+              class="h-9 text-xs"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <Label for="editAgendaKeterangan" class="text-xs font-medium">Keterangan / Detail</Label>
+            <Textarea
+              id="editAgendaKeterangan"
+              v-model="editAgendaForm.keterangan"
+              rows="3"
+              placeholder="Catatan tambahan kegiatan..."
+              class="text-xs"
+            />
+          </div>
+
+          <DialogFooter class="flex gap-2 sm:justify-end pt-2">
+            <Button type="button" variant="outline" size="sm" class="text-xs" @click="showEditAgendaModal = false">
+              Batal
+            </Button>
+            <Button type="submit" size="sm" class="text-xs" :disabled="isSubmitting">
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
 
@@ -511,6 +591,7 @@ import {
   CalendarOff,
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Plus,
   Trash2,
 } from '@lucide/vue';
@@ -565,6 +646,17 @@ const dayHeaders = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const showDateModal = ref(false);
 const selectedDateStr = ref(todayStr);
 const modalFormType = ref('agenda');
+
+// State Dialog Edit Agenda (Admin & Sekretaris)
+const showEditAgendaModal = ref(false);
+const editAgendaForm = ref({
+  id: null,
+  tanggal: todayStr,
+  tanggal_selesai: todayStr,
+  judul: '',
+  kategori: 'Umum',
+  keterangan: '',
+});
 
 const agendaForm = ref({ tanggal: todayStr, judul: '', keterangan: '' });
 const liburForm = ref({ tanggal_mulai: todayStr, tanggal_selesai: todayStr, keterangan: '' });
@@ -735,6 +827,19 @@ function openQuickAddOnDate(dateStr, formType = 'agenda') {
   showDateModal.value = true;
 }
 
+function openEditAgendaModal(item) {
+  showDateModal.value = false;
+  editAgendaForm.value = {
+    id: item.id,
+    tanggal: normalizeDateStr(item.tanggal),
+    tanggal_selesai: normalizeDateStr(item.tanggal_selesai || item.tanggal),
+    judul: item.judul || '',
+    kategori: item.kategori || 'Umum',
+    keterangan: item.keterangan || '',
+  };
+  showEditAgendaModal.value = true;
+}
+
 const loadAgenda = async () => {
   try {
     const res = await api.get('/agenda');
@@ -764,6 +869,32 @@ const saveAgenda = async () => {
     await loadAgenda();
   } catch (e) {
     toast.error('Gagal menyimpan agenda kegiatan.');
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const updateAgenda = async () => {
+  if (!canManageAgenda.value || !editAgendaForm.value.id) return;
+  isSubmitting.value = true;
+  try {
+    const res = await api.put(`/agenda/${editAgendaForm.value.id}`, {
+      tanggal: editAgendaForm.value.tanggal,
+      tanggal_selesai: editAgendaForm.value.tanggal_selesai || editAgendaForm.value.tanggal,
+      judul: editAgendaForm.value.judul,
+      kategori: editAgendaForm.value.kategori || 'Umum',
+      keterangan: editAgendaForm.value.keterangan,
+    });
+    if (res.data.success) {
+      toast.success('Agenda kegiatan berhasil diperbarui!');
+      showEditAgendaModal.value = false;
+      await loadAgenda();
+    } else {
+      toast.error(res.data.message || 'Gagal memperbarui agenda.');
+    }
+  } catch (e) {
+    const msg = e.response?.data?.message || 'Gagal memperbarui agenda kegiatan.';
+    toast.error(msg);
   } finally {
     isSubmitting.value = false;
   }

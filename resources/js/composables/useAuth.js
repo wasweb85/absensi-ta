@@ -41,7 +41,7 @@ export function useAuth() {
 
     // Agenda & Pengaturan
     const canViewAgenda = computed(() => ['admin', 'kepala', 'sekretaris', 'bendahara', 'guru'].includes(role.value));
-    const canManageAgenda = computed(() => ['admin'].includes(role.value));
+    const canManageAgenda = computed(() => ['admin', 'sekretaris'].includes(role.value));
     const canManageSettings = computed(() => ['admin'].includes(role.value));
     const canAccessChatbot = computed(() => ['admin'].includes(role.value));
 

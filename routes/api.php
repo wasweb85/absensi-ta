@@ -117,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Agenda & Hari Libur
     Route::get('/agenda', [AgendaLiburController::class, 'getAgenda']);
     Route::get('/hari-libur', [AgendaLiburController::class, 'getLibur']);
-    Route::middleware('role:admin')->group(function () {
+    Route::middleware('role:admin,sekretaris')->group(function () {
         Route::prefix('agenda')->group(function () {
             Route::post('/', [AgendaLiburController::class, 'addAgenda']);
             Route::put('/{id}', [AgendaLiburController::class, 'updateAgenda']);
