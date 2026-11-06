@@ -46,14 +46,13 @@
             class="w-full h-10 pl-3 pr-8 rounded-xl border border-input bg-card text-xs font-semibold text-foreground shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
             @change="onFilterChange"
           >
-            <option value="all">Semua Kategori (7 Bagian)</option>
-            <option value="profil">1. Profil Lembaga</option>
-            <option value="jam">2. Jam Operasional Presensi</option>
+            <option value="all">Semua Kategori</option>
+            <option value="profil">1. Profil</option>
+            <option value="jam">2. Jam Operasional</option>
             <option value="whatsapp">3. WhatsApp Gateway (Fonnte)</option>
-            <option value="telegram">4. Bot Telegram (Pengingat H-1)</option>
-            <option value="pwa">5. Aplikasi Mobile (PWA)</option>
-            <option value="spreadsheet">6. Google Spreadsheet</option>
-            <option value="database">7. Pemeliharaan Database</option>
+            <option value="telegram">4. Bot Telegram </option>
+            <option v-if="!isInstalled" value="pwa">5. Aplikasi Mobile (PWA)</option>
+            <option value="database">{{ !isInstalled ? '6. Pemeliharaan Database' : '5. Pemeliharaan Database' }}</option>
           </select>
           <ChevronDown class="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
@@ -575,8 +574,9 @@
         </div>
       </div>
 
-      <!-- 5. Aplikasi Mobile (PWA) -->
+      <!-- 5. Aplikasi Mobile (PWA) - Otomatis tersembunyi jika aplikasi sudah didownload/terpasang -->
       <div
+        v-if="!isInstalled"
         v-show="shouldShowCategory('pwa')"
         class="rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all"
         :class="{ 'ring-1 ring-primary/30': openCategories.pwa }"
@@ -643,126 +643,7 @@
         </div>
       </div>
 
-      <!-- 6. Google Spreadsheet (Sheet Absensi Realtime) -->
-      <div
-        v-show="shouldShowCategory('spreadsheet')"
-        class="rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all"
-        :class="{ 'ring-1 ring-primary/30': openCategories.spreadsheet }"
-      >
-        <!-- Dropdown Header Trigger -->
-        <button
-          type="button"
-          class="w-full flex items-center justify-between p-3.5 sm:p-4 text-left cursor-pointer hover:bg-muted/30 transition-colors select-none"
-          :aria-expanded="openCategories.spreadsheet"
-          @click="toggleCategory('spreadsheet')"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="size-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-              <FileSpreadsheet class="size-4" />
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-semibold text-foreground">Google Spreadsheet</span>
-                <Badge
-                  :variant="settings.spreadsheet_absensi_webhook_url ? 'default' : 'secondary'"
-                  class="text-[10px] px-1.5 py-0"
-                >
-                  {{ settings.spreadsheet_absensi_webhook_url ? 'Webhook Terisi' : 'Belum Terhubung' }}
-                </Badge>
-              </div>
-              <p class="text-xs text-muted-foreground truncate mt-0.5">
-                Sinkronisasi otomatis setiap scan santri ke sheet 'absensi'
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 shrink-0 ml-2">
-            <ChevronDown
-              class="size-4 text-muted-foreground transition-transform duration-200"
-              :class="{ 'rotate-180': openCategories.spreadsheet }"
-            />
-          </div>
-        </button>
-
-        <!-- Dropdown Body Content -->
-        <div v-show="openCategories.spreadsheet" class="px-4 pb-4 pt-1 border-t border-border/40 space-y-3">
-          <div class="space-y-1.5 pt-2">
-            <Label for="sheetWebhookUrl" class="text-xs font-medium">URL Web App Google Apps Script</Label>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <Input
-                id="sheetWebhookUrl"
-                v-model="settings.spreadsheet_absensi_webhook_url"
-                type="text"
-                placeholder="https://script.google.com/macros/s/.../exec"
-                class="h-9 font-mono text-xs flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                class="h-9 gap-1.5 text-xs shrink-0"
-                :disabled="!settings.spreadsheet_absensi_webhook_url || isTestingSpreadsheet"
-                @click="testSpreadsheetWebhook"
-              >
-                <LoaderCircle v-if="isTestingSpreadsheet" class="size-3.5 animate-spin" />
-                <Radio v-else class="size-3.5 text-teal-600" />
-                <span>Uji Kirim Baris</span>
-              </Button>
-            </div>
-          </div>
-
-          <!-- Toggle Panduan Kode Apps Script -->
-          <div class="pt-2 border-t border-border/40">
-            <div class="flex items-center justify-between">
-              <button
-                type="button"
-                class="text-xs font-medium text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
-                @click="showScriptTemplate = !showScriptTemplate"
-              >
-                <Code class="size-3.5" />
-                <span>{{ showScriptTemplate ? 'Sembunyikan Panduan Kode Apps Script' : 'Lihat Kode Google Apps Script' }}</span>
-              </button>
-              <Button
-                v-if="showScriptTemplate"
-                type="button"
-                variant="outline"
-                size="sm"
-                class="h-6 text-[10px] px-2 gap-1"
-                @click="copyAppsScriptCode"
-              >
-                <Check v-if="isScriptCopied" class="size-3 text-emerald-600" />
-                <Copy v-else class="size-3" />
-                <span>{{ isScriptCopied ? 'Tersalin' : 'Salin Kode' }}</span>
-              </Button>
-            </div>
-
-            <div v-if="showScriptTemplate" class="mt-3 space-y-2">
-              <div class="flex items-center gap-1.5 text-xs">
-                <button
-                  type="button"
-                  class="px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer"
-                  :class="scriptMode === 'insert' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'"
-                  @click="scriptMode = 'insert'"
-                >
-                  Sisipkan ke Code.gs
-                </button>
-                <button
-                  type="button"
-                  class="px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer"
-                  :class="scriptMode === 'full' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'"
-                  @click="scriptMode = 'full'"
-                >
-                  Kode Lengkap
-                </button>
-              </div>
-
-              <pre class="text-[10px] font-mono p-2.5 rounded-lg bg-zinc-950 text-zinc-100 dark:bg-black dark:text-zinc-200 border overflow-x-auto max-h-44 leading-relaxed select-all">{{ activeScriptCode }}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7. Pemeliharaan Database (TiDB Cloud / MySQL) -->
+      <!-- 6. Pemeliharaan Database (TiDB Cloud / MySQL) -->
       <div
         v-show="shouldShowCategory('database')"
         class="rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all"
@@ -857,11 +738,8 @@ import {
   Check,
   ChevronDown,
   Clock,
-  Code,
-  Copy,
   Database,
   Download,
-  FileSpreadsheet,
   Image as ImageIcon,
   LoaderCircle,
   MessageSquare,
@@ -885,17 +763,24 @@ const toast = useToast();
 const { updateConfig } = useAppConfig();
 const { isInstallable, isInstalled, installApp } = usePwa();
 
-// Categories definitions
-const categories = [
-  { id: 'all', shortLabel: 'Semua (7)', icon: SlidersHorizontal },
-  { id: 'profil', shortLabel: 'Profil', icon: Building2 },
-  { id: 'jam', shortLabel: 'Jam & Hari', icon: Clock },
-  { id: 'whatsapp', shortLabel: 'WhatsApp', icon: MessageSquare },
-  { id: 'telegram', shortLabel: 'Telegram', icon: Send },
-  { id: 'pwa', shortLabel: 'PWA Mobile', icon: Smartphone },
-  { id: 'spreadsheet', shortLabel: 'Spreadsheet', icon: FileSpreadsheet },
-  { id: 'database', shortLabel: 'Database', icon: Database },
-];
+// Categories definitions (Spreadsheet dihapus; PWA disembunyikan otomatis jika sudah didownload / terpasang)
+const categories = computed(() => {
+  const list = [
+    { id: 'profil', shortLabel: 'Profil', icon: Building2 },
+    { id: 'jam', shortLabel: 'Jam & Hari', icon: Clock },
+    { id: 'whatsapp', shortLabel: 'WhatsApp', icon: MessageSquare },
+    { id: 'telegram', shortLabel: 'Telegram', icon: Send },
+  ];
+  if (!isInstalled.value) {
+    list.push({ id: 'pwa', shortLabel: 'PWA Mobile', icon: Smartphone });
+  }
+  list.push({ id: 'database', shortLabel: 'Database', icon: Database });
+
+  return [
+    { id: 'all', shortLabel: `Semua (${list.length})`, icon: SlidersHorizontal },
+    ...list,
+  ];
+});
 
 // Dropdown Accordion States
 const openCategories = ref({
@@ -904,7 +789,6 @@ const openCategories = ref({
   whatsapp: false,
   telegram: false,
   pwa: false,
-  spreadsheet: false,
   database: false,
 });
 
@@ -954,12 +838,8 @@ const isSaving = ref(false);
 const isTestingWa = ref(false);
 const isTestingTelegram = ref(false);
 const isTriggeringAgenda = ref(false);
-const isTestingSpreadsheet = ref(false);
 const isMigrating = ref(false);
 const migrationOutput = ref('');
-const showScriptTemplate = ref(false);
-const scriptMode = ref('insert');
-const isScriptCopied = ref(false);
 const logoFileInputRef = ref(null);
 
 const settings = ref({
@@ -976,7 +856,6 @@ const settings = ref({
   fonnte_token: '',
   wa_notif_presensi: '1',
   wa_notif_delay: '3-5',
-  spreadsheet_absensi_webhook_url: '',
   telegram_bot_token: '',
   telegram_chat_id: '',
   telegram_notif_agenda_aktif: '1',
@@ -1188,152 +1067,6 @@ async function handleTriggerAgendaTelegram() {
     toast.error(`Error: ${msg}`);
   } finally {
     isTriggeringAgenda.value = false;
-  }
-}
-
-// Google Apps Script Snippets
-const appsScriptInsertSnippet = `      // === SINKRONISASI OTOMATIS DARI WEBSITE LARAVEL KE SHEET 'absensi' ===
-      if (data.action === 'syncAbsensi') {
-        var ss = null;
-        try {
-          ss = SpreadsheetApp.getActiveSpreadsheet();
-        } catch (e1) {}
-
-        if (!ss) {
-          ss = getSpreadsheet();
-        }
-
-        var sheet = ss.getSheetByName('absensi');
-        if (!sheet) {
-          sheet = ss.insertSheet('absensi');
-          sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
-        }
-
-        var newRow = [
-          data.tanggal || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MM/dd/yyyy'),
-          "'" + String(data.nisn || '').replace(/^'/, ''),
-          data.nama || '-',
-          data.kelas || '-',
-          data.jam_datang || '-',
-          data.jam_pulang || '-',
-          data.keterangan_waktu || '-',
-          data.status || 'Hadir'
-        ];
-
-        sheet.appendRow(newRow);
-        SpreadsheetApp.flush();
-
-        return ContentService.createTextOutput(JSON.stringify({
-          success: true,
-          message: 'Baris kehadiran berhasil ditambahkan ke sheet absensi!',
-          row: newRow
-        })).setMimeType(ContentService.MimeType.JSON);
-      }`;
-
-const appsScriptFullTemplate = `/**
- * KODE SINKRONISASI ABSENSI OTOMATIS (WEB LARAVEL -> GOOGLE SPREADSHEET)
- */
-function doGet(e) {
-  return handleSyncAbsensi(e);
-}
-
-function doPost(e) {
-  return handleSyncAbsensi(e);
-}
-
-function handleSyncAbsensi(e) {
-  try {
-    var data = {};
-    if (e && e.postData && e.postData.contents) {
-      try {
-        data = JSON.parse(e.postData.contents);
-      } catch (errJson) {
-        data = e.parameter || {};
-      }
-    } else if (e && e.parameter) {
-      data = e.parameter;
-    }
-
-    if (data.action === 'syncAbsensi') {
-      var ss = null;
-      try {
-        ss = SpreadsheetApp.getActiveSpreadsheet();
-      } catch (e1) {}
-
-      var sheet = ss.getSheetByName('absensi');
-      if (!sheet) {
-        sheet = ss.insertSheet('absensi');
-        sheet.appendRow(['Tanggal', 'NISN', 'Nama', 'Kelas', 'Jam Datang', 'Jam Pulang', 'Keterangan Waktu', 'Status']);
-      }
-
-      sheet.appendRow([
-        data.tanggal || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MM/dd/yyyy'),
-        "'" + String(data.nisn || '').replace(/^'/, ''),
-        data.nama || '-',
-        data.kelas || '-',
-        data.jam_datang || '-',
-        data.jam_pulang || '-',
-        data.keterangan_waktu || '-',
-        data.status || 'Hadir'
-      ]);
-
-      SpreadsheetApp.flush();
-
-      return ContentService.createTextOutput(JSON.stringify({ 
-        success: true, 
-        message: 'Baris kehadiran berhasil ditambahkan ke sheet absensi!' 
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: false, 
-      message: 'Aksi tidak dikenali' 
-    })).setMimeType(ContentService.MimeType.JSON);
-
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ 
-      success: false, 
-      error: err.message 
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}`;
-
-const activeScriptCode = computed(() => {
-  return scriptMode.value === 'insert' ? appsScriptInsertSnippet : appsScriptFullTemplate;
-});
-
-async function testSpreadsheetWebhook() {
-  if (!settings.value.spreadsheet_absensi_webhook_url) {
-    toast.warning('Silakan masukkan URL Web App Google Apps Script terlebih dahulu.');
-    return;
-  }
-
-  isTestingSpreadsheet.value = true;
-  try {
-    const res = await api.post('/pengaturan/test-spreadsheet', {
-      webhook_url: settings.value.spreadsheet_absensi_webhook_url,
-    });
-    if (res.data.success) {
-      toast.success(res.data.message || 'Berhasil terhubung ke Google Spreadsheet!');
-    } else {
-      toast.error(res.data.message || 'Gagal mengirim ke Google Spreadsheet.');
-    }
-  } catch (err) {
-    const msg = err.response?.data?.message || 'Gagal menghubungi Google Apps Script.';
-    toast.error(msg);
-  } finally {
-    isTestingSpreadsheet.value = false;
-  }
-}
-
-function copyAppsScriptCode() {
-  if (navigator?.clipboard) {
-    navigator.clipboard.writeText(activeScriptCode.value);
-    isScriptCopied.value = true;
-    toast.success('Kode Google Apps Script berhasil disalin!');
-    setTimeout(() => {
-      isScriptCopied.value = false;
-    }, 3000);
   }
 }
 
