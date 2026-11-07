@@ -54,7 +54,6 @@ class KnowledgeBaseIntegrationTest extends TestCase
         $this->assertSame('info_tpq', $res['intent']);
         $this->assertStringContainsString('Jam Masuk', $res['reply']);
         $this->assertStringContainsString('Jam Pulang', $res['reply']);
-        $this->assertStringContainsString('Tata Tertib', $res['reply']);
     }
 
     public function test_dynamic_knowledge_base_entry_answers_without_code_changes(): void

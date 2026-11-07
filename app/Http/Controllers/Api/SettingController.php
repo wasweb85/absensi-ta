@@ -210,6 +210,9 @@ class SettingController extends Controller
             app(KnowledgeBaseService::class)->ensureTableExists();
             app(ConversationService::class)->ensureTablesExist();
 
+            app(KnowledgeBaseService::class)->ensureTableExists();
+            app(ConversationService::class)->ensureTablesExist();
+
             Artisan::call('migrate', ['--force' => true]);
             $output = Artisan::output();
 

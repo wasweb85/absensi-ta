@@ -77,10 +77,10 @@ class KnowledgeBaseService
 
         $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im") ?: "TPQ Nurul Mun'im";
         $jamMasuk = Pengaturan::getValue('jam_masuk', '15:30') ?: '15:30';
-        $batasTerlambat = Pengaturan::getValue('batas_terlambat', '16:00') ?: '16:00';
+        $batasTerlambat = Pengaturan::getValue('jam_terlambat', Pengaturan::getValue('batas_terlambat', '16:00')) ?: '16:00';
         $jamPulang = Pengaturan::getValue('jam_pulang', '17:00') ?: '17:00';
-        $nominalSpp = (int) (Pengaturan::getValue('nominal_spp_default', 50000) ?: 50000);
-        $nominalRp = 'Rp '.number_format($nominalSpp, 0, ',', '.');
+        $nominalSpp = (int) (Pengaturan::getValue('nominal_spp_default', 0) ?: 0);
+        $nominalRp = $nominalSpp > 0 ? 'Rp '.number_format($nominalSpp, 0, ',', '.').' / bulan' : 'dapat dikonfirmasi ke Bendahara TPQ';
         $namaBendahara = User::getNamaBendahara();
         $kontakBendahara = trim((string) (Pengaturan::getValue('no_hp_bendahara') ?: '085235567818')) ?: '085235567818';
 
@@ -113,7 +113,7 @@ class KnowledgeBaseService
                 'kategori' => 'pembayaran',
                 'judul' => 'Informasi Pembayaran Syahriyah / SPP',
                 'kata_kunci' => 'pembayaran, spp, syahriyah, biaya, bayar, bendahara, transfer, rekening',
-                'konten' => "• Nominal SPP Bulanan: *{$nominalRp}* / bulan\n• Pembayaran dapat dilakukan secara tunai di Kantor Sekretariat TPQ atau melalui transfer lalu konfirmasi ke Bendahara TPQ (*{$namaBendahara}* - WA: *{$kontakBendahara}*).",
+                'konten' => "• Nominal SPP Bulanan: *{$nominalRp}*\n• Pembayaran dapat dilakukan secara tunai di Kantor Sekretariat TPQ atau melalui transfer lalu konfirmasi ke Bendahara TPQ (*{$namaBendahara}* - WA: *{$kontakBendahara}*).",
                 'is_active' => true,
                 'urutan' => 4,
             ],

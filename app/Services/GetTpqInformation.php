@@ -54,16 +54,56 @@ class GetTpqInformation
     }
 
     /**
-     * Hasilkan informasi umum TPQ berdasarkan Knowledge Base dinamis dan Pengaturan instansi.
+     * Hasilkan informasi umum TPQ berdasarkan Knowledge Base murni dan data instansi asli (tanpa data dummy).
      */
     public function handleGeneralInfoQuery(string $message = '', ?string $topik = null): string
     {
         $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im") ?: "TPQ Nurul Mun'im";
-        $jamMasuk = Pengaturan::getValue('jam_masuk', '15:30') ?: '15:30';
-        $batasTerlambat = Pengaturan::getValue('batas_terlambat', '16:00') ?: '16:00';
-        $jamPulang = Pengaturan::getValue('jam_pulang', '17:00') ?: '17:00';
-        $nominalSpp = (int) (Pengaturan::getValue('nominal_spp_default', 50000) ?: 50000);
-        $nominalRp = 'Rp '.number_format($nominalSpp, 0, ',', '.');
+        $matchedEntries = $this->knowledgeBaseService->search($message, $topik);
+
+        // 1. Cek apakah ada entri Knowledge Base yang secara langsung cocok dengan pertanyaan
+        $specificMatches = [];
+        if ($message !== '' || ($topik !== null && $topik !== 'umum')) {
+            foreach ($matchedEntries as $entry) {
+                if ($this->entryDirectlyMatchesMessage($entry, $message) || ($topik !== null && $topik !== 'umum' && str_contains(strtolower((string) $entry->kategori), strtolower($topik)))) {
+                    $specificMatches[] = $entry;
+                }
+            }
+        }
+
+        // Jika ada kecocokan spesifik, HANYA tampilkan topik yang dicari (tanpa mencampur data lain / dummy)
+        if (! empty($specificMatches)) {
+            $lines = ["🕌 *Informasi {$namaInstansi}:*"];
+            foreach (array_slice($specificMatches, 0, 3) as $entry) {
+                $lines[] = "📌 *{$entry->judul}:*\n{$entry->konten}";
+            }
+
+            return implode("\n\n", $lines);
+        }
+
+        // 2. Jika ada hasil pencarian Knowledge Base berbasis skor relevansi
+        if ($message !== '' && $matchedEntries->isNotEmpty()) {
+            $topEntries = $matchedEntries->take(2);
+            $lines = ["🕌 *Informasi {$namaInstansi}:*"];
+            foreach ($topEntries as $entry) {
+                $lines[] = "📌 *{$entry->judul}:*\n{$entry->konten}";
+            }
+
+            return implode("\n\n", $lines);
+        }
+
+        // 3. Jika pertanyaan umum ("info tpq", "profil tpq"), tampilkan entri aktif dari database Knowledge Base
+        $allActive = $this->knowledgeBaseService->getAll(true);
+        if ($allActive->isNotEmpty()) {
+            $lines = ["🕌 *Informasi Umum {$namaInstansi}:*"];
+            foreach ($allActive->take(4) as $entry) {
+                $lines[] = "📌 *{$entry->judul}:*\n{$entry->konten}";
+            }
+
+            return implode("\n\n", $lines);
+        }
+
+        // 4. Fallback bersih jika Knowledge Base belum diisi data sama sekali
         $namaBendahara = User::getNamaBendahara();
         $kontakBendahara = trim((string) (
             Pengaturan::getValue('no_hp_bendahara')
@@ -71,34 +111,9 @@ class GetTpqInformation
             ?: '085235567818'
         )) ?: '085235567818';
 
-        $matchedEntries = $this->knowledgeBaseService->search($message, $topik);
-
-        $baseText = "🕌 *Informasi Umum {$namaInstansi}:*\n\n"
-            ."⏰ *Jadwal & Jam Kegiatan Mengaji:*\n"
-            ."• Jam Masuk: Pukul *{$jamMasuk} WIB*\n"
-            ."• Batas Toleransi Hadir Tepat Waktu: Pukul *{$batasTerlambat} WIB*\n"
-            ."• Jam Pulang: Pukul *{$jamPulang} WIB*\n\n"
-            ."📋 *Tata Tertib & Presensi:*\n"
-            ."• Setiap santri wajib melakukan scan kartu QR Code saat datang.\n"
-            ."• Apabila berhalangan hadir (Izin/Sakit), wali santri dapat mengonfirmasi melalui WhatsApp ini.\n\n"
-            ."💳 *Informasi Administrasi & SPP:*\n"
-            ."• Syahriyah / SPP Bulanan: *{$nominalRp}* / bulan\n"
+        return "🕌 *Informasi {$namaInstansi}:*\n\n"
+            ."Untuk informasi resmi seputar kegiatan, jam mengaji, dan administrasi TPQ Nurul Mun'im, silakan hubungi:\n"
             ."• Bendahara TPQ: *{$namaBendahara}* (WA: *{$kontakBendahara}*)";
-
-        // Tambahkan entri Knowledge Base relevan yang sesuai dengan pertanyaan wali santri
-        $customLines = [];
-        foreach ($matchedEntries->take(3) as $entry) {
-            /** @var TpqKnowledgeBase $entry */
-            if ((int) $entry->urutan > 5 || ($message !== '' && $this->entryDirectlyMatchesMessage($entry, $message))) {
-                $customLines[] = "📌 *{$entry->judul}:*\n{$entry->konten}";
-            }
-        }
-
-        if (! empty($customLines)) {
-            return $baseText."\n\n".implode("\n\n", $customLines);
-        }
-
-        return $baseText;
     }
 
     /**
@@ -144,6 +159,10 @@ class GetTpqInformation
     protected function entryDirectlyMatchesMessage(TpqKnowledgeBase $entry, string $message): bool
     {
         $cleanMsg = strtolower(trim($message));
+        if ($cleanMsg === '') {
+            return false;
+        }
+
         $judulLower = strtolower((string) $entry->judul);
         if ($judulLower !== '' && str_contains($cleanMsg, $judulLower)) {
             return true;
@@ -152,6 +171,14 @@ class GetTpqInformation
         $keywords = array_filter(array_map('trim', explode(',', strtolower((string) $entry->kata_kunci))));
         foreach ($keywords as $kw) {
             if (strlen($kw) >= 3 && str_contains($cleanMsg, $kw)) {
+                return true;
+            }
+        }
+
+        // Cek jika ada token kata kunci penting dari judul yang terdapat di pesan
+        $words = preg_split('/\s+/', preg_replace('/[^a-z0-9\s]/i', ' ', $judulLower) ?: '') ?: [];
+        foreach ($words as $w) {
+            if (strlen($w) >= 4 && ! in_array($w, ['santri', 'informasi', 'tentang', 'data', 'pada'], true) && str_contains($cleanMsg, $w)) {
                 return true;
             }
         }
