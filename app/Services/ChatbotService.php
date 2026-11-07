@@ -47,12 +47,80 @@ class ChatbotService
             ];
         }
 
-        // 1. Deteksi intent awal dari teks pesan
+        // 1. Deteksi intent awal dari teks pesan melalui IntentService
         $intent = $this->detectIntent($trimmedMessage, $normalizedSender);
 
-        // Pertanyaan umum institusi (Agenda & Hari Libur) langsung dijawab tanpa terhalang pemilihan multi-santri
+        // 2. Identifikasi Santri berdasarkan nomor pengirim, nama panggilan, nomor urut, atau sesi database
+        $resolved = $this->resolveStudent($normalizedSender, $trimmedMessage);
+
+        // Keamanan (Section 10): Nomor yang belum terdaftar hanya boleh mengakses informasi hari libur umum (agenda)
+        if ($resolved['status'] === 'unregistered' && $intent !== 'agenda') {
+            $reply = $this->buildUnregisteredReply($normalizedSender);
+            $intent = 'unregistered';
+            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
+
+            return [
+                'success' => true,
+                'intent' => $intent,
+                'reply' => $reply,
+                'siswa' => null,
+                'log_id' => $log->id,
+            ];
+        }
+
+        // 3. Hybrid AI Conversation Engine (Gemini API + Database Context + Function Calling)
+        // Jika Gemini API terkonfigurasi, proses menggunakan AI Engine; jika gagal/timeout atau tidak aktif, fallback ke mesin lokal
+        $geminiService = app(GeminiService::class);
+        if ($geminiService->isConfigured()) {
+            $candidates = $this->findCandidatesByPhone($normalizedSender);
+            $aiOutcome = $this->processWithGeminiEngine(
+                $normalizedSender,
+                $trimmedMessage,
+                $intent,
+                $resolved,
+                $candidates,
+                $geminiService
+            );
+
+            if ($aiOutcome !== null) {
+                /** @var Siswa|null $aiSiswa */
+                $aiSiswa = $aiOutcome['siswa'];
+                $log = $this->logInteraction(
+                    $normalizedSender,
+                    $trimmedMessage,
+                    $aiOutcome['intent'],
+                    $aiSiswa?->id,
+                    $aiOutcome['reply'],
+                    'sukses'
+                );
+
+                return [
+                    'success' => true,
+                    'intent' => $aiOutcome['intent'],
+                    'reply' => $aiOutcome['reply'],
+                    'siswa' => $aiSiswa ? $this->formatSiswaPayload($aiSiswa) : null,
+                    'log_id' => $log->id,
+                    'engine' => 'gemini_hybrid',
+                ];
+            }
+        }
+
+        // Pertanyaan umum institusi (Agenda & Hari Libur / Info TPQ) langsung dijawab tanpa terhalang pemilihan multi-santri
         if ($intent === 'agenda') {
             $reply = $this->handleAgendaQuery($trimmedMessage);
+            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
+
+            return [
+                'success' => true,
+                'intent' => $intent,
+                'reply' => $reply,
+                'siswa' => null,
+                'log_id' => $log->id,
+            ];
+        }
+
+        if ($intent === 'info_tpq') {
+            $reply = $this->handleInfoTpqQuery($trimmedMessage);
             $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
 
             return [
@@ -77,23 +145,6 @@ class ChatbotService
                 'intent' => $intent,
                 'reply' => $reply,
                 'siswa' => $firstSiswa ? $this->formatSiswaPayload($firstSiswa) : null,
-                'log_id' => $log->id,
-            ];
-        }
-
-        // 2. Identifikasi Santri berdasarkan nomor pengirim, nama panggilan, nomor urut, atau sesi database
-        $resolved = $this->resolveStudent($normalizedSender, $trimmedMessage);
-
-        if ($resolved['status'] === 'unregistered') {
-            $reply = $this->buildUnregisteredReply($normalizedSender);
-            $intent = 'unregistered';
-            $log = $this->logInteraction($normalizedSender, $trimmedMessage, $intent, null, $reply, 'sukses');
-
-            return [
-                'success' => true,
-                'intent' => $intent,
-                'reply' => $reply,
-                'siswa' => null,
                 'log_id' => $log->id,
             ];
         }
@@ -209,87 +260,368 @@ class ChatbotService
     }
 
     /**
-     * Klasifikasi intent dari teks pesan bahasa sehari-hari wali santri
-     * Hanya 3 informasi utama untuk wali santri: Absensi, SPP, dan Hari Libur
+     * Klasifikasi intent dari teks pesan bahasa sehari-hari wali santri melalui IntentService
      */
     public function detectIntent(string $message, ?string $normalizedSender = null): string
     {
-        $clean = strtolower(trim($message));
+        return app(IntentService::class)->detectIntent($message, $normalizedSender);
+    }
 
-        // 0. Shortcut pemilihan menu 1, 2, 3 (1 = Absensi, 2 = SPP, 3 = Hari Libur)
-        if (preg_match('/^\s*(?:menu\s*|opsi\s*|pilihan\s*|nomor\s*|no\.?\s*)?([123])[\.\)]?\s*$/i', $clean, $numMatches)) {
-            return match ($numMatches[1]) {
-                '1' => 'absensi',
-                '2' => 'spp_notice',
-                '3' => 'agenda',
+    /**
+     * Hybrid AI Conversation Engine menggunakan Google Gemini API + Function Calling + Konteks Percakapan.
+     * Mengembalikan null jika Gemini tidak merespons atau mengaktifkan mekanisme fallback otomatis.
+     *
+     * @param  array<string, mixed>  $resolved
+     * @param  Collection<int, Siswa>  $candidates
+     * @return array{intent: string, reply: string, siswa: Siswa|null}|null
+     */
+    protected function processWithGeminiEngine(
+        string $normalizedSender,
+        string $message,
+        string $initialIntent,
+        array $resolved,
+        Collection $candidates,
+        GeminiService $geminiService
+    ): ?array {
+        try {
+            $conversationService = app(ConversationService::class);
+            /** @var Siswa|null $activeSiswa */
+            $activeSiswa = $resolved['siswa'] ?? null;
+
+            if (! $activeSiswa && $candidates->count() === 1) {
+                $activeSiswa = $candidates->first();
+            }
+
+            $historyContents = [];
+            if ($conversationService->hasConversationTables()) {
+                $conversation = $conversationService->getOrCreateConversation($normalizedSender, $activeSiswa?->id);
+                $historyContents = $conversationService->getGeminiHistory($conversation, 6);
+            }
+
+            $historyContents[] = [
+                'role' => 'user',
+                'parts' => [
+                    ['text' => $message],
+                ],
+            ];
+
+            $finalIntent = $initialIntent;
+            $systemInstruction = $this->buildGeminiSystemInstruction($candidates, $activeSiswa);
+            $functionDeclarations = $this->getGeminiFunctionDeclarations();
+
+            $toolExecutor = function (string $toolName, array $args) use (
+                $candidates,
+                &$activeSiswa,
+                &$finalIntent,
+                $normalizedSender,
+                $message
+            ): array {
+                $intentService = app(IntentService::class);
+                $finalIntent = $intentService->mapToolToIntent($toolName, $finalIntent);
+
+                return $this->executeGeminiTool(
+                    $toolName,
+                    $args,
+                    $candidates,
+                    $activeSiswa,
+                    $normalizedSender,
+                    $message
+                );
             };
+
+            $aiResult = $geminiService->generateContent(
+                contents: $historyContents,
+                systemInstruction: $systemInstruction,
+                functionDeclarations: $functionDeclarations,
+                toolExecutor: $toolExecutor
+            );
+
+            if (! ($aiResult['success'] ?? false) || ($aiResult['fallback'] ?? false) || empty(trim((string) ($aiResult['reply'] ?? '')))) {
+                return null;
+            }
+
+            if ($finalIntent === 'unknown') {
+                $finalIntent = $activeSiswa ? 'bantuan' : 'info_tpq';
+            }
+
+            return [
+                'intent' => $finalIntent,
+                'reply' => trim((string) $aiResult['reply']),
+                'siswa' => $activeSiswa,
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Bangun System Instruction untuk Gemini AI sesuai gaya komunikasi TPQ Nurul Mun'im (Section 11).
+     *
+     * @param  Collection<int, Siswa>  $candidates
+     */
+    public function buildGeminiSystemInstruction(Collection $candidates, ?Siswa $activeSiswa = null): string
+    {
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im") ?: "TPQ Nurul Mun'im";
+        $hariIni = Carbon::now('Asia/Jakarta')->locale('id')->isoFormat('dddd, D MMMM Y');
+        $bendahara = $this->getBendaharaInfo();
+
+        $santriContext = 'Wali santri belum terhubung ke data santri spesifik.';
+        if ($candidates->count() === 1) {
+            $s = $candidates->first();
+            $kelas = $s->kelas?->nama_kelas ?: '-';
+            $santriContext = "Wali dari 1 santri terdaftar: ID={$s->id}, Nama={$s->nama_lengkap}, Kelas/Jilid={$kelas}.";
+        } elseif ($candidates->count() > 1) {
+            $list = $candidates->map(fn (Siswa $s, int $idx) => ($idx + 1).". ID={$s->id}, Nama={$s->nama_lengkap} (".($s->kelas?->nama_kelas ?: '-').')')->implode('; ');
+            $activeStr = $activeSiswa ? "Santri yang sedang dibahas saat ini: ID={$activeSiswa->id} ({$activeSiswa->nama_lengkap})." : 'Belum ada santri spesifik yang dipilih pada sesi ini.';
+            $santriContext = "Wali dari {$candidates->count()} santri terdaftar: [{$list}]. {$activeStr}";
         }
 
-        // 1. Intent Pertanyaan SPP & Tunggakan
-        if (preg_match('/\b(nunggak|menunggak|tunggak|tunggakan|spp|tagihan|biaya|bayar|pembayaran|lunas|belum lunas|utang|hutang|piutang|infaq|syahriyah|iuran|belum bayar|kurang bayar|kuitansi|berapa bulan|biaya ngaji|bayar ngaji)\b/i', $clean)) {
-            return 'spp_notice';
+        return "Anda adalah Asisten Layanan Informasi WhatsApp resmi {$namaInstansi}.\n"
+            ."Tanggal hari ini: {$hariIni} (Zona waktu: Asia/Jakarta WIB).\n"
+            ."Konteks Wali Santri: {$santriContext}\n"
+            ."Kontak Bendahara TPQ: {$bendahara['nama']} (WA: {$bendahara['kontak']}).\n\n"
+            ."ATURAN KOMUNIKASI & KEAMANAN WAJIB:\n"
+            ."1. Gunakan bahasa Indonesia yang ramah, sopan, natural, tidak kaku, tidak terlalu panjang, dan mudah dipahami Bapak/Ibu wali santri.\n"
+            ."2. Pahami pertanyaan bahasa sehari-hari, singkatan, typo, dan pertanyaan lanjutan (seperti 'kalau bulan lalu?', 'anak saya yang satunya?', 'bayarnya ke siapa?') berdasarkan konteks percakapan tanpa meminta ulang informasi yang sudah jelas.\n"
+            ."3. WAJIB memanggil fungsi (tool) yang tersedia (`check_attendance`, `check_spp_payment`, `check_spp_arrears`, `get_tpq_information`) untuk mengambil data nyata dari database. DILARANG mengarang data kehadiran, jam masuk, atau nominal tagihan SPP.\n"
+            ."4. Hanya berikan data santri yang terdaftar pada konteks wali santri di atas. Jangan pernah menampilkan data santri lain.\n"
+            ."5. Jika wali memiliki lebih dari 1 anak dan menanyakan satu anak tanpa menyebut nama, Anda dapat memanggil fungsi untuk semua anak wali tersebut atau menanyakan dengan sopan nama ananda yang dimaksud.\n"
+            .'6. Jika pertanyaan di luar layanan TPQ atau Anda tidak mengetahui jawabannya, sampaikan secara jujur dan tawarkan bantuan untuk menghubungi Administrator / Bendahara TPQ.';
+    }
+
+    /**
+     * Daftar deklarasi fungsi (Function Calling) untuk Gemini API.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getGeminiFunctionDeclarations(): array
+    {
+        return [
+            [
+                'name' => 'check_attendance',
+                'description' => 'Memeriksa data kehadiran/absensi santri di TPQ (kehadiran hari ini, jam masuk, izin kemarin, atau rekap kehadiran bulanan).',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'santri_id' => [
+                            'type' => 'INTEGER',
+                            'description' => 'ID santri yang ingin diperiksa (opsional jika wali hanya punya 1 santri atau ingin cek semua anak).',
+                        ],
+                        'nama_santri' => [
+                            'type' => 'STRING',
+                            'description' => 'Nama panggilan atau nama lengkap santri yang ditanyakan oleh wali.',
+                        ],
+                        'periode' => [
+                            'type' => 'STRING',
+                            'description' => 'Periode waktu absensi yang ditanyakan, misalnya: hari_ini, kemarin, bulan_ini, bulan_lalu, atau nama bulan (cth: Oktober 2026).',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'check_spp_payment',
+                'description' => 'Memeriksa status pembayaran SPP santri (apakah SPP bulan ini/tertentu sudah dibayar, pembayaran terakhir, dan cara/kontak konfirmasi pembayaran ke Bendahara).',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'santri_id' => [
+                            'type' => 'INTEGER',
+                            'description' => 'ID santri yang ingin diperiksa.',
+                        ],
+                        'nama_santri' => [
+                            'type' => 'STRING',
+                            'description' => 'Nama santri yang ditanyakan.',
+                        ],
+                        'periode' => [
+                            'type' => 'STRING',
+                            'description' => 'Periode bulan SPP yang ditanyakan (cth: bulan_ini, bulan_lalu, Oktober 2026).',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'check_spp_arrears',
+                'description' => 'Memeriksa apakah santri masih mempunyai tunggakan SPP, total nominal tunggakan, rincian bulan yang belum lunas, dan cara melunasi tunggakan.',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'santri_id' => [
+                            'type' => 'INTEGER',
+                            'description' => 'ID santri yang ingin diperiksa tunggakannya.',
+                        ],
+                        'nama_santri' => [
+                            'type' => 'STRING',
+                            'description' => 'Nama santri yang ingin diperiksa tunggakannya.',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_tpq_information',
+                'description' => 'Mengambil informasi umum TPQ Nurul Mun\'im seperti jadwal kegiatan mengaji, jam masuk dan pulang, hari libur, peraturan TPQ, informasi pembayaran, dan administrasi.',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'topik' => [
+                            'type' => 'STRING',
+                            'description' => 'Topik informasi TPQ: jadwal, hari_libur, peraturan, pembayaran, administrasi, atau umum.',
+                        ],
+                        'pertanyaan' => [
+                            'type' => 'STRING',
+                            'description' => 'Kalimat pertanyaan wali santri terkait informasi TPQ.',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Eksekutor fungsi (Tool Executor) yang dijalankan oleh Laravel dengan validasi keamanan ketat (Section 10).
+     *
+     * @param  array<string, mixed>  $args
+     * @param  Collection<int, Siswa>  $candidates
+     * @return array<string, mixed>
+     */
+    protected function executeGeminiTool(
+        string $toolName,
+        array $args,
+        Collection $candidates,
+        ?Siswa &$activeSiswa,
+        string $normalizedSender,
+        string $originalMessage
+    ): array {
+        if ($toolName === 'get_tpq_information') {
+            $topik = strtolower(trim((string) ($args['topik'] ?? 'umum')));
+            $queryText = (string) ($args['pertanyaan'] ?? $originalMessage);
+
+            if (str_contains($topik, 'libur') || preg_match('/\b(libur|tanggal merah)\b/i', $queryText)) {
+                return [
+                    'status' => 'ok',
+                    'topik' => 'hari_libur',
+                    'ringkasan_resmi' => $this->handleAgendaQuery($queryText),
+                ];
+            }
+
+            return [
+                'status' => 'ok',
+                'topik' => $topik,
+                'ringkasan_resmi' => $this->handleInfoTpqQuery($queryText),
+            ];
         }
 
-        // 2. Intent Pemberitahuan Anak Izin / Sakit dari Wali Santri
-        $isAskingRecap = (bool) preg_match('/\b(gimana|bagaimana|cek|rekap|berapa|berpa|brp|laporan|info|apakah|lihat|status|berapa kali|berpa kali|berapa hari)\b/i', $clean);
-        $isInformingAbsence = (bool) preg_match('/\b(mohon izin|minta izin|mau izin|izin tidak|izin gak|izin nggak|tidak bisa hadir|tidak bisa masuk|tidak masuk|gak masuk|nggak masuk|absen dulu|lagi sakit|sedang sakit|karena sakit|kurang enak badan|demam|acara keluarga|bepergian)\b/i', $clean);
-        if ($isInformingAbsence && ! $isAskingRecap) {
-            return 'izin_sakit';
+        // Untuk fungsi data pribadi (absensi & SPP), wajib memvalidasi kepemilikan santri terhadap nomor WA wali
+        if ($candidates->isEmpty()) {
+            return [
+                'status' => 'unauthorized',
+                'error' => 'Nomor WhatsApp pengirim belum terdaftar sebagai wali santri.',
+            ];
         }
 
-        // 3. Intent Absensi & Kehadiran
-        // A. Kata kunci absensi/kehadiran langsung
-        $hasAttendanceWords = (bool) preg_match('/\b(presensi|absensi|kehadiran|absen|masuk|hadir|bolos|izin|sakit|alpa|alfa|terlambat|telat|rekap|datang|berangkat|pulang|sampai|ngaji|mengaji)\b/i', $clean);
-        // B. Pertanyaan frekuensi / jumlah kehadiran (cth: "berapa kali?", "berpa kali?", "berapa hari?", "berapa kali masuk")
-        $hasFrequencyWords = (bool) preg_match('/\b(berapa kali|berpa kali|brp kali|berapa hari|brp hari|berapa kali hadir|berpa kali hadir|berapa kali masuk|berpa kali masuk|berapa kali absen|berpa kali absen|ada yang alpa|ada alpa|ada yang alfa|ada yang bolos)\b/i', $clean);
-        // C. Pertanyaan temporal (cth: "kalau bulan sebelumnya berpa kali?", "bulan lalu gimana?", "kemarin gimana?", "minggu lalu?")
-        $hasTemporalWords = (bool) preg_match('/\b(bulan\s*(?:lalu|kemarin|kemaren|sebelumnya|berikutnya)|bln\s*(?:lalu|kemarin|kemaren|sebelumnya)|kemarin|kemaren|hari kemarin|hari kemaren|minggu lalu|minggu ini|januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $clean);
-
-        if ($hasAttendanceWords || $hasFrequencyWords) {
-            return 'absensi';
+        $targetResolution = $this->resolveTargetStudentForTool($args, $candidates, $activeSiswa, $normalizedSender);
+        if (($targetResolution['status'] ?? '') === 'unauthorized') {
+            return [
+                'status' => 'unauthorized',
+                'error' => $targetResolution['error'] ?? 'Akses data santri lain ditolak.',
+            ];
         }
 
-        // 4. Follow-up temporal berdasarkan riwayat percakapan sebelumnya
-        if ($hasTemporalWords) {
-            if ($normalizedSender) {
-                $prevIntent = $this->resolvePreviousIntentFromHistory($normalizedSender);
-                if ($prevIntent && in_array($prevIntent, ['absensi', 'spp_notice'], true)) {
-                    return $prevIntent;
+        /** @var Siswa|null $selectedSiswa */
+        $selectedSiswa = $targetResolution['siswa'] ?? null;
+        if ($selectedSiswa) {
+            $activeSiswa = $selectedSiswa;
+            $this->rememberActiveStudent($normalizedSender, $selectedSiswa->id);
+        }
+
+        $periodHint = trim((string) ($args['periode'] ?? '')) !== ''
+            ? (string) $args['periode'].' '.$originalMessage
+            : $originalMessage;
+
+        return match ($toolName) {
+            'check_attendance' => [
+                'status' => 'ok',
+                'santri' => $selectedSiswa ? $this->formatSiswaPayload($selectedSiswa) : 'semua_anak_wali',
+                'data_absensi' => $selectedSiswa
+                    ? $this->handleAbsensiQuery($selectedSiswa, $periodHint)
+                    : $this->handleMultiAbsensiQuery($candidates, $periodHint),
+            ],
+            'check_spp_payment', 'check_spp_arrears' => [
+                'status' => 'ok',
+                'santri' => $selectedSiswa ? $this->formatSiswaPayload($selectedSiswa) : 'semua_anak_wali',
+                'data_spp' => $selectedSiswa
+                    ? $this->handleSppNoticeQuery($selectedSiswa, null, $periodHint)
+                    : $this->handleSppNoticeQuery($candidates->first(), $candidates, $periodHint),
+                'bendahara' => $this->getBendaharaInfo(),
+            ],
+            default => [
+                'status' => 'error',
+                'error' => "Fungsi {$toolName} tidak dikenali.",
+            ],
+        };
+    }
+
+    /**
+     * Validasi parameter santri_id / nama_santri dari AI agar hanya mengakses santri milik wali yang bersangkutan.
+     *
+     * @param  array<string, mixed>  $args
+     * @param  Collection<int, Siswa>  $candidates
+     * @return array{status: string, siswa?: Siswa|null, error?: string}
+     */
+    protected function resolveTargetStudentForTool(
+        array $args,
+        Collection $candidates,
+        ?Siswa $activeSiswa,
+        string $normalizedSender
+    ): array {
+        // 1. Jika AI mengirimkan santri_id eksplisit, wajib termasuk dalam daftar anak milik nomor WA ini
+        if (! empty($args['santri_id'])) {
+            $requestedId = (int) $args['santri_id'];
+            $matched = $candidates->firstWhere('id', $requestedId);
+            if (! $matched) {
+                return [
+                    'status' => 'unauthorized',
+                    'error' => 'Santri dengan ID tersebut tidak terdaftar pada nomor WhatsApp Bapak/Ibu.',
+                ];
+            }
+
+            return ['status' => 'found', 'siswa' => $matched];
+        }
+
+        // 2. Jika AI mengirimkan nama_santri
+        if (! empty($args['nama_santri'])) {
+            $nama = strtolower(trim((string) $args['nama_santri']));
+            foreach ($candidates as $cand) {
+                if (str_contains(strtolower($cand->nama_lengkap), $nama)) {
+                    return ['status' => 'found', 'siswa' => $cand];
                 }
             }
-            // Default jika ada kata temporal dan pertanyaan ("gimana", "berapa", "berpa", "cek", "info", dll) -> absensi
-            if (preg_match('/\b(gimana|bagaimana|berapa|berpa|brp|cek|info|apakah|apa|ada|status|lihat|kalau|gmn)\b/i', $clean) || str_contains($clean, '?')) {
-                return 'absensi';
+
+            return [
+                'status' => 'unauthorized',
+                'error' => "Santri bernama '{$args['nama_santri']}' tidak terdaftar pada nomor WhatsApp Bapak/Ibu.",
+            ];
+        }
+
+        // 3. Jika wali hanya punya 1 anak, otomatis gunakan anak tersebut
+        if ($candidates->count() === 1) {
+            return ['status' => 'found', 'siswa' => $candidates->first()];
+        }
+
+        // 4. Gunakan santri aktif dari konteks percakapan jika ada
+        if ($activeSiswa && $candidates->contains('id', $activeSiswa->id)) {
+            return ['status' => 'found', 'siswa' => $activeSiswa];
+        }
+
+        $rememberedId = $this->getRememberedActiveStudentId($normalizedSender);
+        if ($rememberedId) {
+            $remembered = $candidates->firstWhere('id', $rememberedId);
+            if ($remembered) {
+                return ['status' => 'found', 'siswa' => $remembered];
             }
         }
 
-        // 5. Intent Informasi Hari Libur (Hanya hari libur, tidak menampilkan agenda internal)
-        if (preg_match('/\b(libur|liburan|tanggal merah|rutinan|kapan libur|kalender|jadwal libur|prei)\b/i', $clean)) {
-            return 'agenda';
-        }
-
-        // 6. Intent Apresiasi / Terima Kasih / Konfirmasi Singkat
-        $hasQuestionWord = (bool) preg_match('/\b(gimana|bagaimana|berapa|berpa|brp|kapan|apakah|cek|menu|bantuan|tanya|bisa apa|halo|hai)\b/i', $clean);
-        if (! $hasQuestionWord && preg_match('/\b(terima\s*kasih|terimakasih|makasih|mksh|trims|syukron|jazakallah|jazakumullah|alhamdulillah|baik|oke|ok|siap|noted|sama-sama|waalaikumsalam|wa\'alaikumussalam|walaikumsalam)\b/i', $clean)) {
-            return 'apresiasi';
-        }
-
-        // 7. Intent Bantuan & Sapaan
-        if (preg_match('/\b(halo|hai|assalam|assalamualaikum|assalamu\'alaikum|salam|pagi|siang|sore|malam|ustadz|ustazah|admin|menu|bantuan|help|info|bisa apa|tanya|panduan)\b/i', $clean)) {
-            return 'bantuan';
-        }
-
-        // 8. Follow-up kontekstual jika ada tanda tanya atau pertanyaan pendek setelah topik sebelumnya
-        if ($normalizedSender) {
-            $prevIntent = $this->resolvePreviousIntentFromHistory($normalizedSender);
-            if ($prevIntent && in_array($prevIntent, ['absensi', 'spp_notice'], true)) {
-                if (preg_match('/(\?|\b(gimana|bagaimana|berapa|berpa|brp|apakah|apa|kapan|kenapa|ada|kalau|terus)\b)/i', $clean)) {
-                    return $prevIntent;
-                }
-            }
-        }
-
-        return 'unknown';
+        // 5. Jika wali punya >1 anak dan belum memilih spesifik, kembalikan semua anak milik wali tersebut
+        return ['status' => 'found_all', 'siswa' => null];
     }
 
     /**
@@ -1206,6 +1538,32 @@ class ChatbotService
         }
 
         return $reply;
+    }
+
+    /**
+     * Menghasilkan informasi umum TPQ (Jadwal kegiatan, Jam masuk & pulang, Peraturan, Administrasi)
+     */
+    public function handleInfoTpqQuery(string $message = ''): string
+    {
+        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im") ?: "TPQ Nurul Mun'im";
+        $jamMasuk = Pengaturan::getValue('jam_masuk', '15:30') ?: '15:30';
+        $batasTerlambat = Pengaturan::getValue('batas_terlambat', '16:00') ?: '16:00';
+        $jamPulang = Pengaturan::getValue('jam_pulang', '17:00') ?: '17:00';
+        $nominalSpp = (int) (Pengaturan::getValue('nominal_spp_default', 50000) ?: 50000);
+        $nominalRp = 'Rp '.number_format($nominalSpp, 0, ',', '.');
+        $bendahara = $this->getBendaharaInfo();
+
+        return "🕌 *Informasi Umum {$namaInstansi}:*\n\n"
+            ."⏰ *Jadwal & Jam Kegiatan Mengaji:*\n"
+            ."• Jam Masuk: Pukul *{$jamMasuk} WIB*\n"
+            ."• Batas Toleransi Hadir Tepat Waktu: Pukul *{$batasTerlambat} WIB*\n"
+            ."• Jam Pulang: Pukul *{$jamPulang} WIB*\n\n"
+            ."📋 *Tata Tertib & Presensi:*\n"
+            ."• Setiap santri wajib melakukan scan kartu QR Code saat datang.\n"
+            ."• Apabila berhalangan hadir (Izin/Sakit), wali santri dapat mengonfirmasi melalui WhatsApp ini.\n\n"
+            ."💳 *Informasi Administrasi & SPP:*\n"
+            ."• Syahriyah / SPP Bulanan: *{$nominalRp}* / bulan\n"
+            ."• Bendahara TPQ: *{$bendahara['nama']}* (WA: *{$bendahara['kontak']}*)";
     }
 
     /**
