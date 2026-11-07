@@ -725,6 +725,14 @@ class SppBillingService
         $totalTunggakanAktif = max(0, $totalNominalUnpaid - $totalBayarParsial);
         $totalSantriMenunggakAktif = (clone $unpaidTagihanQuery)->distinct('id_siswa')->count('id_siswa');
 
+        // Santri menunggak >= 2 bulan
+        $santriMenunggakLebih2Bulan = (clone $unpaidTagihanQuery)
+            ->selectRaw('id_siswa, COUNT(*) as jml')
+            ->groupBy('id_siswa')
+            ->having('jml', '>=', 2)
+            ->get()
+            ->count();
+
         // 4. Grafik pendapatan 12 bulan di tahun terpilih (1 query efisien dengan filter range tanggal)
         $startDate = Carbon::createFromDate($tahun, 1, 1)->startOfDay();
         $endDate = Carbon::createFromDate($tahun, 12, 31)->endOfDay();
@@ -743,6 +751,45 @@ class SppBillingService
             ];
         }
 
+        // 5. Status tagihan & lunas SPP per jilid/kelas untuk bulan & tahun berjalan
+        $kelasSppStats = TagihanSpp::join('siswa', 'siswa.id', '=', 'tagihan_spp.id_siswa')
+            ->where('tagihan_spp.bulan', $bulan)
+            ->where('tagihan_spp.tahun', $tahun)
+            ->where('siswa.status', 'aktif')
+            ->selectRaw('siswa.id_kelas, COUNT(tagihan_spp.id) as total, SUM(CASE WHEN tagihan_spp.status = "lunas" THEN 1 ELSE 0 END) as lunas')
+            ->groupBy('siswa.id_kelas')
+            ->get()
+            ->keyBy('id_kelas')
+            ->map(fn ($item) => [
+                'total' => (int) $item->total,
+                'lunas' => (int) $item->lunas,
+                'persen' => $item->total > 0 ? (int) round(($item->lunas / $item->total) * 100) : 0,
+            ]);
+
+        // 6. Transaksi pembayaran kas SPP terbaru (5 transaksi terakhir)
+        $recentPayments = PembayaranSpp::with(['siswa.kelas', 'tagihan'])
+            ->where('status_transaksi', 'valid')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->map(function ($p) {
+                $periode = '-';
+                if ($p->tagihan) {
+                    $namaBulan = self::NAMA_BULAN[$p->tagihan->bulan] ?? '';
+                    $periode = $namaBulan.' '.$p->tagihan->tahun;
+                }
+
+                return [
+                    'id' => $p->id,
+                    'santri' => $p->siswa?->nama_lengkap ?? 'Santri',
+                    'jilid' => $p->siswa?->kelas?->nama_kelas ?? '-',
+                    'periode' => $periode,
+                    'metode' => $p->metode_pembayaran ?: 'Tunai',
+                    'jumlah' => 'Rp '.number_format((float) $p->jumlah_bayar, 0, ',', '.'),
+                    'status' => 'Lunas',
+                ];
+            });
+
         return [
             'bulan' => $bulan,
             'tahun' => $tahun,
@@ -751,9 +798,13 @@ class SppBillingService
             'total_tunggakan_aktif' => $totalTunggakanAktif,
             'santri_lunas' => $totalLunasCount,
             'santri_belum_lunas' => $totalSantriMenunggakAktif, // Jumlah santri yang memiliki tunggakan riil s/d bulan berjalan
+            'santri_menunggak_2_bulan' => $santriMenunggakLebih2Bulan,
             'santri_belum_lunas_bulan_ini' => $totalBelumLunasCount,
             'persentase_lunas' => ($tagihanBulanIni->count() > 0) ? round(($totalLunasCount / $tagihanBulanIni->count()) * 100, 1) : 0,
             'grafik_bulanan' => $grafikBulanan,
+            'kelas_spp_stats' => $kelasSppStats,
+            'recent_payments' => $recentPayments,
+            'pembayaran_menunggu_verifikasi' => 0,
         ];
     }
 

@@ -406,10 +406,53 @@ class AbsensiScannerService
             ];
         });
 
+        // 6 sesi/tanggal presensi terakhir yang tercatat di database untuk grafik tren kehadiran
+        $recentDates = Absensi::select('tanggal')
+            ->distinct()
+            ->orderByDesc('tanggal')
+            ->limit(6)
+            ->pluck('tanggal')
+            ->reverse()
+            ->values();
+
+        $totalSantriAktif = Siswa::where('status', 'aktif')->count();
+        $trenKehadiran = [];
+        foreach ($recentDates as $idx => $tgl) {
+            $hadirCount = Absensi::where('tanggal', $tgl)
+                ->whereIn('status', ['Hadir', 'Terlambat'])
+                ->count();
+            $pct = $totalSantriAktif > 0 ? (int) round(($hadirCount / $totalSantriAktif) * 100) : 0;
+            $trenKehadiran[] = [
+                'label' => 'M'.($idx + 1),
+                'tanggal' => Carbon::parse($tgl)->translatedFormat('d M'),
+                'persen' => $pct,
+                'hadir' => $hadirCount,
+            ];
+        }
+
+        if (count($trenKehadiran) < 6) {
+            $remaining = 6 - count($trenKehadiran);
+            $padding = [];
+            for ($i = 1; $i <= $remaining; $i++) {
+                $padding[] = [
+                    'label' => 'M'.$i,
+                    'tanggal' => '-',
+                    'persen' => 0,
+                    'hadir' => 0,
+                ];
+            }
+            $trenKehadiran = array_merge($padding, $trenKehadiran);
+            foreach ($trenKehadiran as $k => &$ti) {
+                $ti['label'] = 'M'.($k + 1);
+            }
+            unset($ti);
+        }
+
         return [
             'tanggal' => $date,
             'stats' => $stats,
             'students' => $items,
+            'tren_mingguan' => $trenKehadiran,
         ];
     }
 

@@ -425,7 +425,7 @@
                       </td>
                       <td class="py-2.5 px-3 text-center">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          {{ item.sppLunas }}/{{ item.total }}
+                          {{ item.sppLunas }}/{{ item.sppTotal }}
                         </span>
                       </td>
                     </tr>
@@ -437,7 +437,7 @@
                   <span>Lihat di Live Monitoring</span>
                   <ChevronRight class="size-3" />
                 </router-link>
-                <span class="italic text-[10px]">Kolom SPP lunas adalah contoh data</span>
+                <span class="text-[10px] text-muted-foreground">Status SPP periode {{ currentPeriodName }}</span>
               </div>
             </CardContent>
           </Card>
@@ -456,7 +456,7 @@
                     </CardDescription>
                   </div>
                   <Badge variant="outline" class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
-                    4 item
+                    {{ pendingActionCount }} item
                   </Badge>
                 </div>
               </CardHeader>
@@ -470,10 +470,10 @@
                     </span>
                     <div class="min-w-0">
                       <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
-                        {{ sppStats.santri_belum_lunas || 29 }} santri belum bayar SPP {{ monthNamesIndo[new Date().getMonth()] }}
+                        {{ sppStats.santri_belum_lunas || 0 }} santri belum bayar SPP {{ monthNamesIndo[new Date().getMonth()] }}
                       </p>
                       <p class="text-[11px] text-muted-foreground truncate">
-                        {{ sppStats.total_tunggakan_aktif ? `Total tunggakan Rp ${formatRupiah(sppStats.total_tunggakan_aktif)}` : '7 di antaranya menunggak ≥ 2 bulan' }}
+                        {{ sppStats.santri_menunggak_2_bulan || 0 }} di antaranya menunggak &ge; 2 bulan
                       </p>
                     </div>
                   </div>
@@ -492,10 +492,10 @@
                     </span>
                     <div class="min-w-0">
                       <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
-                        6 pembayaran menunggu verifikasi
+                        {{ sppStats.pembayaran_menunggu_verifikasi || 0 }} pembayaran menunggu verifikasi
                       </p>
                       <p class="text-[11px] text-muted-foreground truncate">
-                        Bukti transfer belum dikonfirmasi
+                        {{ (sppStats.pembayaran_menunggu_verifikasi || 0) > 0 ? 'Bukti transfer perlu diverifikasi' : 'Semua transaksi kas SPP telah diverifikasi' }}
                       </p>
                     </div>
                   </div>
@@ -506,7 +506,7 @@
                   </Button>
                 </div>
 
-                <!-- Item 3: Santri Alpa -->
+                <!-- Item 3: Santri Alpa / Belum Presensi -->
                 <div class="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors">
                   <div class="flex items-center gap-3 min-w-0">
                     <span class="inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 shrink-0">
@@ -514,10 +514,10 @@
                     </span>
                     <div class="min-w-0">
                       <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
-                        {{ (absensiStats.belum_absen + absensiStats.alpa) || 4 }} santri alpa / belum presensi
+                        {{ absensiStats.alpa > 0 ? `${absensiStats.alpa} santri berstatus alpa hari ini` : `${absensiStats.belum_absen} santri belum presensi` }}
                       </p>
                       <p class="text-[11px] text-muted-foreground truncate">
-                        Perlu dihubungi wali santri
+                        {{ absensiStats.alpa > 0 ? 'Perlu konfirmasi kehadiran wali santri' : 'Scan QR santri di gerbang masuk TPQ' }}
                       </p>
                     </div>
                   </div>
@@ -536,10 +536,10 @@
                     </span>
                     <div class="min-w-0">
                       <p class="text-xs sm:text-sm font-semibold text-foreground truncate">
-                        {{ waStats.total > 0 ? (waStats.total - waStats.read) : 35 }} pesan belum terbaca wali
+                        {{ waStats.total > 0 ? (waStats.total - waStats.read) : 0 }} notifikasi WA belum dibaca
                       </p>
                       <p class="text-[11px] text-muted-foreground truncate">
-                        Terkirim {{ waStats.sent + waStats.delivered || 142 }} &bull; Gagal {{ waStats.failed || 0 }}
+                        {{ waStats.total > 0 ? `Terkirim ${waStats.sent + waStats.delivered} • Gagal ${waStats.failed}` : 'Gateway WhatsApp siap mengirimkan notifikasi' }}
                       </p>
                     </div>
                   </div>
@@ -566,27 +566,18 @@
                   Tren Pemasukan SPP
                 </CardTitle>
                 <CardDescription class="text-xs text-muted-foreground mt-0.5">
-                  6 bulan terakhir (juta rupiah, contoh)
+                  6 bulan s/d {{ currentPeriodName }}
                 </CardDescription>
               </div>
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                +8% vs Okt
+                {{ growthVsLastMonth }}
               </span>
             </div>
           </CardHeader>
           <CardContent class="p-4 pt-1">
             <!-- Bar Chart -->
             <div class="relative h-36 flex items-end justify-between pt-6 px-1">
-              <!-- Horizontal guidelines -->
-              <div class="absolute inset-x-0 top-6 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
-                <span class="px-1 -mt-2.5">6</span>
-              </div>
-              <div class="absolute inset-x-0 top-16 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
-                <span class="px-1 -mt-2.5">4</span>
-              </div>
-              <div class="absolute inset-x-0 top-26 border-b border-dashed border-border/40 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
-                <span class="px-1 -mt-2.5">2</span>
-              </div>
+              <!-- Guidelines -->
               <div class="absolute inset-x-0 bottom-6 border-b border-border/60 pointer-events-none flex justify-between text-[10px] text-muted-foreground">
                 <span class="px-1 -mt-2.5">0</span>
               </div>
@@ -621,7 +612,7 @@
               Tren Kehadiran Mingguan
             </CardTitle>
             <CardDescription class="text-xs text-muted-foreground mt-0.5">
-              Persentase hadir (contoh)
+              Tingkat kehadiran 6 pertemuan terakhir
             </CardDescription>
           </CardHeader>
           <CardContent class="p-4 pt-1 flex flex-col justify-end">
@@ -630,30 +621,32 @@
               <svg viewBox="0 0 280 100" class="w-full h-28 overflow-visible">
                 <!-- Line -->
                 <polyline
+                  v-if="weeklyTrendPoints"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2.5"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   class="text-emerald-800 dark:text-emerald-500"
-                  points="20,45 68,40 116,68 164,32 212,42 260,22"
+                  :points="weeklyTrendPoints"
                 />
                 <!-- Points -->
-                <circle cx="20" cy="45" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
-                <circle cx="68" cy="40" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
-                <circle cx="116" cy="68" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
-                <circle cx="164" cy="32" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
-                <circle cx="212" cy="42" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
-                <circle cx="260" cy="22" r="4" class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2" />
+                <circle
+                  v-for="(p, idx) in trenMingguan"
+                  :key="idx"
+                  :cx="20 + idx * 48"
+                  :cy="85 - Math.round(((p.persen || 0) / 100) * 65)"
+                  r="4"
+                  class="fill-card stroke-emerald-800 dark:stroke-emerald-500 stroke-2"
+                >
+                  <title>{{ p.tanggal }}: {{ p.persen }}% ({{ p.hadir }} santri)</title>
+                </circle>
               </svg>
               <!-- X Axis Labels -->
               <div class="flex justify-between px-2 pt-1 text-[10px] text-muted-foreground font-medium border-t border-border/40">
-                <span>M1</span>
-                <span>M2</span>
-                <span>M3</span>
-                <span>M4</span>
-                <span>M5</span>
-                <span>M6</span>
+                <span v-for="p in trenMingguan" :key="p.label" :title="`${p.tanggal}: ${p.persen}%`">
+                  {{ p.label }}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -666,11 +659,20 @@
               Status Pembayaran Bulan Ini
             </CardTitle>
             <CardDescription class="text-xs text-muted-foreground mt-0.5">
-              Per jilid, % lunas (contoh)
+              Per jilid, periode {{ currentPeriodName }}
             </CardDescription>
           </CardHeader>
           <CardContent class="p-4 pt-1 space-y-2.5">
-            <div v-for="item in jilidPaymentStatus" :key="item.nama" class="space-y-1">
+            <div v-if="jilidPaymentStatus.length === 0" class="py-6 text-center text-xs text-muted-foreground">
+              Belum ada data jilid.
+            </div>
+            <div
+              v-else
+              v-for="item in jilidPaymentStatus"
+              :key="item.nama"
+              class="space-y-1"
+              :title="`${item.lunas} dari ${item.total} santri lunas`"
+            >
               <div class="flex items-center justify-between text-xs">
                 <span class="text-foreground font-medium">{{ item.nama }}</span>
                 <span class="text-foreground font-semibold text-[11px]">{{ item.persen }}%</span>
@@ -699,7 +701,7 @@
                     Pembayaran SPP Terbaru
                   </CardTitle>
                   <CardDescription class="text-xs text-muted-foreground mt-0.5">
-                    Transaksi masuk terakhir (contoh)
+                    Transaksi kas masuk terakhir
                   </CardDescription>
                 </div>
                 <Button as-child variant="outline" size="sm" class="h-7 text-xs px-2.5 rounded-lg">
@@ -724,7 +726,13 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-border/40">
+                    <tr v-if="recentPayments.length === 0">
+                      <td colspan="6" class="py-10 text-center text-xs text-muted-foreground">
+                        Belum ada transaksi pembayaran SPP yang tercatat.
+                      </td>
+                    </tr>
                     <tr
+                      v-else
                       v-for="(tx, idx) in recentPayments"
                       :key="idx"
                       class="hover:bg-muted/30 transition-colors"
@@ -1086,6 +1094,17 @@ function getBarHeight(total) {
   return `${pct}%`;
 }
 
+const trenMingguan = ref([]);
+
+const weeklyTrendPoints = computed(() => {
+  if (!trenMingguan.value || !trenMingguan.value.length) return '';
+  return trenMingguan.value.map((p, idx) => {
+    const x = 20 + idx * 48;
+    const y = 85 - Math.round(((p.persen || 0) / 100) * 65);
+    return `${x},${y}`;
+  }).join(' ');
+});
+
 const kelasBreakdown = computed(() => {
   return kelasList.value.map((k) => {
     const santriKelas = allStudentsMonitoring.value.filter(s => Number(s.id_kelas) === Number(k.id));
@@ -1094,9 +1113,10 @@ const kelasBreakdown = computed(() => {
     const izinSakit = santriKelas.filter(s => s.status === 'Izin' || s.status === 'Sakit').length;
     const belumAlpa = santriKelas.filter(s => s.status === 'Alpa' || s.status === 'Belum Absen').length;
 
-    // Estimasi SPP lunas per jilid untuk visualisasi
-    const pct = sppStats.value.persentase_lunas || 65;
-    const sppLunas = Math.min(santriKelas.length, Math.round(santriKelas.length * (pct / 100)));
+    // SPP lunas riil dari database tagihan SPP
+    const sppInfo = sppStats.value.kelas_spp_stats?.[k.id];
+    const sppLunas = sppInfo ? sppInfo.lunas : 0;
+    const sppTotal = sppInfo ? sppInfo.total : santriKelas.length;
 
     return {
       id: k.id,
@@ -1109,60 +1129,77 @@ const kelasBreakdown = computed(() => {
       izinSakit,
       belumAlpa,
       sppLunas,
+      sppTotal,
     };
   });
 });
 
 const last6MonthsRevenue = computed(() => {
   const list = sppStats.value.grafik_bulanan || [];
-  if (list.length >= 6) {
-    return list.slice(-6).map((g, idx, arr) => ({
-      label: (g.nama_bulan || '').slice(0, 3),
-      fullName: g.nama_bulan,
-      nominal: Number(g.total) || 0,
-      isActive: idx === arr.length - 1,
-    }));
-  }
-  return [
-    { label: 'Jun', fullName: 'Juni', nominal: 4800000, isActive: false },
-    { label: 'Jul', fullName: 'Juli', nominal: 5200000, isActive: false },
-    { label: 'Agu', fullName: 'Agustus', nominal: 4300000, isActive: false },
-    { label: 'Sep', fullName: 'September', nominal: 5400000, isActive: false },
-    { label: 'Okt', fullName: 'Oktober', nominal: 5000000, isActive: false },
-    { label: 'Nov', fullName: 'November', nominal: 5200000, isActive: true },
-  ];
+  if (!list.length) return [];
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const startIdx = Math.max(0, currentMonth - 6);
+  const sliced = list.slice(startIdx, currentMonth);
+
+  return sliced.map((g, idx, arr) => ({
+    label: (g.nama_bulan || '').slice(0, 3),
+    fullName: g.nama_bulan,
+    nominal: Number(g.total) || 0,
+    isActive: idx === arr.length - 1,
+  }));
+});
+
+const maxRevenue6Months = computed(() => {
+  const vals = last6MonthsRevenue.value.map(m => m.nominal);
+  return Math.max(...vals, 100000);
 });
 
 function get6MonthBarHeight(nominal) {
   if (!nominal || nominal <= 0) return '8%';
-  const pct = Math.min(100, Math.max(12, Math.round((nominal / 6000000) * 100)));
+  const pct = Math.min(100, Math.max(12, Math.round((nominal / maxRevenue6Months.value) * 100)));
   return `${pct}%`;
 }
 
-const jilidPaymentStatus = computed(() => {
-  if (kelasList.value && kelasList.value.length > 0) {
-    const mockPct = [61, 74, 60, 81, 44, 80];
-    return kelasList.value.map((k, idx) => ({
-      nama: (k.nama_kelas || '').replace(/\s*\([^)]+\)\s*$/, '').trim(),
-      persen: mockPct[idx % mockPct.length],
-    }));
+const growthVsLastMonth = computed(() => {
+  const list = sppStats.value.grafik_bulanan || [];
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const currentTotal = Number(list.find(item => item.bulan === m)?.total || 0);
+  const prevTotal = Number(list.find(item => item.bulan === (m > 1 ? m - 1 : 12))?.total || 0);
+  if (prevTotal > 0) {
+    const diff = Math.round(((currentTotal - prevTotal) / prevTotal) * 100);
+    return diff >= 0 ? `+${diff}% vs bln lalu` : `${diff}% vs bln lalu`;
   }
-  return [
-    { nama: 'Jilid 1', persen: 61 },
-    { nama: 'Jilid 2', persen: 74 },
-    { nama: 'Jilid 3', persen: 60 },
-    { nama: 'Jilid 4', persen: 81 },
-    { nama: 'Al-Quran', persen: 44 },
-    { nama: "Al-Qur'an Putri", persen: 80 },
-  ];
+  return currentTotal > 0 ? `Rp ${formatRupiah(currentTotal)}` : 'Rp 0 bln ini';
 });
 
-const recentPayments = computed(() => [
-  { santri: '[Nama santri]', jilid: 'Jilid 2', periode: 'Nov 2026', metode: 'Tunai', jumlah: 'Rp 50.000', status: 'Lunas' },
-  { santri: '[Nama santri]', jilid: 'Jilid 4', periode: 'Nov 2026', metode: 'Transfer', jumlah: 'Rp 50.000', status: 'Menunggu verifikasi' },
-  { santri: '[Nama santri]', jilid: 'Jilid 1', periode: 'Okt-Nov 2026', metode: 'Tunai', jumlah: 'Rp 100.000', status: 'Lunas' },
-  { santri: '[Nama santri]', jilid: 'Jilid 3', periode: 'Nov 2026', metode: 'Transfer', jumlah: 'Rp 50.000', status: 'Menunggu verifikasi' },
-]);
+const jilidPaymentStatus = computed(() => {
+  if (kelasList.value && kelasList.value.length > 0) {
+    return kelasList.value.map((k) => {
+      const sppInfo = sppStats.value.kelas_spp_stats?.[k.id];
+      return {
+        nama: (k.nama_kelas || '').replace(/\s*\([^)]+\)\s*$/, '').trim(),
+        persen: sppInfo ? sppInfo.persen : 0,
+        lunas: sppInfo ? sppInfo.lunas : 0,
+        total: sppInfo ? sppInfo.total : 0,
+      };
+    });
+  }
+  return [];
+});
+
+const recentPayments = computed(() => {
+  return sppStats.value.recent_payments || [];
+});
+
+const pendingActionCount = computed(() => {
+  let count = 0;
+  if ((sppStats.value.santri_belum_lunas || 0) > 0) count++;
+  if ((sppStats.value.pembayaran_menunggu_verifikasi || 0) > 0) count++;
+  if ((absensiStats.value.alpa || 0) > 0 || (absensiStats.value.belum_absen || 0) > 0) count++;
+  if ((waStats.value.total - waStats.value.read) > 0) count++;
+  return count;
+});
 
 function getStatusBadgeVariant(status) {
   switch (status) {
@@ -1206,6 +1243,7 @@ async function loadDashboard() {
               belum_absen: s.belum_absen || 0,
             };
             guruStudents.value = monRes.data.data?.students || [];
+            trenMingguan.value = monRes.data.data?.tren_mingguan || [];
           }
         })
       );
@@ -1224,6 +1262,7 @@ async function loadDashboard() {
               belum_absen: s.belum_absen || 0,
             };
             allStudentsMonitoring.value = monRes.data.data?.students || [];
+            trenMingguan.value = monRes.data.data?.tren_mingguan || [];
           }
         }),
         api.get('/kelas').then((kelasRes) => {
