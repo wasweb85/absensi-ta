@@ -14,10 +14,14 @@
 
       <!-- Tab Switcher (Shadcn Tabs) -->
       <Tabs v-model="activeTab" class="w-auto">
-        <TabsList class="grid grid-cols-2 h-8">
+        <TabsList class="grid grid-cols-3 h-8">
           <TabsTrigger value="logs" class="text-xs px-3 gap-1.5">
             <MessageSquare class="size-3.5" />
             <span>Log Percakapan</span>
+          </TabsTrigger>
+          <TabsTrigger value="knowledge" class="text-xs px-3 gap-1.5" @click="loadKnowledgeBase">
+            <BookOpen class="size-3.5" />
+            <span>Knowledge Base</span>
           </TabsTrigger>
           <TabsTrigger value="config" class="text-xs px-3 gap-1.5">
             <Settings class="size-3.5" />
@@ -91,10 +95,11 @@
               >
                 <option value="">Semua Topik</option>
                 <option value="absensi">Presensi Santri</option>
+                <option value="spp_notice">Info Administrasi / SPP</option>
                 <option value="agenda">Agenda & Libur</option>
+                <option value="info_tpq">Informasi Umum TPQ</option>
                 <option value="izin_sakit">Konfirmasi Izin / Sakit</option>
                 <option value="apresiasi">Apresiasi / Terima Kasih</option>
-                <option value="spp_notice">Info Administrasi / SPP</option>
                 <option value="bantuan">Menu Bantuan</option>
                 <option value="multi_santri">Multi Santri</option>
                 <option value="unregistered">Nomor Belum Terdaftar</option>
@@ -251,7 +256,94 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- TAB 2: WEBHOOK FONNTE & KONFIGURASI -->
+    <!-- TAB 2: KNOWLEDGE BASE TPQ & STATUS HYBRID AI GEMINI -->
+    <!-- ================================================================= -->
+    <div v-if="activeTab === 'knowledge'" class="space-y-6">
+      <Card class="p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Bot class="size-4 text-emerald-600" />
+              <span>Knowledge Base TPQ Nurul Mun'im &amp; Hybrid AI Gemini</span>
+            </h3>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              Kelola informasi umum TPQ (jadwal, jam masuk/pulang, peraturan, pembayaran, dan kegiatan) tanpa perlu mengubah kode program.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              class="text-xs gap-1.5"
+              :disabled="testingGemini"
+              @click="testGemini"
+            >
+              <Bot class="size-3.5 text-emerald-600" />
+              <span>{{ testingGemini ? 'Menguji Gemini...' : 'Uji Koneksi Gemini AI' }}</span>
+            </Button>
+            <Button
+              size="sm"
+              class="text-xs gap-1.5"
+              @click="openKbModal()"
+            >
+              <span>+ Tambah Topik</span>
+            </Button>
+          </div>
+        </div>
+
+        <div v-if="geminiStatusMsg" class="mt-3 p-2.5 rounded-lg border text-xs bg-muted/40 text-foreground">
+          {{ geminiStatusMsg }}
+        </div>
+      </Card>
+
+      <Card class="overflow-hidden">
+        <div class="overflow-x-auto">
+          <Table class="w-full">
+            <TableHeader>
+              <TableRow class="bg-muted/30">
+                <TableHead class="text-[10px] uppercase px-3 sm:px-4">Kategori</TableHead>
+                <TableHead class="text-[10px] uppercase px-3 sm:px-4">Judul Topik</TableHead>
+                <TableHead class="text-[10px] uppercase px-3 sm:px-4">Kata Kunci</TableHead>
+                <TableHead class="text-[10px] uppercase px-3 sm:px-4 max-w-md">Isi Informasi</TableHead>
+                <TableHead class="text-[10px] uppercase px-3 sm:px-4 text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-if="kbEntries.length === 0">
+                <TableCell colspan="5" class="h-24 text-center text-muted-foreground text-xs">
+                  Memuat daftar Knowledge Base TPQ...
+                </TableCell>
+              </TableRow>
+              <TableRow v-for="kb in kbEntries" :key="kb.id" class="hover:bg-muted/40">
+                <TableCell class="py-2.5 px-3 sm:px-4 whitespace-nowrap">
+                  <Badge variant="outline" class="text-[10px] uppercase">{{ kb.kategori }}</Badge>
+                </TableCell>
+                <TableCell class="py-2.5 px-3 sm:px-4 font-medium text-xs text-foreground">
+                  {{ kb.judul }}
+                </TableCell>
+                <TableCell class="py-2.5 px-3 sm:px-4 text-xs text-muted-foreground">
+                  {{ kb.kata_kunci || '-' }}
+                </TableCell>
+                <TableCell class="py-2.5 px-3 sm:px-4 max-w-md">
+                  <p class="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{{ kb.konten }}</p>
+                </TableCell>
+                <TableCell class="py-2.5 px-3 sm:px-4 text-right whitespace-nowrap space-x-1.5">
+                  <Button variant="outline" size="sm" class="h-7 px-2 text-xs" @click="openKbModal(kb)">
+                    Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" class="h-7 px-2 text-xs" @click="deleteKb(kb)">
+                    Hapus
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: WEBHOOK FONNTE & KONFIGURASI -->
     <!-- ================================================================= -->
     <div v-if="activeTab === 'config'" class="space-y-6">
       <Card class="p-6 space-y-5">
@@ -445,6 +537,67 @@
       </DialogContent>
     </Dialog>
 
+    <!-- DIALOG: TAMBAH / EDIT KNOWLEDGE BASE TPQ -->
+    <Dialog :open="showKbModal" @update:open="(val) => { if (!val) showKbModal = false; }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-base font-semibold">
+            {{ kbForm.id ? 'Edit Topik Knowledge Base' : 'Tambah Topik Knowledge Base' }}
+          </DialogTitle>
+          <DialogDescription class="text-xs">
+            Informasi yang disimpan di sini langsung digunakan oleh AI Chatbot saat menjawab wali santri.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-3 text-xs pt-1">
+          <div class="space-y-1">
+            <label class="font-medium text-muted-foreground">Kategori</label>
+            <select
+              v-model="kbForm.kategori"
+              class="w-full h-9 px-3 rounded-md border border-input bg-background text-xs"
+            >
+              <option value="jadwal">Jadwal Kegiatan</option>
+              <option value="jam_operasional">Jam Masuk &amp; Pulang</option>
+              <option value="peraturan">Peraturan &amp; Tata Tertib</option>
+              <option value="pembayaran">Informasi Pembayaran</option>
+              <option value="kegiatan">Kegiatan &amp; Agenda</option>
+              <option value="administrasi">Administrasi</option>
+              <option value="umum">Informasi Umum Lainnya</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="font-medium text-muted-foreground">Judul Informasi</label>
+            <Input v-model="kbForm.judul" placeholder="Contoh: Jadwal Munaqosyah Semester" class="h-9 text-xs" />
+          </div>
+
+          <div class="space-y-1">
+            <label class="font-medium text-muted-foreground">Kata Kunci Pencarian (pisahkan koma)</label>
+            <Input v-model="kbForm.kata_kunci" placeholder="Contoh: munaqosyah, ujian, kenaikan jilid" class="h-9 text-xs" />
+          </div>
+
+          <div class="space-y-1">
+            <label class="font-medium text-muted-foreground">Isi Jawaban / Penjelasan</label>
+            <textarea
+              v-model="kbForm.konten"
+              rows="4"
+              placeholder="Tuliskan penjelasan lengkap..."
+              class="w-full p-2.5 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            ></textarea>
+          </div>
+        </div>
+
+        <DialogFooter class="pt-2 flex justify-end gap-2">
+          <Button variant="outline" size="sm" class="text-xs" @click="showKbModal = false">
+            Batal
+          </Button>
+          <Button size="sm" class="text-xs" :disabled="savingKb" @click="saveKb">
+            {{ savingKb ? 'Menyimpan...' : 'Simpan' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
   </div>
 </template>
 
@@ -452,6 +605,7 @@
 import { ref, onMounted } from 'vue';
 import {
   Bot,
+  BookOpen,
   MessageSquare,
   Settings,
   Send,
@@ -574,6 +728,106 @@ function copyUrl(url, key) {
 function openDetailModal(item) {
   selectedLog.value = item;
 }
+
+// Knowledge Base & Gemini state
+const kbEntries = ref([]);
+const showKbModal = ref(false);
+const savingKb = ref(false);
+const testingGemini = ref(false);
+const geminiStatusMsg = ref('');
+const kbForm = ref({
+  id: null,
+  kategori: 'umum',
+  judul: '',
+  kata_kunci: '',
+  konten: '',
+  urutan: 10,
+});
+
+const loadKnowledgeBase = async () => {
+  try {
+    const res = await api.get('/chatbot/knowledge-base');
+    if (res.data.success) {
+      kbEntries.value = res.data.data || [];
+    }
+  } catch (e) {
+    toast.error('Gagal memuat Knowledge Base TPQ.');
+  }
+};
+
+const openKbModal = (item = null) => {
+  if (item) {
+    kbForm.value = {
+      id: item.id,
+      kategori: item.kategori || 'umum',
+      judul: item.judul || '',
+      kata_kunci: item.kata_kunci || '',
+      konten: item.konten || '',
+      urutan: item.urutan ?? 10,
+    };
+  } else {
+    kbForm.value = {
+      id: null,
+      kategori: 'umum',
+      judul: '',
+      kata_kunci: '',
+      konten: '',
+      urutan: (kbEntries.value.length || 5) + 1,
+    };
+  }
+  showKbModal.value = true;
+};
+
+const saveKb = async () => {
+  if (!kbForm.value.judul || !kbForm.value.konten) {
+    toast.error('Judul dan isi informasi wajib diisi.');
+    return;
+  }
+  savingKb.value = true;
+  try {
+    if (kbForm.value.id) {
+      await api.put(`/chatbot/knowledge-base/${kbForm.value.id}`, kbForm.value);
+      toast.success('Topik Knowledge Base berhasil diperbarui.');
+    } else {
+      await api.post('/chatbot/knowledge-base', kbForm.value);
+      toast.success('Topik Knowledge Base berhasil ditambahkan.');
+    }
+    showKbModal.value = false;
+    await loadKnowledgeBase();
+  } catch (e) {
+    toast.error('Gagal menyimpan topik Knowledge Base.');
+  } finally {
+    savingKb.value = false;
+  }
+};
+
+const deleteKb = async (item) => {
+  if (!window.confirm(`Hapus topik "${item.judul}" dari Knowledge Base?`)) return;
+  try {
+    await api.delete(`/chatbot/knowledge-base/${item.id}`);
+    toast.success('Topik berhasil dihapus.');
+    await loadKnowledgeBase();
+  } catch (e) {
+    toast.error('Gagal menghapus topik.');
+  }
+};
+
+const testGemini = async () => {
+  testingGemini.value = true;
+  geminiStatusMsg.value = '';
+  try {
+    const res = await api.post('/chatbot/test-gemini');
+    const data = res.data?.data || {};
+    geminiStatusMsg.value = `✅ Terhubung (${data.model}): ${data.reply || data.message}`;
+    toast.success('Koneksi Gemini AI berhasil!');
+  } catch (e) {
+    const errMsg = e.response?.data?.data?.message || 'GEMINI_API_KEY belum dikonfigurasi (Mode Fallback Lokal Aktif).';
+    geminiStatusMsg.value = `ℹ️ Status Gemini: ${errMsg}`;
+    toast.info(errMsg);
+  } finally {
+    testingGemini.value = false;
+  }
+};
 
 onMounted(() => {
   loadStats();
