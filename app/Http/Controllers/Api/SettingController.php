@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Pengaturan;
 use App\Models\User;
+use App\Services\ConversationService;
+use App\Services\KnowledgeBaseService;
 use App\Services\TelegramService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -205,6 +207,9 @@ class SettingController extends Controller
     public function runMigrations(): JsonResponse
     {
         try {
+            app(KnowledgeBaseService::class)->ensureTableExists();
+            app(ConversationService::class)->ensureTablesExist();
+
             Artisan::call('migrate', ['--force' => true]);
             $output = Artisan::output();
 

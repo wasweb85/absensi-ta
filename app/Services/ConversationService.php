@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class ConversationService
@@ -22,10 +24,55 @@ class ConversationService
     }
 
     /**
+     * Pastikan tabel chat_conversations dan chat_messages tersedia (self-healing migration untuk serverless / TiDB Cloud).
+     */
+    public function ensureTablesExist(): bool
+    {
+        if ($this->hasConversationTables()) {
+            return true;
+        }
+
+        try {
+            if (! Schema::hasTable('chat_conversations')) {
+                Schema::create('chat_conversations', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('phone_number', 25)->index();
+                    $table->foreignId('santri_id')->nullable()->constrained('siswa')->nullOnDelete();
+                    $table->string('status', 30)->default('active')->index();
+                    $table->timestamp('last_message_at')->nullable()->index();
+                    $table->timestamps();
+
+                    $table->index(['phone_number', 'status']);
+                });
+            }
+
+            if (! Schema::hasTable('chat_messages')) {
+                Schema::create('chat_messages', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('conversation_id')->constrained('chat_conversations')->cascadeOnDelete();
+                    $table->string('sender_type', 20)->index();
+                    $table->text('message');
+                    $table->string('intent', 50)->nullable()->index();
+                    $table->timestamps();
+
+                    $table->index(['conversation_id', 'created_at']);
+                });
+            }
+
+            return $this->hasConversationTables();
+        } catch (\Throwable $e) {
+            Log::warning('Direct create conversation tables failed: '.$e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
      * Ambil atau buat sesi percakapan aktif untuk nomor WhatsApp wali santri.
      */
     public function getOrCreateConversation(string $phoneNumber, ?int $santriId = null): ChatConversation
     {
+        $this->ensureTablesExist();
         $normalized = WhatsAppService::normalizePhone($phoneNumber);
         $phone = $normalized !== '' ? $normalized : $phoneNumber;
 

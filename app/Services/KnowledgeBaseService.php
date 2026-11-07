@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Pengaturan;
 use App\Models\TpqKnowledgeBase;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -34,13 +35,30 @@ class KnowledgeBaseService
         }
 
         try {
-            Artisan::call('migrate', ['--force' => true]);
+            if (! Schema::hasTable('tpq_knowledge_bases')) {
+                Schema::create('tpq_knowledge_bases', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('kategori', 50)->default('umum')->index();
+                    $table->string('judul', 150);
+                    $table->string('kata_kunci', 255)->nullable();
+                    $table->text('konten');
+                    $table->boolean('is_active')->default(true)->index();
+                    $table->integer('urutan')->default(0);
+                    $table->timestamps();
+                });
+            }
 
             return $this->hasKnowledgeBaseTable();
         } catch (\Throwable $e) {
-            Log::warning('KnowledgeBase auto-migrate failed: '.$e->getMessage());
+            Log::warning('KnowledgeBase auto-create table failed: '.$e->getMessage());
 
-            return false;
+            try {
+                Artisan::call('migrate', ['--force' => true]);
+
+                return $this->hasKnowledgeBaseTable();
+            } catch (\Throwable) {
+                return false;
+            }
         }
     }
 
@@ -144,6 +162,8 @@ class KnowledgeBaseService
      */
     public function search(string $queryText = '', ?string $kategori = null): Collection
     {
+        $this->ensureTableExists();
+
         if (! $this->hasKnowledgeBaseTable()) {
             return collect();
         }
