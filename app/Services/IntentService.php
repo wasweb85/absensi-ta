@@ -59,8 +59,12 @@ class IntentService
             return 'agenda';
         }
 
-        // 5. Intent Informasi Umum TPQ (Jadwal kegiatan, peraturan, administrasi)
+        // 5. Intent Informasi Umum TPQ (Jadwal kegiatan, peraturan, administrasi, atau Knowledge Base dinamis)
         if (preg_match('/\b(jadwal\s+tpq|kegiatan\s+tpq|agenda\s+tpq|peraturan\s+tpq|tata\s+tertib|seragam\s+tpq|info\s+administrasi|syarat\s+pendaftaran|daftar\s+ulang|alamat\s+tpq|profil\s+tpq|kepala\s+tpq)\b/i', $clean)) {
+            return 'info_tpq';
+        }
+
+        if ($this->matchesCustomKnowledgeBase($clean)) {
             return 'info_tpq';
         }
 
@@ -135,5 +139,36 @@ class IntentService
             ->first();
 
         return $lastLog?->intent_terdeteksi;
+    }
+
+    /**
+     * Periksa apakah pesan cocok dengan entri tambahan pada tabel tpq_knowledge_bases.
+     */
+    protected function matchesCustomKnowledgeBase(string $cleanMessage): bool
+    {
+        try {
+            $kbService = app(KnowledgeBaseService::class);
+            if (! $kbService->hasKnowledgeBaseTable()) {
+                return false;
+            }
+
+            $customEntries = $kbService->getAll(true)->filter(fn ($entry) => (int) $entry->urutan > 5);
+            foreach ($customEntries as $entry) {
+                $judulLower = strtolower(trim((string) $entry->judul));
+                if ($judulLower !== '' && str_contains($cleanMessage, $judulLower)) {
+                    return true;
+                }
+
+                $keywords = array_filter(array_map('trim', explode(',', strtolower((string) $entry->kata_kunci))));
+                foreach ($keywords as $kw) {
+                    if (strlen($kw) >= 4 && str_contains($cleanMessage, $kw)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return false;
     }
 }

@@ -153,12 +153,16 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Modul Chatbot WhatsApp (Monitoring Log & Simulator - Khusus Admin)
+    // Modul Chatbot WhatsApp (Monitoring Log, Knowledge Base & Simulator - Khusus Admin)
     Route::middleware('role:admin')->prefix('chatbot')->group(function () {
         Route::post('/simulate', [ChatbotController::class, 'simulate']);
         Route::post('/test-gemini', [ChatbotController::class, 'testGeminiConnection']);
         Route::get('/logs', [ChatbotController::class, 'logs']);
         Route::get('/stats', [ChatbotController::class, 'stats']);
+        Route::get('/knowledge-base', [ChatbotController::class, 'knowledgeBaseIndex']);
+        Route::post('/knowledge-base', [ChatbotController::class, 'knowledgeBaseStore']);
+        Route::put('/knowledge-base/{id}', [ChatbotController::class, 'knowledgeBaseUpdate'])->whereNumber('id');
+        Route::delete('/knowledge-base/{id}', [ChatbotController::class, 'knowledgeBaseDestroy'])->whereNumber('id');
     });
 
     // Log Aktivitas Sistem (Khusus Administrator)

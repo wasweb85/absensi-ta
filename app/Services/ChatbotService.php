@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Absensi;
 use App\Models\ActivityLog;
 use App\Models\ChatbotLog;
-use App\Models\HariLibur;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
 use App\Models\User;
@@ -494,19 +493,7 @@ class ChatbotService
             $topik = strtolower(trim((string) ($args['topik'] ?? 'umum')));
             $queryText = (string) ($args['pertanyaan'] ?? $originalMessage);
 
-            if (str_contains($topik, 'libur') || preg_match('/\b(libur|tanggal merah)\b/i', $queryText)) {
-                return [
-                    'status' => 'ok',
-                    'topik' => 'hari_libur',
-                    'ringkasan_resmi' => $this->handleAgendaQuery($queryText),
-                ];
-            }
-
-            return [
-                'status' => 'ok',
-                'topik' => $topik,
-                'ringkasan_resmi' => $this->handleInfoTpqQuery($queryText),
-            ];
+            return app(GetTpqInformation::class)->buildToolPayload($queryText, $topik);
         }
 
         // Untuk fungsi data pribadi (absensi & SPP), wajib memvalidasi kepemilikan santri terhadap nomor WA wali
@@ -1328,61 +1315,19 @@ class ChatbotService
     }
 
     /**
-     * Menghasilkan informasi hari libur secara to-the-point (tanpa menampilkan agenda internal TPQ)
+     * Menghasilkan informasi hari libur secara to-the-point melalui komponen GetTpqInformation
      */
     public function handleAgendaQuery(string $message = ''): string
     {
-        $today = Carbon::today()->toDateString();
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
-        $namaBulan = $this->bulanMap[$currentMonth] ?? 'Bulan Ini';
-
-        $liburMendatang = HariLibur::where('tanggal_selesai', '>=', $today)
-            ->orderBy('tanggal_mulai', 'asc')
-            ->limit(5)
-            ->get();
-
-        $reply = "📅 *Informasi Hari Libur TPQ ({$namaBulan} {$currentYear}):*\n\n";
-
-        if ($liburMendatang->isNotEmpty()) {
-            foreach ($liburMendatang as $lib) {
-                $mulai = Carbon::parse($lib->tanggal_mulai)->locale('id')->isoFormat('D MMM Y');
-                $selesai = Carbon::parse($lib->tanggal_selesai)->locale('id')->isoFormat('D MMM Y');
-                $tglStr = ($mulai === $selesai) ? $mulai : "{$mulai} s.d. {$selesai}";
-                $reply .= "• *{$tglStr}*: {$lib->keterangan}\n";
-            }
-            $reply .= "\nDi luar tanggal tersebut, kegiatan mengaji berjalan normal sesuai jadwal rutin mingguan.";
-        } else {
-            $reply .= "Untuk bulan *{$namaBulan} {$currentYear}* saat ini tidak ada jadwal hari libur khusus tambahan di luar hari libur rutin mingguan. Kegiatan mengaji berjalan normal seperti biasa.";
-        }
-
-        return $reply;
+        return app(GetTpqInformation::class)->handleHolidayQuery($message);
     }
 
     /**
-     * Menghasilkan informasi umum TPQ (Jadwal kegiatan, Jam masuk & pulang, Peraturan, Administrasi)
+     * Menghasilkan informasi umum TPQ melalui komponen GetTpqInformation & KnowledgeBaseService
      */
     public function handleInfoTpqQuery(string $message = ''): string
     {
-        $namaInstansi = Pengaturan::getValue('nama_instansi', "TPQ Nurul Mun'im") ?: "TPQ Nurul Mun'im";
-        $jamMasuk = Pengaturan::getValue('jam_masuk', '15:30') ?: '15:30';
-        $batasTerlambat = Pengaturan::getValue('batas_terlambat', '16:00') ?: '16:00';
-        $jamPulang = Pengaturan::getValue('jam_pulang', '17:00') ?: '17:00';
-        $nominalSpp = (int) (Pengaturan::getValue('nominal_spp_default', 50000) ?: 50000);
-        $nominalRp = 'Rp '.number_format($nominalSpp, 0, ',', '.');
-        $bendahara = $this->getBendaharaInfo();
-
-        return "🕌 *Informasi Umum {$namaInstansi}:*\n\n"
-            ."⏰ *Jadwal & Jam Kegiatan Mengaji:*\n"
-            ."• Jam Masuk: Pukul *{$jamMasuk} WIB*\n"
-            ."• Batas Toleransi Hadir Tepat Waktu: Pukul *{$batasTerlambat} WIB*\n"
-            ."• Jam Pulang: Pukul *{$jamPulang} WIB*\n\n"
-            ."📋 *Tata Tertib & Presensi:*\n"
-            ."• Setiap santri wajib melakukan scan kartu QR Code saat datang.\n"
-            ."• Apabila berhalangan hadir (Izin/Sakit), wali santri dapat mengonfirmasi melalui WhatsApp ini.\n\n"
-            ."💳 *Informasi Administrasi & SPP:*\n"
-            ."• Syahriyah / SPP Bulanan: *{$nominalRp}* / bulan\n"
-            ."• Bendahara TPQ: *{$bendahara['nama']}* (WA: *{$bendahara['kontak']}*)";
+        return app(GetTpqInformation::class)->handleGeneralInfoQuery($message);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Pengaturan;
 use App\Models\WhatsAppLog;
 use App\Services\ChatbotService;
 use App\Services\GeminiService;
+use App\Services\KnowledgeBaseService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -187,6 +188,76 @@ class ChatbotController extends Controller
             'success' => $result['success'],
             'data' => $result,
         ], $result['success'] ? 200 : 422);
+    }
+
+    /**
+     * Daftar seluruh entri Knowledge Base TPQ
+     */
+    public function knowledgeBaseIndex(KnowledgeBaseService $knowledgeBaseService): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $knowledgeBaseService->getAll(false),
+        ]);
+    }
+
+    /**
+     * Tambah entri Knowledge Base TPQ baru
+     */
+    public function knowledgeBaseStore(Request $request, KnowledgeBaseService $knowledgeBaseService): JsonResponse
+    {
+        $validated = $request->validate([
+            'kategori' => 'required|string|max:50',
+            'judul' => 'required|string|max:150',
+            'kata_kunci' => 'nullable|string|max:255',
+            'konten' => 'required|string',
+            'is_active' => 'sometimes|boolean',
+            'urutan' => 'sometimes|integer',
+        ]);
+
+        $entry = $knowledgeBaseService->store($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Informasi Knowledge Base TPQ berhasil ditambahkan.',
+            'data' => $entry,
+        ], 201);
+    }
+
+    /**
+     * Perbarui entri Knowledge Base TPQ
+     */
+    public function knowledgeBaseUpdate(Request $request, int $id, KnowledgeBaseService $knowledgeBaseService): JsonResponse
+    {
+        $validated = $request->validate([
+            'kategori' => 'sometimes|required|string|max:50',
+            'judul' => 'sometimes|required|string|max:150',
+            'kata_kunci' => 'nullable|string|max:255',
+            'konten' => 'sometimes|required|string',
+            'is_active' => 'sometimes|boolean',
+            'urutan' => 'sometimes|integer',
+        ]);
+
+        $entry = $knowledgeBaseService->update($id, $validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Informasi Knowledge Base TPQ berhasil diperbarui.',
+            'data' => $entry,
+        ]);
+    }
+
+    /**
+     * Hapus entri Knowledge Base TPQ
+     */
+    public function knowledgeBaseDestroy(int $id, KnowledgeBaseService $knowledgeBaseService): JsonResponse
+    {
+        $knowledgeBaseService->delete($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Informasi Knowledge Base TPQ berhasil dihapus.',
+        ]);
     }
 
     /**
