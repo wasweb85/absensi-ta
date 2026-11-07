@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class ChatbotController extends Controller
 {
@@ -118,6 +119,18 @@ class ChatbotController extends Controller
         }
 
         $targetPhone = $senderNorm !== '' ? $senderNorm : (string) $sender;
+
+        // 5. Rate Limiting per nomor WhatsApp pengirim (Maksimal 25 pesan / menit per nomor)
+        $rateKey = "chatbot_sender:{$targetPhone}";
+        if (RateLimiter::tooManyAttempts($rateKey, 25)) {
+            return response()->json([
+                'success' => false,
+                'rate_limited' => true,
+                'message' => 'Terlalu banyak permintaan dari nomor ini. Silakan tunggu beberapa saat.',
+            ], 429);
+        }
+        RateLimiter::hit($rateKey, 60);
+
         $result = $this->chatbotService->handleIncomingMessage($targetPhone, (string) $message);
 
         // Kirim balasan otomatis via Fonnte Send API ke pengirim
@@ -316,7 +329,10 @@ class ChatbotController extends Controller
                 SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as total_month,
                 SUM(CASE WHEN status = 'sukses' THEN 1 ELSE 0 END) as success_count,
                 SUM(CASE WHEN intent_terdeteksi = 'absensi' THEN 1 ELSE 0 END) as absensi_count,
+                SUM(CASE WHEN intent_terdeteksi = 'spp_notice' THEN 1 ELSE 0 END) as spp_count,
                 SUM(CASE WHEN intent_terdeteksi = 'agenda' THEN 1 ELSE 0 END) as agenda_count,
+                SUM(CASE WHEN intent_terdeteksi = 'info_tpq' THEN 1 ELSE 0 END) as info_tpq_count,
+                SUM(CASE WHEN intent_terdeteksi = 'izin_sakit' THEN 1 ELSE 0 END) as izin_sakit_count,
                 SUM(CASE WHEN intent_terdeteksi = 'bantuan' THEN 1 ELSE 0 END) as bantuan_count,
                 SUM(CASE WHEN intent_terdeteksi = 'unregistered' THEN 1 ELSE 0 END) as unregistered_count
             ", [$todayStart, $monthStart])
@@ -335,7 +351,10 @@ class ChatbotController extends Controller
                 'success_rate' => $successRate,
                 'intent_distribution' => [
                     'absensi' => (int) ($agg->absensi_count ?? 0),
+                    'spp_notice' => (int) ($agg->spp_count ?? 0),
                     'agenda' => (int) ($agg->agenda_count ?? 0),
+                    'info_tpq' => (int) ($agg->info_tpq_count ?? 0),
+                    'izin_sakit' => (int) ($agg->izin_sakit_count ?? 0),
                     'bantuan' => (int) ($agg->bantuan_count ?? 0),
                     'unregistered' => (int) ($agg->unregistered_count ?? 0),
                 ],

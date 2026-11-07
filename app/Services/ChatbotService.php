@@ -34,7 +34,7 @@ class ChatbotService
     public function handleIncomingMessage(string $sender, string $message): array
     {
         $normalizedSender = $this->normalizePhone($sender);
-        $trimmedMessage = trim($message);
+        $trimmedMessage = mb_substr(trim($message), 0, 500);
 
         if (empty($trimmedMessage)) {
             return [
@@ -489,6 +489,8 @@ class ChatbotService
         string $normalizedSender,
         string $originalMessage
     ): array {
+        $args = $this->sanitizeToolArguments($args);
+
         if ($toolName === 'get_tpq_information') {
             $topik = strtolower(trim((string) ($args['topik'] ?? 'umum')));
             $queryText = (string) ($args['pertanyaan'] ?? $originalMessage);
@@ -547,6 +549,34 @@ class ChatbotService
                 'error' => "Fungsi {$toolName} tidak dikenali.",
             ],
         };
+    }
+
+    /**
+     * Validasi dan sanitasi seluruh argumen parameter yang dikirim oleh AI sebelum diproses Laravel (Section 10).
+     *
+     * @param  array<string, mixed>  $args
+     * @return array<string, mixed>
+     */
+    public function sanitizeToolArguments(array $args): array
+    {
+        $clean = [];
+
+        if (isset($args['santri_id']) && is_scalar($args['santri_id'])) {
+            $idVal = (int) preg_replace('/[^0-9]/', '', (string) $args['santri_id']);
+            if ($idVal > 0) {
+                $clean['santri_id'] = $idVal;
+            }
+        }
+
+        foreach (['nama_santri', 'periode', 'topik', 'pertanyaan'] as $field) {
+            if (isset($args[$field]) && is_scalar($args[$field])) {
+                $strVal = strip_tags(trim((string) $args[$field]));
+                $strVal = preg_replace('/[\x00-\x1F\x7F]/u', '', $strVal) ?? '';
+                $clean[$field] = mb_substr($strVal, 0, 120);
+            }
+        }
+
+        return $clean;
     }
 
     /**
