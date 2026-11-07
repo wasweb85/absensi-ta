@@ -538,13 +538,12 @@ class ChatbotService
             : $originalMessage;
 
         return match ($toolName) {
-            'check_attendance' => [
-                'status' => 'ok',
-                'santri' => $selectedSiswa ? $this->formatSiswaPayload($selectedSiswa) : 'semua_anak_wali',
-                'data_absensi' => $selectedSiswa
-                    ? $this->handleAbsensiQuery($selectedSiswa, $periodHint)
-                    : $this->handleMultiAbsensiQuery($candidates, $periodHint),
-            ],
+            'check_attendance' => app(CheckAttendance::class)->buildToolPayload(
+                $selectedSiswa,
+                $candidates,
+                $this->parseTargetPeriod($periodHint),
+                $periodHint
+            ),
             'check_spp_payment', 'check_spp_arrears' => [
                 'status' => 'ok',
                 'santri' => $selectedSiswa ? $this->formatSiswaPayload($selectedSiswa) : 'semua_anak_wali',
@@ -1375,7 +1374,7 @@ class ChatbotService
         $hariTanggalStr = Carbon::now('Asia/Jakarta')->locale('id')->isoFormat('dddd, D MMMM Y');
         $period = $this->parseTargetPeriod($originalMessage);
 
-        return $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr, $period);
+        return $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr, $period, $originalMessage);
     }
 
     /**
@@ -1385,127 +1384,23 @@ class ChatbotService
      */
     public function handleMultiAbsensiQuery(Collection $candidates, string $originalMessage = ''): string
     {
-        $hariTanggalStr = Carbon::now('Asia/Jakarta')->locale('id')->isoFormat('dddd, D MMMM Y');
         $period = $this->parseTargetPeriod($originalMessage);
-        $sections = [];
 
-        foreach ($candidates as $siswa) {
-            $sections[] = $this->buildSingleStudentAbsensiSection($siswa, $hariTanggalStr, $period);
-        }
-
-        $introPeriode = $period['is_previous_month'] ? " untuk {$period['label_periode']}" : '';
-
-        return "Berikut informasi absensi ananda{$introPeriode}:\n\n"
-            .implode("\n\n────────────────────\n\n", $sections);
+        return app(CheckAttendance::class)->formatMultiStudentAttendanceText($candidates, $period, $originalMessage);
     }
 
     /**
-     * Menyusun blok teks ringkasan presensi hari ini & bulan berjalan untuk 1 santri
+     * Menyusun blok teks ringkasan presensi hari ini & bulan berjalan untuk 1 santri melalui komponen CheckAttendance
      */
-    protected function buildSingleStudentAbsensiSection(Siswa $siswa, string $hariTanggalStr, ?array $period = null): string
-    {
-        $period = $period ?: $this->parseTargetPeriod('');
-        $namaKelas = $siswa->kelas?->nama_kelas ?: 'Jilid';
-        $targetMonth = $period['bulan'];
-        $targetYear = $period['tahun'];
+    protected function buildSingleStudentAbsensiSection(
+        Siswa $siswa,
+        string $hariTanggalStr,
+        ?array $period = null,
+        string $originalMessage = ''
+    ): string {
+        $period = $period ?: $this->parseTargetPeriod($originalMessage);
 
-        // Rekapitulasi pada bulan target
-        $startOfMonth = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth()->toDateString();
-        $endOfMonth = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth()->toDateString();
-
-        $rekapBulan = Absensi::where('id_siswa', $siswa->id)
-            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
-            ->get();
-
-        $totalHadir = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'hadir')->count();
-        $totalTerlambat = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'terlambat')->count();
-        $totalIzin = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'izin')->count();
-        $totalSakit = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'sakit')->count();
-        $totalAlpa = $rekapBulan->filter(fn ($r) => strtolower($r->status) === 'alpa')->count();
-
-        $totalHariKegiatan = $rekapBulan->count();
-        $persentase = $totalHariKegiatan > 0
-            ? round((($totalHadir + $totalTerlambat) / $totalHariKegiatan) * 100)
-            : 0;
-
-        // Jika wali menanyakan bulan sebelumnya atau bulan lampau tertentu:
-        if (! empty($period['is_previous_month'])) {
-            $catatanText = ($totalHariKegiatan > 0)
-                ? "📈 Persentase Kehadiran: *{$persentase}%* (Total {$totalHariKegiatan} hari tercatat)"
-                : 'ℹ️ _(Belum ada data kegiatan mengaji tercatat pada periode ini)_';
-
-            return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
-                ."📊 *Rekap {$period['label_periode']}:*\n"
-                ."• Hadir Tepat Waktu: *{$totalHadir} kali*\n"
-                ."• Hadir Terlambat: *{$totalTerlambat} kali*\n"
-                ."• Izin: *{$totalIzin} kali*\n"
-                ."• Sakit: *{$totalSakit} kali*\n"
-                ."• Alpa: *{$totalAlpa} kali*\n"
-                .$catatanText;
-        }
-
-        // Jika wali menanyakan tanggal kemarin tertentu
-        if (! empty($period['is_specific_day']) && ! empty($period['tanggal_khusus'])) {
-            $presensiKhusus = Absensi::where('id_siswa', $siswa->id)
-                ->where('tanggal', $period['tanggal_khusus'])
-                ->first();
-
-            $statusKhususText = 'Tidak ada catatan presensi pada tanggal ini.';
-            if ($presensiKhusus) {
-                $jam = $presensiKhusus->waktu_masuk ?: '-';
-                $st = strtolower($presensiKhusus->status);
-                $statusKhususText = match ($st) {
-                    'hadir' => "✅ *HADIR TEPAT WAKTU* (Pukul {$jam} WIB)",
-                    'terlambat' => "⚠️ *HADIR TERLAMBAT* (Pukul {$jam} WIB)",
-                    'izin' => '📝 *IZIN*',
-                    'sakit' => '🏥 *SAKIT*',
-                    'alpa' => '❌ *ALPA / TANPA KETERANGAN*',
-                    default => "*{$presensiKhusus->status}*",
-                };
-            }
-
-            return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
-                ."📅 *{$period['label_hari_khusus']}:*\n"
-                ."Status: {$statusKhususText}\n\n"
-                ."📊 *Rekap {$period['label_periode']}:*\n"
-                ."• Hadir Tepat Waktu: {$totalHadir} hari\n"
-                ."• Hadir Terlambat: {$totalTerlambat} hari\n"
-                ."• Izin: {$totalIzin} hari\n"
-                ."• Sakit: {$totalSakit} hari\n"
-                ."• Alpa: {$totalAlpa} hari\n"
-                ."📈 Persentase Kehadiran: *{$persentase}%*";
-        }
-
-        // Default: Bulan berjalan saat ini (tampilkan Status Hari Ini + Rekap Bulan Ini)
-        $today = Carbon::today('Asia/Jakarta')->toDateString();
-        $presensiHariIni = Absensi::where('id_siswa', $siswa->id)
-            ->where('tanggal', $today)
-            ->first();
-
-        $statusHariIniText = 'Belum ada catatan presensi masuk hari ini.';
-        if ($presensiHariIni) {
-            $jam = $presensiHariIni->waktu_masuk ?: '-';
-            $st = strtolower($presensiHariIni->status);
-            $statusHariIniText = match ($st) {
-                'hadir' => "✅ *HADIR TEPAT WAKTU* (Pukul {$jam} WIB)",
-                'terlambat' => "⚠️ *HADIR TERLAMBAT* (Pukul {$jam} WIB)",
-                'izin' => '📝 *IZIN*',
-                'sakit' => '🏥 *SAKIT*',
-                'alpa' => '❌ *ALPA / TANPA KETERANGAN*',
-                default => "*{$presensiHariIni->status}*",
-            };
-        }
-
-        return "📋 *Absensi ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n\n"
-            ."📅 *Hari Ini ({$hariTanggalStr}):*\n"
-            ."Status: {$statusHariIniText}\n\n"
-            ."📊 *Rekap {$period['label_periode']}:*\n"
-            ."• Hadir Tepat Waktu: {$totalHadir} hari\n"
-            ."• Hadir Terlambat: {$totalTerlambat} hari\n"
-            ."• Izin: {$totalIzin} hari\n"
-            ."• Sakit: {$totalSakit} hari\n"
-            ."• Alpa: {$totalAlpa} hari\n"
-            ."📈 Persentase Kehadiran: *{$persentase}%*";
+        return app(CheckAttendance::class)->formatStudentAttendanceText($siswa, $hariTanggalStr, $period, $originalMessage);
     }
 
     /**
