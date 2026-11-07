@@ -374,10 +374,31 @@ class ChatbotService
             $santriContext = "Wali dari {$candidates->count()} santri terdaftar: [{$list}]. {$activeStr}";
         }
 
+        $kbSummary = '';
+        try {
+            $kbService = app(KnowledgeBaseService::class);
+            if ($kbService->hasKnowledgeBaseTable()) {
+                $topics = $kbService->getAll(true)->map(function ($entry) {
+                    $kws = $entry->kata_kunci ? " (kata kunci: {$entry->kata_kunci})" : '';
+
+                    return "- [{$entry->kategori}] {$entry->judul}{$kws}";
+                })->implode("\n");
+
+                if ($topics !== '') {
+                    $kbSummary = "\n\nTOPIK ATURAN & INFORMASI TPQ (KNOWLEDGE BASE DI DATABASE):\n{$topics}\n\n"
+                        ."PANDUAN PEMANGGILAN FUNGSI (PENTING):\n"
+                        ."1. Jika wali santri menanyakan aturan/informasi TPQ (seperti kartu QR Code hilang/tertinggal/rusak, tata tertib, seragam, jadwal mengaji, jam masuk/pulang, info pendaftaran), Anda WAJIB memanggil fungsi `get_tpq_information` dan JANGAN memanggil `check_attendance`.\n"
+                        ."2. HANYA panggil `check_attendance` jika wali santri ingin memeriksa riwayat presensi nyata anaknya (apakah anak sudah scan hadir hari ini, jam berapa masuk hari ini, atau rekap bulanan).\n";
+                }
+            }
+        } catch (\Throwable) {
+        }
+
         return "Anda adalah Asisten Layanan Informasi WhatsApp resmi {$namaInstansi}.\n"
             ."Tanggal hari ini: {$hariIni} (Zona waktu: Asia/Jakarta WIB).\n"
             ."Konteks Wali Santri: {$santriContext}\n"
-            ."Kontak Bendahara TPQ: {$bendahara['nama']} (WA: {$bendahara['kontak']}).\n\n"
+            ."Kontak Bendahara TPQ: {$bendahara['nama']} (WA: {$bendahara['kontak']})."
+            .$kbSummary."\n\n"
             ."ATURAN KOMUNIKASI & KEAMANAN WAJIB:\n"
             ."1. Gunakan bahasa Indonesia yang ramah, sopan, natural, tidak kaku, tidak terlalu panjang, dan mudah dipahami Bapak/Ibu wali santri.\n"
             ."2. Pahami pertanyaan bahasa sehari-hari, singkatan, typo, dan pertanyaan lanjutan (seperti 'kalau bulan lalu?', 'anak saya yang satunya?', 'bayarnya ke siapa?') berdasarkan konteks percakapan tanpa meminta ulang informasi yang sudah jelas.\n"
@@ -397,7 +418,7 @@ class ChatbotService
         return [
             [
                 'name' => 'check_attendance',
-                'description' => 'Memeriksa data kehadiran/absensi santri di TPQ (kehadiran hari ini, jam masuk, izin kemarin, atau rekap kehadiran bulanan).',
+                'description' => 'Memeriksa riwayat/data kehadiran santri nyata di TPQ (kehadiran hari ini, jam scan masuk anak, izin kemarin, atau rekap bulanan). JANGAN panggil fungsi ini jika wali menanyakan kartu hilang/rusak/tertinggal, tata tertib, jadwal umum, atau aturan TPQ.',
                 'parameters' => [
                     'type' => 'OBJECT',
                     'properties' => [
@@ -456,7 +477,7 @@ class ChatbotService
             ],
             [
                 'name' => 'get_tpq_information',
-                'description' => 'Mengambil informasi umum TPQ Nurul Mun\'im seperti jadwal kegiatan mengaji, jam masuk dan pulang, hari libur, peraturan TPQ, informasi pembayaran, dan administrasi.',
+                'description' => 'Mengambil aturan dan informasi umum TPQ Nurul Mun\'im dari Knowledge Base, seperti ketentuan kartu QR Code presensi hilang atau tertinggal, denda ganti kartu baru, tata tertib, jadwal mengaji, jam masuk dan pulang, hari libur, dan administrasi.',
                 'parameters' => [
                     'type' => 'OBJECT',
                     'properties' => [

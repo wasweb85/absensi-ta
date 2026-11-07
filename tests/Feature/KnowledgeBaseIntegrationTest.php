@@ -127,4 +127,32 @@ class KnowledgeBaseIntegrationTest extends TestCase
         $deleteRes->assertOk()->assertJsonPath('success', true);
         $this->assertNull(TpqKnowledgeBase::find($id));
     }
+
+    public function test_lost_qr_card_query_matches_knowledge_base_not_attendance(): void
+    {
+        $kbService = app(KnowledgeBaseService::class);
+        $kbService->store([
+            'kategori' => 'peraturan',
+            'judul' => 'Ketentuan Jika Kartu QR Code Hilang atau Tertinggal',
+            'kata_kunci' => 'kartu hilang, qr hilang, kartu tertinggal, lupa membawa kartu, kartu presensi hilang',
+            'konten' => 'Pembuatan kartu QR Code pengganti kepada administrator TPQ dengan membayar denda sebesar 3.000 Rupiah.',
+            'is_active' => true,
+            'urutan' => 3,
+        ]);
+
+        $chatbot = app(ChatbotService::class);
+
+        // Uji kalimat 1: 'kalau kartu anak saya hilang gimana?'
+        $res1 = $chatbot->handleIncomingMessage('081811112222', 'kalau kartu anak saya hilang gimana?');
+        $this->assertTrue($res1['success']);
+        $this->assertSame('info_tpq', $res1['intent']);
+        $this->assertStringContainsString('3.000', $res1['reply']);
+
+        // Uji kalimat 2: 'kartu presensi anak saya hilang gimana?'
+        $res2 = $chatbot->handleIncomingMessage('081811112222', 'kartu presensi anak saya hilang gimana?');
+        $this->assertTrue($res2['success']);
+        $this->assertSame('info_tpq', $res2['intent']);
+        $this->assertStringContainsString('3.000', $res2['reply']);
+        $this->assertStringNotContainsString('Belum ada catatan presensi', $res2['reply']);
+    }
 }

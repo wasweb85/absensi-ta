@@ -170,8 +170,28 @@ class GetTpqInformation
 
         $keywords = array_filter(array_map('trim', explode(',', strtolower((string) $entry->kata_kunci))));
         foreach ($keywords as $kw) {
+            if ($kw === '') {
+                continue;
+            }
+
+            // 1. Cek kecocokan langsung substring
             if (strlen($kw) >= 3 && str_contains($cleanMsg, $kw)) {
                 return true;
+            }
+
+            // 2. Cek multi-kata (cth: "kartu hilang" cocok dengan "kalau kartu anak saya hilang gimana")
+            $tokens = preg_split('/\s+/', $kw) ?: [];
+            if (count($tokens) >= 2) {
+                $allPresent = true;
+                foreach ($tokens as $token) {
+                    if (strlen($token) >= 3 && ! str_contains($cleanMsg, $token)) {
+                        $allPresent = false;
+                        break;
+                    }
+                }
+                if ($allPresent) {
+                    return true;
+                }
             }
         }
 

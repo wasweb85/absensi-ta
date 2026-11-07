@@ -39,7 +39,18 @@ class IntentService
             return 'izin_sakit';
         }
 
-        // 3. Intent Absensi & Kehadiran (termasuk jam masuk, notifikasi absensi, typo)
+        // 3. Prioritas Informasi Aturan Kartu / QR Code Hilang, Tertinggal, atau Rusak (Knowledge Base)
+        $isCardIssue = (bool) preg_match('/\b(kartu|qr|barcode)\b.*\b(hilang|hlg|ketinggalan|tertinggal|rusak|patah|ganti|baru|lupa bawa|tdk bawa|tidak bawa|nggak bawa|gak bawa|gimana|bagaimana)\b|\b(hilang|hlg|ketinggalan|tertinggal|rusak|patah|ganti|lupa)\b.*\b(kartu|qr|barcode)\b/i', $clean);
+        if ($isCardIssue) {
+            return 'info_tpq';
+        }
+
+        // 4. Prioritas Pencocokan Entri Knowledge Base yang Dibuat Admin
+        if ($this->matchesCustomKnowledgeBase($clean)) {
+            return 'info_tpq';
+        }
+
+        // 5. Intent Absensi & Kehadiran (termasuk jam masuk, notifikasi absensi, typo)
         $hasAttendanceWords = (bool) preg_match('/\b(presensi|absensi|absen|absn|kehadiran|khdiran|masuk|msk|hadir|hdir|bolos|izin|ijin|sakit|skt|alpa|alfa|alpha|terlambat|telat|tlt|rekap|datang|dtg|berangkat|brgkt|pulang|plg|sampai|nyampe|notifikasi|notif|scan|qr| barcode)\b/i', $clean);
         $hasFrequencyWords = (bool) preg_match('/\b(berapa kali|berpa kali|brp kali|berapa hari|brp hari|berapa kali hadir|berpa kali hadir|berapa kali masuk|berpa kali masuk|berapa kali absen|berpa kali absen|tidak masuk berapa|gak masuk berapa|ada yang alpa|ada alpa|ada yang alfa|ada yang bolos|udah masuk|udh masuk|udah datang|udh dtg|masuk jam berapa|dtg jam brp)\b/i', $clean);
         $hasTemporalWords = (bool) preg_match('/\b(bulan\s*(?:lalu|kemarin|kemaren|sebelumnya|berikutnya|ini)|bln\s*(?:lalu|kemarin|kemaren|sebelumnya|ini)|kemarin|kemaren|kmrn|hari kemarin|hari kemaren|hari ini|hr ini|tadi|minggu lalu|minggu ini|januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $clean);
@@ -54,17 +65,13 @@ class IntentService
             return 'absensi';
         }
 
-        // 4. Intent Informasi Hari Libur
+        // 6. Intent Informasi Hari Libur
         if (preg_match('/\b(libur|liburan|tanggal merah|tgl merah|rutinan|kapan libur|kalender|jadwal libur|prei)\b/i', $clean)) {
             return 'agenda';
         }
 
-        // 5. Intent Informasi Umum TPQ (Jadwal kegiatan, peraturan, administrasi, atau Knowledge Base dinamis)
+        // 7. Intent Informasi Umum TPQ (Jadwal kegiatan, peraturan, administrasi)
         if (preg_match('/\b(jadwal\s+tpq|kegiatan\s+tpq|agenda\s+tpq|peraturan\s+tpq|tata\s+tertib|seragam\s+tpq|info\s+administrasi|syarat\s+pendaftaran|daftar\s+ulang|alamat\s+tpq|profil\s+tpq|kepala\s+tpq)\b/i', $clean)) {
-            return 'info_tpq';
-        }
-
-        if ($this->matchesCustomKnowledgeBase($clean)) {
             return 'info_tpq';
         }
 
@@ -142,7 +149,7 @@ class IntentService
     }
 
     /**
-     * Periksa apakah pesan cocok dengan entri tambahan pada tabel tpq_knowledge_bases.
+     * Periksa apakah pesan cocok dengan entri Knowledge Base aktif.
      */
     protected function matchesCustomKnowledgeBase(string $cleanMessage): bool
     {
@@ -152,8 +159,16 @@ class IntentService
                 return false;
             }
 
-            $customEntries = $kbService->getAll(true)->filter(fn ($entry) => (int) $entry->urutan > 5);
-            foreach ($customEntries as $entry) {
+            $isChildSpecific = (bool) preg_match('/\b(anak|ananda|tadi|hari ini|kemarin|kemaren)\b/i', $cleanMessage);
+            $stopWords = ['izin', 'ijin', 'sakit', 'alpa', 'alfa', 'hadir', 'absen', 'absensi', 'presensi', 'masuk', 'pulang', 'jam berapa', 'nisn', 'rekap', 'kehadiran', 'hari ini', 'kemarin', 'tadi'];
+
+            $allEntries = $kbService->getAll(true);
+            foreach ($allEntries as $entry) {
+                // Jangan cocokkan jadwal masuk/pulang umum jika wali menanyakan kehadiran riil anaknya tadi/hari ini
+                if ($isChildSpecific && in_array($entry->kategori, ['jam_operasional', 'jadwal'], true)) {
+                    continue;
+                }
+
                 $judulLower = strtolower(trim((string) $entry->judul));
                 if ($judulLower !== '' && str_contains($cleanMessage, $judulLower)) {
                     return true;
@@ -161,8 +176,28 @@ class IntentService
 
                 $keywords = array_filter(array_map('trim', explode(',', strtolower((string) $entry->kata_kunci))));
                 foreach ($keywords as $kw) {
-                    if (strlen($kw) >= 4 && str_contains($cleanMessage, $kw)) {
+                    if ($kw === '' || in_array($kw, $stopWords, true)) {
+                        continue;
+                    }
+
+                    // 1. Cek langsung kecocokan frasa
+                    if (strlen($kw) >= 3 && str_contains($cleanMessage, $kw)) {
                         return true;
+                    }
+
+                    // 2. Cek multi-kata (seperti "kartu hilang" cocok pada "kalau kartu anak saya hilang gimana")
+                    $tokens = preg_split('/\s+/', $kw) ?: [];
+                    if (count($tokens) >= 2) {
+                        $allTokensPresent = true;
+                        foreach ($tokens as $token) {
+                            if (strlen($token) >= 3 && ! str_contains($cleanMessage, $token)) {
+                                $allTokensPresent = false;
+                                break;
+                            }
+                        }
+                        if ($allTokensPresent) {
+                            return true;
+                        }
                     }
                 }
             }
