@@ -602,7 +602,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import {
   Bot,
   BookOpen,
@@ -795,7 +795,14 @@ const saveKb = async () => {
     showKbModal.value = false;
     await loadKnowledgeBase();
   } catch (e) {
-    toast.error('Gagal menyimpan topik Knowledge Base.');
+    const errors = e.response?.data?.errors;
+    if (errors) {
+      const firstError = Object.values(errors).flat()[0];
+      toast.error(firstError || 'Data tidak valid.');
+    } else {
+      const errorMsg = e.response?.data?.message || 'Gagal menyimpan topik Knowledge Base.';
+      toast.error(errorMsg);
+    }
   } finally {
     savingKb.value = false;
   }
@@ -808,7 +815,7 @@ const deleteKb = async (item) => {
     toast.success('Topik berhasil dihapus.');
     await loadKnowledgeBase();
   } catch (e) {
-    toast.error('Gagal menghapus topik.');
+    toast.error(e.response?.data?.message || 'Gagal menghapus topik.');
   }
 };
 
@@ -829,8 +836,15 @@ const testGemini = async () => {
   }
 };
 
+watch(activeTab, (newTab) => {
+  if (newTab === 'knowledge') {
+    loadKnowledgeBase();
+  }
+});
+
 onMounted(() => {
   loadStats();
   loadLogs();
+  loadKnowledgeBase();
 });
 </script>

@@ -6,6 +6,8 @@ use App\Models\Pengaturan;
 use App\Models\TpqKnowledgeBase;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class KnowledgeBaseService
@@ -18,6 +20,26 @@ class KnowledgeBaseService
         try {
             return Schema::hasTable('tpq_knowledge_bases');
         } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Pastikan tabel tpq_knowledge_bases tersedia di database (self-healing migration untuk serverless / Vercel).
+     */
+    public function ensureTableExists(): bool
+    {
+        if ($this->hasKnowledgeBaseTable()) {
+            return true;
+        }
+
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+
+            return $this->hasKnowledgeBaseTable();
+        } catch (\Throwable $e) {
+            Log::warning('KnowledgeBase auto-migrate failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -99,6 +121,8 @@ class KnowledgeBaseService
      */
     public function getAll(bool $onlyActive = false): Collection
     {
+        $this->ensureTableExists();
+
         if (! $this->hasKnowledgeBaseTable()) {
             return collect();
         }
@@ -198,6 +222,8 @@ class KnowledgeBaseService
      */
     public function store(array $data): TpqKnowledgeBase
     {
+        $this->ensureTableExists();
+
         return TpqKnowledgeBase::create([
             'kategori' => $data['kategori'] ?? 'umum',
             'judul' => $data['judul'],
@@ -215,6 +241,8 @@ class KnowledgeBaseService
      */
     public function update(int $id, array $data): TpqKnowledgeBase
     {
+        $this->ensureTableExists();
+
         $entry = TpqKnowledgeBase::findOrFail($id);
         $entry->update($data);
 

@@ -153,4 +153,3 @@ class AgendaSekretarisTest extends TestCase
         $response->assertStatus(403);
     }
 }
-
