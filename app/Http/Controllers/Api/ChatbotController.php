@@ -7,6 +7,7 @@ use App\Models\ChatbotLog;
 use App\Models\Pengaturan;
 use App\Models\WhatsAppLog;
 use App\Services\ChatbotService;
+use App\Services\GeminiService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -81,6 +82,31 @@ class ChatbotController extends Controller
             ], 400);
         }
 
+        // 3. Abaikan pesan yang berasal dari Grup WhatsApp agar bot hanya merespons chat pribadi wali santri
+        if ($this->isGroupMessage($payload, (string) $sender)) {
+            return response()->json([
+                'success' => true,
+                'ignored' => true,
+                'reason' => 'group_message',
+                'message' => 'Pesan grup diabaikan oleh chatbot.',
+            ], 200);
+        }
+
+        // 4. Cegah pemrosesan pesan masuk dua kali (Idempotency / Deduplication) jika Fonnte me-retry webhook
+        $incomingMsgId = $this->extractIncomingMessageId($payload);
+        if ($incomingMsgId !== null) {
+            $dedupKey = "fonnte_inbox_dedup:{$incomingMsgId}";
+            if (Cache::has($dedupKey)) {
+                return response()->json([
+                    'success' => true,
+                    'duplicate' => true,
+                    'inbox_id' => $incomingMsgId,
+                    'message' => 'Pesan webhook duplikat diabaikan (sudah diproses).',
+                ], 200);
+            }
+            Cache::put($dedupKey, true, now()->addMinutes(10));
+        }
+
         // Jika penerima membalas chat ke bot, otomatis pesan sebelumnya ke nomor tersebut pasti sudah dibaca
         $senderNorm = WhatsAppService::normalizePhone((string) $sender);
         if (! empty($senderNorm)) {
@@ -90,27 +116,35 @@ class ChatbotController extends Controller
                 ->each(fn (WhatsAppLog $log) => $log->markAsRead());
         }
 
-        $result = $this->chatbotService->handleIncomingMessage((string) $sender, (string) $message);
+        $targetPhone = $senderNorm !== '' ? $senderNorm : (string) $sender;
+        $result = $this->chatbotService->handleIncomingMessage($targetPhone, (string) $message);
 
         // Kirim balasan otomatis via Fonnte Send API ke pengirim
         $sendResult = null;
-        if (! empty($sender) && ! empty($result['reply'])) {
+        if (! empty($targetPhone) && ! empty($result['reply'])) {
+            $namaPenerima = ! empty($result['siswa']['nama_lengkap'])
+                ? 'Wali dari '.$result['siswa']['nama_lengkap']
+                : 'Pengirim Chatbot';
+
             $sendResult = $this->whatsAppService->sendViaFonnte(
-                (string) $sender,
+                $targetPhone,
                 $result['reply'],
                 null,
                 [
                     'tipe_pesan' => 'chatbot_reply',
-                    'nama_penerima' => 'Pengirim Chatbot',
+                    'nama_penerima' => $namaPenerima,
                 ]
             );
 
             // Jika pengiriman ke gateway Fonnte gagal karena penolakan gateway
             if (! ($sendResult['success'] ?? false) && isset($sendResult['response'])) {
                 if (! empty($result['log_id'])) {
+                    $safeError = WhatsAppService::sanitizeSensitiveText(
+                        (string) ($sendResult['message'] ?? 'Gateway Fonnte gagal mengirim pesan.')
+                    );
                     ChatbotLog::where('id', $result['log_id'])->update([
                         'status' => 'gagal',
-                        'keterangan_error' => $sendResult['message'] ?? 'Gateway Fonnte gagal mengirim pesan.',
+                        'keterangan_error' => $safeError,
                     ]);
                 }
             }
@@ -140,6 +174,19 @@ class ChatbotController extends Controller
             'success' => true,
             'data' => $result,
         ]);
+    }
+
+    /**
+     * Endpoint pengujian koneksi Google Gemini API (Khusus Admin)
+     */
+    public function testGeminiConnection(GeminiService $geminiService): JsonResponse
+    {
+        $result = $geminiService->testConnection();
+
+        return response()->json([
+            'success' => $result['success'],
+            'data' => $result,
+        ], $result['success'] ? 200 : 422);
     }
 
     /**
@@ -268,7 +315,7 @@ class ChatbotController extends Controller
         Log::info('Fonnte Webhook Connect Event', [
             'device' => $device,
             'status' => $status,
-            'payload' => $data,
+            'payload' => $this->sanitizePayload($data),
         ]);
 
         return response()->json([
@@ -277,6 +324,62 @@ class ChatbotController extends Controller
             'device' => $device,
             'status' => $status,
         ]);
+    }
+
+    /**
+     * Periksa apakah pesan berasal dari Grup WhatsApp (@g.us atau flag isgroup).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function isGroupMessage(array $payload, string $sender): bool
+    {
+        if (str_contains(strtolower($sender), '@g.us')) {
+            return true;
+        }
+
+        $isGroup = $payload['isgroup'] ?? $payload['is_group'] ?? null;
+        if ($isGroup === true || $isGroup === 1 || $isGroup === '1' || strtolower((string) $isGroup) === 'true') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ekstrak ID unik pesan masuk (inboxid / message_id) untuk mencegah duplikasi pemrosesan.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function extractIncomingMessageId(array $payload): ?string
+    {
+        $rawId = $payload['inboxid'] ?? $payload['inbox_id'] ?? $payload['message_id'] ?? $payload['id'] ?? null;
+        if ($rawId === null || $rawId === '') {
+            return null;
+        }
+
+        $idStr = trim((string) (is_array($rawId) ? ($rawId[0] ?? '') : $rawId));
+
+        return $idStr !== '' ? $idStr : null;
+    }
+
+    /**
+     * Sanitasi array payload webhook agar token rahasia tidak pernah tercatat di file log.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function sanitizePayload(array $payload): array
+    {
+        $sanitized = $payload;
+        foreach (['token', 'authorization', 'secret', 'api_key', 'apikey'] as $sensitiveKey) {
+            foreach ($sanitized as $k => $v) {
+                if (strtolower((string) $k) === $sensitiveKey) {
+                    $sanitized[$k] = '[REDACTED]';
+                }
+            }
+        }
+
+        return $sanitized;
     }
 
     /**
@@ -410,7 +513,7 @@ class ChatbotController extends Controller
             'status' => $statusVal,
             'message_status' => $msgStatusVal,
             'stateid' => $stateId,
-            'payload' => $data,
+            'payload' => $this->sanitizePayload($data),
         ]);
 
         $stateIdMap = $this->getStateIdMap();
@@ -533,7 +636,7 @@ class ChatbotController extends Controller
             Log::info("Fonnte Webhook Status: WhatsAppLog #{$log->id} updated to '{$log->status}' via action '{$matchedAction}'");
         } else {
             Log::warning("Fonnte Webhook Status: WhatsAppLog not found for ID '{$msgId}' / stateid '{$stateId}'", [
-                'payload' => $data,
+                'payload' => $this->sanitizePayload($data),
             ]);
         }
 

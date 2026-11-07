@@ -31,6 +31,30 @@ class WhatsAppService
     }
 
     /**
+     * Sanitasi teks agar token Fonnte dan secret webhook tidak pernah bocor ke log atau pesan error
+     */
+    public static function sanitizeSensitiveText(string $text, ?string $customToken = null): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        $sanitized = $text;
+        $secrets = array_filter([
+            $customToken,
+            Pengaturan::getValue('fonnte_token'),
+            Pengaturan::getValue('fonnte_webhook_secret'),
+            env('FONNTE_WEBHOOK_SECRET'),
+        ], fn ($val) => is_string($val) && strlen(trim($val)) >= 4);
+
+        foreach ($secrets as $secret) {
+            $sanitized = str_ireplace(trim((string) $secret), '[REDACTED_FONNTE_TOKEN]', $sanitized);
+        }
+
+        return $sanitized;
+    }
+
+    /**
      * Membuat tautan wa.me langsung untuk pengiriman pesan cepat tanpa API pihak ketiga
      */
     public function generateWaMeLink(string $phone, string $message): string
@@ -407,6 +431,7 @@ class WhatsAppService
                 default => (string) $rawReason,
             };
 
+            $friendlyReason = self::sanitizeSensitiveText($friendlyReason, $token);
             $log->markAsFailed($friendlyReason);
 
             return [
@@ -416,8 +441,9 @@ class WhatsAppService
                 'response' => $json,
             ];
         } catch (\Exception $e) {
-            $errorMsg = 'Koneksi ke gateway WhatsApp gagal: '.$e->getMessage();
-            \Log::error('Fonnte send exception: '.$e->getMessage());
+            $safeException = self::sanitizeSensitiveText($e->getMessage(), $token);
+            $errorMsg = 'Koneksi ke gateway WhatsApp gagal: '.$safeException;
+            \Log::error('Fonnte send exception: '.$safeException);
             $log->markAsFailed($errorMsg);
 
             return [

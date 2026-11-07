@@ -315,11 +315,20 @@ class ChatbotService
     }
 
     /**
-     * Simpan ID santri aktif ke Cache dan Pengaturan (agar tetap bertahan di serverless Vercel)
+     * Simpan ID santri aktif ke Cache, Pengaturan, dan tabel chat_conversations
      */
     protected function rememberActiveStudent(string $normalizedPhone, int $siswaId): void
     {
         Cache::put("wa_active_student_{$normalizedPhone}", $siswaId, now()->addMinutes(30));
+
+        try {
+            $conversationService = app(ConversationService::class);
+            if ($conversationService->hasConversationTables()) {
+                $conversation = $conversationService->getOrCreateConversation($normalizedPhone, $siswaId);
+                $conversationService->updateActiveSantri($conversation, $siswaId, 'active');
+            }
+        } catch (\Throwable) {
+        }
 
         try {
             $raw = Pengaturan::getValue('wa_active_student_map');
@@ -340,13 +349,22 @@ class ChatbotService
     }
 
     /**
-     * Ambil ID santri aktif dari Cache, Pengaturan, atau riwayat ChatbotLog 30 menit terakhir
+     * Ambil ID santri aktif dari Cache, chat_conversations, Pengaturan, atau riwayat ChatbotLog 30 menit terakhir
      */
     protected function getRememberedActiveStudentId(string $normalizedPhone): ?int
     {
         $cachedId = Cache::get("wa_active_student_{$normalizedPhone}");
         if ($cachedId) {
             return (int) $cachedId;
+        }
+
+        try {
+            $conversationService = app(ConversationService::class);
+            $convSantriId = $conversationService->getActiveSantriId($normalizedPhone, 30);
+            if ($convSantriId) {
+                return $convSantriId;
+            }
+        } catch (\Throwable) {
         }
 
         try {
@@ -380,6 +398,15 @@ class ChatbotService
         Cache::forget("wa_active_student_{$normalizedPhone}");
 
         try {
+            $conversationService = app(ConversationService::class);
+            if ($conversationService->hasConversationTables()) {
+                $conversation = $conversationService->getOrCreateConversation($normalizedPhone, null);
+                $conversationService->updateActiveSantri($conversation, null, 'active');
+            }
+        } catch (\Throwable) {
+        }
+
+        try {
             $raw = Pengaturan::getValue('wa_active_student_map');
             if (! empty($raw)) {
                 $map = json_decode((string) $raw, true);
@@ -397,6 +424,15 @@ class ChatbotService
      */
     protected function resolvePreviousIntentFromHistory(string $normalizedPhone): ?string
     {
+        try {
+            $conversationService = app(ConversationService::class);
+            $convIntent = $conversationService->getLastConversationIntent($normalizedPhone, 30);
+            if ($convIntent) {
+                return $convIntent;
+            }
+        } catch (\Throwable) {
+        }
+
         $lastLog = ChatbotLog::where('no_pengirim', $normalizedPhone)
             ->whereIn('intent_terdeteksi', ['absensi', 'spp_notice', 'agenda', 'izin_sakit'])
             ->where('created_at', '>=', Carbon::now()->subMinutes(30))
@@ -1225,7 +1261,7 @@ class ChatbotService
     }
 
     /**
-     * Menyimpan riwayat percakapan ke tabel chatbot_logs
+     * Menyimpan riwayat percakapan ke tabel chatbot_logs dan chat_conversations / chat_messages
      */
     public function logInteraction(
         string $phone,
@@ -1236,6 +1272,22 @@ class ChatbotService
         string $status = 'sukses',
         ?string $error = null
     ): ChatbotLog {
+        try {
+            $conversationService = app(ConversationService::class);
+            if ($conversationService->hasConversationTables()) {
+                $convStatus = $intent === 'multi_santri' ? 'awaiting_student_selection' : 'active';
+                $conversationService->recordInteractionPair(
+                    phoneNumber: $phone,
+                    incomingMessage: $message,
+                    botReply: $reply,
+                    intent: $intent,
+                    santriId: $siswaId,
+                    status: $convStatus
+                );
+            }
+        } catch (\Throwable) {
+        }
+
         ActivityLog::record(
             modul: 'whatsapp',
             aksi: 'chatbot',

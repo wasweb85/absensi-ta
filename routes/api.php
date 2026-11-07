@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AgendaLiburController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatbotController;
+use App\Http\Controllers\Api\FonnteWebhookController;
 use App\Http\Controllers\Api\KelasController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiswaController;
@@ -21,6 +22,7 @@ Route::get('/pengaturan/public', [SettingController::class, 'getPublicSettings']
 
 // Webhook WhatsApp Gateway (Fonnte): Chatbot, Message Status (Centang ✓✓), dan Device Connect
 Route::match(['get', 'post'], '/webhook/whatsapp', [ChatbotController::class, 'webhook'])->middleware('throttle:120,1');
+Route::match(['get', 'post'], '/webhook/fonnte', [FonnteWebhookController::class, 'handle'])->middleware('throttle:120,1');
 Route::match(['get', 'post'], '/webhook/whatsapp/status', [ChatbotController::class, 'messageStatusWebhook'])->middleware('throttle:120,1');
 Route::match(['get', 'post'], '/webhook/whatsapp/connect', [ChatbotController::class, 'connectWebhook'])->middleware('throttle:60,1');
 
@@ -154,6 +156,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Modul Chatbot WhatsApp (Monitoring Log & Simulator - Khusus Admin)
     Route::middleware('role:admin')->prefix('chatbot')->group(function () {
         Route::post('/simulate', [ChatbotController::class, 'simulate']);
+        Route::post('/test-gemini', [ChatbotController::class, 'testGeminiConnection']);
         Route::get('/logs', [ChatbotController::class, 'logs']);
         Route::get('/stats', [ChatbotController::class, 'stats']);
     });
