@@ -8,7 +8,6 @@ use App\Models\ChatbotLog;
 use App\Models\HariLibur;
 use App\Models\Pengaturan;
 use App\Models\Siswa;
-use App\Models\TagihanSpp;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -544,14 +543,18 @@ class ChatbotService
                 $this->parseTargetPeriod($periodHint),
                 $periodHint
             ),
-            'check_spp_payment', 'check_spp_arrears' => [
-                'status' => 'ok',
-                'santri' => $selectedSiswa ? $this->formatSiswaPayload($selectedSiswa) : 'semua_anak_wali',
-                'data_spp' => $selectedSiswa
-                    ? $this->handleSppNoticeQuery($selectedSiswa, null, $periodHint)
-                    : $this->handleSppNoticeQuery($candidates->first(), $candidates, $periodHint),
-                'bendahara' => $this->getBendaharaInfo(),
-            ],
+            'check_spp_payment' => app(CheckSppPayment::class)->buildToolPayload(
+                $selectedSiswa,
+                $candidates,
+                $this->parseTargetPeriod($periodHint),
+                $periodHint
+            ),
+            'check_spp_arrears' => app(CheckSppArrears::class)->buildToolPayload(
+                $selectedSiswa,
+                $candidates,
+                $this->parseTargetPeriod($periodHint),
+                $periodHint
+            ),
             default => [
                 'status' => 'error',
                 'error' => "Fungsi {$toolName} tidak dikenali.",
@@ -1118,12 +1121,12 @@ class ChatbotService
         $clean = strtolower(trim($originalMessage));
 
         $isAskingPaymentTarget = (bool) preg_match(
-            '/\b(kepada siapa|ke siapa|sama siapa|lewat siapa|hubungi siapa|(?:bayar|membayar)\s+ke\s+siapa|(?:bayar|membayar)\s+ke\s*mana|ke\s*mana\s+(?:bayar|membayar)|ke\s*mana kalau mau (?:bayar|membayar)|cara\s+(?:bayar|membayar)|lewat mana|rekening|transfer|bendahara|mau\s+(?:bayar|membayar)|ingin\s+(?:bayar|membayar)|pengen\s+(?:bayar|membayar))\b/i',
+            '/\b(kepada siapa|ke siapa|sama siapa|lewat siapa|hubungi siapa|(?:bayar|membayar)\s+ke\s+siapa|(?:bayar|membayar)\s+ke\s*mana|ke\s*mana\s+(?:bayar|membayar)|ke\s*mana kalau mau (?:bayar|membayar)|cara\s+(?:bayar|membayar|melunasi)|melunasi|lewat mana|rekening|transfer|bendahara|mau\s+(?:bayar|membayar)|ingin\s+(?:bayar|membayar)|pengen\s+(?:bayar|membayar))\b/i',
             $clean
         );
 
         $isAskingSppStatus = (bool) preg_match(
-            '/\b(nunggak|menunggak|tunggak|tunggakan|tagihan|berapa|cek|rincian|status|lunas|belum lunas|belum bayar|kurang bayar|kuitansi|rekap|daftar)\b/i',
+            '/\b(nunggak|menunggak|tunggak|tunggakan|tagihan|berapa|cek|rincian|status|lunas|belum lunas|belum bayar|kurang bayar|kuitansi|rekap|daftar|sudah dibayar|udah dibayar|pembayaran terakhir|bayar terakhir|terakhir bayar|sudah tercatat|udah tercatat|sudah transfer|udah transfer|udh tf|sudah tf|belum ada konfirmasi|bulan apa saja)\b/i',
             $clean
         );
 
@@ -1138,7 +1141,7 @@ class ChatbotService
 
         if ($allCandidates && $allCandidates->count() > 1) {
             foreach ($allCandidates as $cand) {
-                $sectionData = $this->buildSingleStudentSppData($cand, $period);
+                $sectionData = $this->buildSingleStudentSppData($cand, $period, $originalMessage);
                 $sections[] = $sectionData['text'];
                 if ($sectionData['has_tunggakan']) {
                     $hasTunggakan = true;
@@ -1150,7 +1153,7 @@ class ChatbotService
             $baseReply = "Berikut informasi SPP ananda{$introPeriode}:\n\n"
                 .implode("\n\n────────────────────\n\n", $sections);
         } elseif ($siswa) {
-            $sectionData = $this->buildSingleStudentSppData($siswa, $period);
+            $sectionData = $this->buildSingleStudentSppData($siswa, $period, $originalMessage);
             $sections[] = $sectionData['text'];
             if ($sectionData['has_tunggakan']) {
                 $hasTunggakan = true;
@@ -1272,98 +1275,19 @@ class ChatbotService
     /**
      * Menyusun blok teks status SPP & rincian tunggakan untuk 1 santri
      */
-    protected function buildSingleStudentSppSection(Siswa $siswa, ?array $period = null): string
+    protected function buildSingleStudentSppSection(Siswa $siswa, ?array $period = null, string $originalMessage = ''): string
     {
-        return $this->buildSingleStudentSppData($siswa, $period)['text'];
+        return $this->buildSingleStudentSppData($siswa, $period, $originalMessage)['text'];
     }
 
     /**
-     * Menyusun data status SPP & rincian tunggakan untuk 1 santri
+     * Menyusun data status SPP & rincian tunggakan untuk 1 santri melalui komponen CheckSppArrears & CheckSppPayment
      *
      * @return array{text: string, has_tunggakan: bool, total_bulan: int, total_tunggakan: float}
      */
-    protected function buildSingleStudentSppData(Siswa $siswa, ?array $period = null): array
+    protected function buildSingleStudentSppData(Siswa $siswa, ?array $period = null, string $originalMessage = ''): array
     {
-        SppBillingService::ensureSppSchemaExists();
-
-        $sppService = app(SppBillingService::class);
-        $now = Carbon::now('Asia/Jakarta');
-        $cutOffBulan = (int) $now->month;
-        $cutOffTahun = (int) $now->year;
-        $namaBulanIni = $this->bulanMap[$cutOffBulan] ?? 'Bulan Ini';
-        $namaKelas = $siswa->kelas?->nama_kelas ?: 'Jilid';
-
-        if (! TagihanSpp::where('id_siswa', $siswa->id)->exists()) {
-            $toTahun = max(2027, $cutOffTahun);
-            $toBulan = ($toTahun === 2027) ? max(6, $cutOffBulan) : $cutOffBulan;
-            $sppService->sinkronkanTagihanSemester(7, 2026, $toBulan, $toTahun);
-        }
-
-        $rekap = $sppService->hitungTunggakanSantri($siswa->id, $cutOffBulan, $cutOffTahun);
-        $totalBulan = (int) ($rekap['total_bulan'] ?? 0);
-        $totalTunggakan = (float) ($rekap['total_tunggakan'] ?? 0);
-        $daftarTunggakan = $rekap['daftar_tunggakan'] ?? [];
-        $hasTunggakan = ($totalBulan > 0 && $totalTunggakan > 0);
-
-        // Jika menanyakan periode bulan tertentu (misal: "spp bulan kemarin" / "spp oktober")
-        $statusBulanSpesifik = '';
-        if ($period && ! empty($period['is_previous_month'])) {
-            $tagihanSpesifik = TagihanSpp::with(['pembayaran' => fn ($q) => $q->where('status_transaksi', 'valid')])
-                ->where('id_siswa', $siswa->id)
-                ->where('bulan', $period['bulan'])
-                ->where('tahun', $period['tahun'])
-                ->first();
-
-            if ($tagihanSpesifik) {
-                $totalBayar = (float) $tagihanSpesifik->pembayaran->sum('jumlah_bayar');
-                $sisa = max(0, (float) $tagihanSpesifik->nominal_tagihan - $totalBayar);
-                if ($tagihanSpesifik->status === 'lunas' || $sisa <= 0) {
-                    $statusBulanSpesifik = "• SPP {$period['label_periode']}: ✅ *LUNAS*\n";
-                } else {
-                    $sisaRp = 'Rp '.number_format($sisa, 0, ',', '.');
-                    $statusBulanSpesifik = "• SPP {$period['label_periode']}: ⚠️ *BELUM LUNAS* (Sisa {$sisaRp})\n";
-                }
-            }
-        }
-
-        if (! $hasTunggakan) {
-            $text = "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
-                .$statusBulanSpesifik
-                ."• Status: ✅ *LUNAS* (Tidak ada tunggakan s/d {$namaBulanIni} {$cutOffTahun})\n"
-                .'• Total Tunggakan: *Rp 0*';
-
-            return [
-                'text' => $text,
-                'has_tunggakan' => false,
-                'total_bulan' => 0,
-                'total_tunggakan' => 0.0,
-            ];
-        }
-
-        $totalRp = 'Rp '.number_format($totalTunggakan, 0, ',', '.');
-        $rincianLines = [];
-        foreach ($daftarTunggakan as $item) {
-            $sisaRp = 'Rp '.number_format((float) $item['sisa'], 0, ',', '.');
-            if ((float) ($item['sudah_dibayar'] ?? 0) > 0) {
-                $rincianLines[] = "• {$item['label']}: Sisa {$sisaRp} (Kurang Bayar)";
-            } else {
-                $rincianLines[] = "• {$item['label']}: {$sisaRp}";
-            }
-        }
-
-        $text = "💳 *SPP ananda {$siswa->nama_lengkap}* ({$namaKelas}):\n"
-            .$statusBulanSpesifik
-            ."• Status Keseluruhan: ⚠️ *Menunggak {$totalBulan} bulan*\n"
-            ."• Total Tunggakan: *{$totalRp}*\n\n"
-            ."*Rincian Bulan Belum Lunas:*\n"
-            .implode("\n", $rincianLines);
-
-        return [
-            'text' => $text,
-            'has_tunggakan' => true,
-            'total_bulan' => $totalBulan,
-            'total_tunggakan' => $totalTunggakan,
-        ];
+        return app(CheckSppArrears::class)->inspectStudentArrears($siswa, $period, $originalMessage);
     }
 
     /**
