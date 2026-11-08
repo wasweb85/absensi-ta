@@ -26,6 +26,14 @@
       "dest": "/api/index.php"
     },
     {
+      "src": "/invoice/(.*)",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "/invoice",
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

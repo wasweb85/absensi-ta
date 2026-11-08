@@ -211,6 +211,19 @@
             vertical-align: middle;
             margin-right: 4px;
         }
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+            }
+            .actions, .footer-note, .badge-verified {
+                display: none !important;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -311,6 +324,11 @@
                         <span>Unduh Dokumen Gambar (Asli)</span>
                     </a>
                     @endif
+
+                    <button type="button" onclick="window.print()" class="btn {{ empty($cloudinaryUrl) ? 'btn-primary' : 'btn-outline' }}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span>Cetak / Simpan PDF</span>
+                    </button>
 
                     @if(!empty($kontakBendahara))
                     @php

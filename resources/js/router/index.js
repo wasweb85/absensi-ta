@@ -129,6 +129,13 @@ const routes = [
         ],
     },
     {
+        path: '/invoice/:token',
+        name: 'public-invoice',
+        beforeEnter(to) {
+            window.location.href = `/invoice/${to.params.token}`;
+        },
+    },
+    {
         path: '/:pathMatch(.*)*',
         redirect: '/dashboard',
     },
@@ -140,6 +147,12 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
+    // Jalur publik bukti kuitansi digital (serahkan langsung ke rendering Blade backend)
+    if (to.path.startsWith('/invoice')) {
+        window.location.href = to.fullPath;
+        return;
+    }
+
     const token = localStorage.getItem('auth_token');
     const userStr = localStorage.getItem('auth_user');
     const user = userStr ? JSON.parse(userStr) : null;
