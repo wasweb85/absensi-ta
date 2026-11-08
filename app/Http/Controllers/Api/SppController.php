@@ -383,18 +383,17 @@ class SppController extends Controller
         ]);
 
         // Jika nomor kuitansi multi-bulan (contoh KW-202611-00055-1), sinkronkan link ke saudara-saudaranya
-        if (str_contains($pembayaran->nomor_kuitansi, '-')) {
-            $parts = explode('-', $pembayaran->nomor_kuitansi);
-            if (count($parts) >= 3) {
-                $basePrefix = $parts[0].'-'.$parts[1];
-                PembayaranSpp::where('nomor_kuitansi', 'like', "{$basePrefix}%")
-                    ->where('id', '!=', $pembayaran->id)
-                    ->update([
-                        'cloudinary_public_id' => $result['public_id'],
-                        'cloudinary_url' => $result['secure_url'],
-                        'upload_status' => 'success',
-                    ]);
-            }
+        $parts = explode('-', $pembayaran->nomor_kuitansi);
+        if (count($parts) >= 4) {
+            $basePrefix = $parts[0].'-'.$parts[1].'-'.$parts[2];
+            PembayaranSpp::where('nomor_kuitansi', 'like', "{$basePrefix}-%")
+                ->where('id', '!=', $pembayaran->id)
+                ->where('id_siswa', $pembayaran->id_siswa)
+                ->update([
+                    'cloudinary_public_id' => $result['public_id'],
+                    'cloudinary_url' => $result['secure_url'],
+                    'upload_status' => 'success',
+                ]);
         }
 
         ActivityLog::record(

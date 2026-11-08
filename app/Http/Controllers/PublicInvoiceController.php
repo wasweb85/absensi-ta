@@ -70,36 +70,63 @@ class PublicInvoiceController extends Controller
         $siswa = $pembayaran->siswa;
         $tagihan = $pembayaran->tagihan;
 
-        // Rangkum informasi periode bulan
+        // Rangkum informasi periode bulan transaksi utama
         $namaBulan = SppBillingService::NAMA_BULAN[$tagihan?->bulan] ?? ($tagihan ? "Bulan {$tagihan->bulan}" : '-');
         $periodeStr = $tagihan ? "{$namaBulan} {$tagihan->tahun}" : '-';
 
-        // Deteksi jika pembayaran adalah bagian dari multi-bulan
+        // Deteksi apakah pembayaran ini adalah bagian dari transaksi multi-bulan
+        // Format nomor kuitansi standar: KW-YYYYMM-XXXXX (3 bagian: KW, YYYYMM, XXXXX)
+        // Format nomor kuitansi multi-bulan: KW-YYYYMM-XXXXX-1, KW-YYYYMM-XXXXX-2 (>= 4 bagian)
         $multiPayments = collect([$pembayaran]);
         $totalNominal = (float) $pembayaran->jumlah_bayar;
 
-        if (str_contains($pembayaran->nomor_kuitansi, '-')) {
-            $parts = explode('-', $pembayaran->nomor_kuitansi);
-            if (count($parts) >= 3) {
-                $basePrefix = $parts[0].'-'.$parts[1];
-                $related = PembayaranSpp::with('tagihan')
-                    ->where('nomor_kuitansi', 'like', "{$basePrefix}%")
-                    ->where('id_siswa', $pembayaran->id_siswa)
-                    ->orderBy('nomor_kuitansi', 'asc')
-                    ->get();
+        $parts = explode('-', $pembayaran->nomor_kuitansi);
+        $baseKuitansi = null;
 
-                if ($related->isNotEmpty()) {
-                    $multiPayments = $related;
-                    $totalNominal = (float) $related->sum('jumlah_bayar');
+        if (count($parts) >= 4) {
+            // Ini adalah salah satu item dari transaksi multi-bulan (misal: KW-202611-00096-1)
+            $baseKuitansi = $parts[0].'-'.$parts[1].'-'.$parts[2];
+        } else {
+            // Cek apakah nomor kuitansi ini adalah nomor induk yang memiliki pecahan -1, -2, dst.
+            $hasSubItems = PembayaranSpp::where('nomor_kuitansi', 'like', "{$pembayaran->nomor_kuitansi}-%")
+                ->where('id_siswa', $pembayaran->id_siswa)
+                ->where('status_transaksi', 'valid')
+                ->exists();
 
-                    $daftarBulanList = [];
-                    foreach ($related as $rel) {
-                        $blnName = SppBillingService::NAMA_BULAN[$rel->tagihan?->bulan] ?? "Bln {$rel->tagihan?->bulan}";
-                        $daftarBulanList[] = "{$blnName} {$rel->tagihan?->tahun}";
+            if ($hasSubItems) {
+                $baseKuitansi = $pembayaran->nomor_kuitansi;
+            }
+        }
+
+        // HANYA gabungkan transaksi jika terbukti merupakan transaksi multi-bulan yang sama
+        if ($baseKuitansi !== null) {
+            $related = PembayaranSpp::with('tagihan')
+                ->where('id_siswa', $pembayaran->id_siswa)
+                ->where('status_transaksi', 'valid')
+                ->where(function ($q) use ($baseKuitansi) {
+                    $q->where('nomor_kuitansi', $baseKuitansi)
+                        ->orWhere('nomor_kuitansi', 'like', "{$baseKuitansi}-%");
+                })
+                ->orderBy('nomor_kuitansi', 'asc')
+                ->get();
+
+            if ($related->isNotEmpty()) {
+                $multiPayments = $related;
+                $totalNominal = (float) $related->sum('jumlah_bayar');
+
+                $daftarBulanList = [];
+                foreach ($related as $rel) {
+                    if ($rel->tagihan) {
+                        $blnName = SppBillingService::NAMA_BULAN[$rel->tagihan->bulan] ?? "Bln {$rel->tagihan->bulan}";
+                        $itemPeriode = "{$blnName} {$rel->tagihan->tahun}";
+                        if (! in_array($itemPeriode, $daftarBulanList, true)) {
+                            $daftarBulanList[] = $itemPeriode;
+                        }
                     }
-                    if (! empty($daftarBulanList)) {
-                        $periodeStr = implode(', ', $daftarBulanList);
-                    }
+                }
+
+                if (! empty($daftarBulanList)) {
+                    $periodeStr = implode(', ', $daftarBulanList);
                 }
             }
         }

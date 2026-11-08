@@ -232,4 +232,51 @@ class CloudinaryInvoiceFeatureTest extends TestCase
             $response->assertSee('KW-202611-00005');
         }
     }
+
+    public function test_single_month_payment_only_displays_its_own_period_and_amount(): void
+    {
+        // Tagihan Oktober 2026
+        $tagihanOkt = TagihanSpp::create([
+            'id_siswa' => $this->siswa->id,
+            'bulan' => 10,
+            'tahun' => 2026,
+            'tahun_ajaran' => '2026/2027',
+            'nominal_tagihan' => 20000,
+            'status' => 'lunas',
+        ]);
+
+        // Pembayaran masa lalu di bulan November (nomor kuitansi KW-202611-00010)
+        PembayaranSpp::create([
+            'id_tagihan' => $tagihanOkt->id,
+            'id_siswa' => $this->siswa->id,
+            'nomor_kuitansi' => 'KW-202611-00010',
+            'tanggal_bayar' => Carbon::now('Asia/Jakarta')->subDays(2),
+            'jumlah_bayar' => 20000,
+            'metode_pembayaran' => 'Tunai',
+            'id_petugas' => $this->admin->id,
+            'status_transaksi' => 'valid',
+        ]);
+
+        // Pembayaran saat ini HANYA untuk November 2026 (KW-202611-00096)
+        $pembayaranNov = PembayaranSpp::create([
+            'id_tagihan' => $this->tagihan->id, // November 2026
+            'id_siswa' => $this->siswa->id,
+            'nomor_kuitansi' => 'KW-202611-00096',
+            'tanggal_bayar' => Carbon::now('Asia/Jakarta'),
+            'jumlah_bayar' => 20000,
+            'metode_pembayaran' => 'Tunai',
+            'id_petugas' => $this->admin->id,
+            'status_transaksi' => 'valid',
+        ]);
+
+        $response = $this->get('/invoice/'.$pembayaranNov->invoice_token);
+
+        $response->assertStatus(200);
+        $response->assertSee('November 2026');
+        // Pastikan TIDAK mencantumkan Oktober 2026 yang merupakan transaksi kuitansi lain
+        $response->assertDontSee('Oktober 2026');
+        // Pastikan total terbayar adalah Rp 20.000, BUKAN akumulasi Rp 40.000
+        $response->assertSee('20.000');
+        $response->assertDontSee('40.000');
+    }
 }
