@@ -56,6 +56,14 @@
           <p v-if="!targetPhone" class="text-[10px] text-rose-500 font-medium">
             * Nomor belum terdaftar pada profil santri. Silakan ketik nomor WhatsApp wali santri.
           </p>
+          <div v-else-if="phoneWarning" class="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] leading-relaxed">
+            <p class="font-semibold">
+              ⚠️ {{ phoneWarning }}
+            </p>
+            <p class="mt-0.5 text-zinc-600 dark:text-zinc-300">
+              Silakan periksa kembali nomor HP di profil santri atau gunakan tombol <b>Buka Chat WA</b> di bawah.
+            </p>
+          </div>
         </div>
 
         <!-- Pratinjau Kuitansi Gambar -->
@@ -196,6 +204,7 @@ const imageUrl = ref('');
 const imageBlob = ref(null);
 const imageFile = ref(null);
 const targetPhone = ref('');
+const phoneWarning = ref('');
 
 // Format nomor internasional (62...)
 function cleanPhoneNumber(phone) {
@@ -290,6 +299,7 @@ async function renderImage() {
 watch(
   [() => props.show, () => props.kuitansiData],
   ([showVal, dataVal]) => {
+    phoneWarning.value = '';
     if (showVal && dataVal) {
       targetPhone.value = dataVal.no_hp_ortu || targetPhone.value || '';
       renderImage();
@@ -316,6 +326,7 @@ function downloadImage() {
 
 // 1. Pengiriman Otomatis via Gateway Fonnte API (Server Mengirim Gambar Kuitansi Langsung ke Wali Santri)
 async function sendViaGateway() {
+  phoneWarning.value = '';
   const cleanPhone = cleanPhoneNumber(targetPhone.value);
   if (!cleanPhone) {
     toast.warning('Nomor WhatsApp tujuan belum diisi.');
@@ -361,6 +372,9 @@ async function sendViaGateway() {
   } catch (err) {
     const errMessage = err.response?.data?.message || err.message || 'Terjadi kesalahan gateway.';
     toast.error(`Kirim Gateway Gagal: ${errMessage}`);
+    if (errMessage.toLowerCase().includes('tidak terdaftar')) {
+      phoneWarning.value = errMessage;
+    }
   } finally {
     isSendingGateway.value = false;
   }

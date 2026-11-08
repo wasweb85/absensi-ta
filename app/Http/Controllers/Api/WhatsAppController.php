@@ -594,6 +594,14 @@ class WhatsAppController extends Controller
                     $stateVal = strtolower(trim((string) ($json['state'] ?? '')));
                     $stateId = trim((string) ($json['stateid'] ?? ''));
 
+                    $isRegistered = $this->waService->isNumberRegistered($log->nomor_tujuan, $token);
+                    if ($isRegistered === false) {
+                        $log->markAsFailed('Nomor tujuan tidak terdaftar di WhatsApp.');
+                        $syncedCount++;
+
+                        continue;
+                    }
+
                     if (str_contains($rawStatus, 'read') || $rawStatus === '3' || $stateVal === '3' || $stateId === '3') {
                         $log->markAsRead();
                         $syncedCount++;
@@ -662,7 +670,10 @@ class WhatsAppController extends Controller
                 $stateVal = strtolower(trim((string) ($json['state'] ?? '')));
                 $stateId = trim((string) ($json['stateid'] ?? ''));
 
-                if (str_contains($rawStatus, 'read') || $rawStatus === '3' || $stateVal === '3' || $stateId === '3') {
+                $isRegistered = $this->waService->isNumberRegistered($log->nomor_tujuan, $token);
+                if ($isRegistered === false) {
+                    $log->markAsFailed('Nomor tujuan tidak terdaftar di WhatsApp.');
+                } elseif (str_contains($rawStatus, 'read') || $rawStatus === '3' || $stateVal === '3' || $stateId === '3') {
                     $log->markAsRead();
                 } elseif (str_contains($rawStatus, 'deliver') || $rawStatus === '2' || $stateVal === '2' || $stateId === '2') {
                     if ($log->status !== 'read') {
@@ -693,5 +704,29 @@ class WhatsAppController extends Controller
                 'message' => 'Gagal menghubungi gateway Fonnte: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Memeriksa apakah suatu nomor telepon terdaftar di WhatsApp
+     */
+    public function validateNumber(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => 'required|string',
+        ]);
+
+        $phone = (string) $request->input('phone');
+        $isRegistered = $this->waService->isNumberRegistered($phone);
+
+        return response()->json([
+            'success' => true,
+            'phone' => $phone,
+            'is_registered' => $isRegistered,
+            'message' => match ($isRegistered) {
+                true => 'Nomor terdaftar di WhatsApp.',
+                false => 'Nomor tidak terdaftar di WhatsApp.',
+                null => 'Status nomor tidak dapat dipastikan saat ini (gateway offline/timeout).',
+            },
+        ]);
     }
 }

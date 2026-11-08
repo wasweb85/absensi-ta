@@ -103,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/send', [WhatsAppController::class, 'send']);
             Route::post('/send-kuitansi-image', [WhatsAppController::class, 'sendKuitansiImage']);
             Route::post('/test', [WhatsAppController::class, 'testKoneksi']);
+            Route::post('/validate-number', [WhatsAppController::class, 'validateNumber']);
             Route::post('/logs/sync-status', [WhatsAppController::class, 'syncStatus']);
             Route::post('/logs/{id}/sync-status', [WhatsAppController::class, 'syncSingleStatus']);
             Route::post('/logs/retry-failed', [WhatsAppController::class, 'retryFailed']);

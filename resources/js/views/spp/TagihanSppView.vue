@@ -1242,8 +1242,11 @@ const submitBayarMulti = async () => {
     if (res.data.success) {
       toast.success(res.data.message || 'Pembayaran SPP berhasil dicatat!');
       bayarSuccessResult.value = res.data.kuitansi;
-      loadRekapTunggakan();
-      loadTagihan(currentPage.value);
+      try {
+        await loadRekapTunggakan();
+      } catch (reloadErr) {
+        // Abaikan jika reload rekap gagal sesaat
+      }
     } else {
       toast.error(res.data.message || 'Gagal memproses pembayaran.');
     }

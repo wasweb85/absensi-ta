@@ -644,27 +644,6 @@ class ChatbotController extends Controller
             }
         }
 
-        // 4. Fallback ketika Fonnte mengirim webhook delivered/read yang hanya berisi stateid (tanpa id & tanpa target)
-        // untuk pesan yang baru saja dikirim namun belum sempat terpetakan stateid-nya
-        if (! $log && $msgId === '' && $stateId !== '') {
-            $mappedLogIds = array_values($stateIdMap);
-            $query = WhatsAppLog::whereIn('status', ['pending', 'sent', 'delivered'])
-                ->where('created_at', '>=', Carbon::now('Asia/Jakarta')->subHours(24));
-
-            if (! empty($mappedLogIds)) {
-                $query->whereNotIn('id', $mappedLogIds);
-            }
-
-            $log = $query->latest('id')->first();
-
-            if (! $log) {
-                $log = WhatsAppLog::whereIn('status', ['pending', 'sent', 'delivered'])
-                    ->where('created_at', '>=', Carbon::now('Asia/Jakarta')->subHours(6))
-                    ->latest('id')
-                    ->first();
-            }
-        }
-
         $matchedAction = 'none';
         if ($log) {
             // Simpan relasi stateid -> log_id agar callback berikutnya (delivered -> read) selalu tepat sasaran
@@ -672,37 +651,41 @@ class ChatbotController extends Controller
                 $this->saveStateIdMapping($stateId, $log->id);
             }
 
-            $isRead = $stateVal === 'read' ||
-                $statusVal === 'read' ||
-                $msgStatusVal === 'read' ||
-                str_contains($stateVal, 'read') ||
-                str_contains($statusVal, 'read') ||
-                $stateVal === '3' ||
-                $stateId === '3';
-
-            $isDelivered = $stateVal === 'delivered' ||
-                $statusVal === 'delivered' ||
-                $msgStatusVal === 'delivered' ||
-                str_contains($stateVal, 'deliver') ||
-                str_contains($statusVal, 'deliver') ||
-                $stateVal === '2' ||
-                $stateId === '2';
-
             $isFailed = $stateVal === '0' ||
                 $stateId === '0' ||
                 in_array($stateVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
                 in_array($statusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true) ||
                 in_array($msgStatusVal, ['failed', 'invalid', 'expired', 'error', 'rejected'], true);
 
-            $isSent = $stateVal === 'sent' ||
+            $isRead = ! $isFailed && ($stateVal === 'read' ||
+                $statusVal === 'read' ||
+                $msgStatusVal === 'read' ||
+                str_contains($stateVal, 'read') ||
+                str_contains($statusVal, 'read') ||
+                $stateVal === '3' ||
+                $stateId === '3');
+
+            $isDelivered = ! $isFailed && ! $isRead && ($stateVal === 'delivered' ||
+                $statusVal === 'delivered' ||
+                $msgStatusVal === 'delivered' ||
+                str_contains($stateVal, 'deliver') ||
+                str_contains($statusVal, 'deliver') ||
+                $stateVal === '2' ||
+                $stateId === '2');
+
+            $isSent = ! $isFailed && ! $isRead && ! $isDelivered && ($stateVal === 'sent' ||
                 $statusVal === 'sent' ||
                 $stateVal === 'success' ||
                 $statusVal === 'processing' ||
                 str_contains($statusVal, 'sent') ||
                 $stateVal === '1' ||
-                $stateId === '1';
+                $stateId === '1');
 
-            if ($isRead) {
+            if ($isFailed) {
+                $reason = $data['reason'] ?? $data['detail'] ?? ($stateVal === '0' ? 'Pesan tidak terkirim (Fonnte state: 0 / limit WhatsApp / nomor tidak aktif)' : "Fonnte status: {$stateVal}/{$statusVal}");
+                $log->markAsFailed((string) $reason);
+                $matchedAction = 'failed';
+            } elseif ($isRead) {
                 $log->markAsRead();
                 $matchedAction = 'read';
             } elseif ($isDelivered) {
@@ -711,10 +694,6 @@ class ChatbotController extends Controller
                     $log->markAsDelivered();
                 }
                 $matchedAction = 'delivered';
-            } elseif ($isFailed) {
-                $reason = $data['reason'] ?? $data['detail'] ?? ($stateVal === '0' ? 'Pesan tidak terkirim (Fonnte state: 0 / limit WhatsApp)' : "Fonnte status: {$stateVal}/{$statusVal}");
-                $log->markAsFailed((string) $reason);
-                $matchedAction = 'failed';
             } elseif ($isSent) {
                 // Cegah penurunan jika status sudah delivered atau read
                 if (! in_array($log->status, ['delivered', 'read'], true)) {

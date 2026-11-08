@@ -209,6 +209,60 @@ class WhatsAppService
     }
 
     /**
+     * Memeriksa apakah nomor telepon terdaftar di WhatsApp melalui API Fonnte /validate
+     *
+     * @return bool|null Mengembalikan true jika terdaftar, false jika terbukti tidak terdaftar, atau null jika status tidak dapat dipastikan (timeout/offline/unsupported).
+     */
+    public function isNumberRegistered(string $phone, ?string $customToken = null): ?bool
+    {
+        $target = self::normalizePhone($phone);
+        if (empty($target)) {
+            return false;
+        }
+
+        $token = $customToken ?: Pengaturan::getValue('fonnte_token');
+        if (empty($token)) {
+            return null;
+        }
+
+        try {
+            $response = Http::withoutVerifying()->timeout(8)->withHeaders([
+                'Authorization' => $token,
+            ])->post('https://api.fonnte.com/validate', [
+                'target' => $target,
+                'countryCode' => '62',
+            ]);
+
+            if ($response->successful()) {
+                $json = $response->json();
+                if (isset($json['status']) && $json['status'] == true) {
+                    $notRegistered = $json['not_registered'] ?? [];
+                    $cleanTarget = preg_replace('/[^0-9]/', '', $target);
+
+                    foreach ($notRegistered as $nr) {
+                        $cleanNr = preg_replace('/[^0-9]/', '', (string) $nr);
+                        if (! empty($cleanNr) && ($cleanNr === $cleanTarget || str_ends_with($cleanTarget, $cleanNr) || str_ends_with($cleanNr, $cleanTarget))) {
+                            return false;
+                        }
+                    }
+
+                    $registered = $json['registered'] ?? [];
+                    foreach ($registered as $r) {
+                        $cleanR = preg_replace('/[^0-9]/', '', (string) $r);
+                        if (! empty($cleanR) && ($cleanR === $cleanTarget || str_ends_with($cleanTarget, $cleanR) || str_ends_with($cleanR, $cleanTarget))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("Gagal validasi nomor WhatsApp {$target} via Fonnte: ".$e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
      * Mengirim pesan via Fonnte WhatsApp Gateway API dan mencatatnya ke WhatsAppLog
      */
     public function sendViaFonnte(
@@ -260,6 +314,23 @@ class WhatsAppService
                 'message' => $errorMsg,
                 'log_id' => $log->id,
             ];
+        }
+
+        // Periksa apakah nomor telepon terdaftar di WhatsApp via Fonnte Validate API
+        // Lewati jika pesan adalah balasan pesan masuk chatbot (karena pengirim sudah aktif di WhatsApp)
+        $isChatbotReply = ($metadata['tipe_pesan'] ?? ($log->tipe_pesan ?? '')) === 'chatbot_reply';
+        if (! $isChatbotReply && empty($metadata['skip_validation'])) {
+            $isRegistered = $this->isNumberRegistered($target, $token);
+            if ($isRegistered === false) {
+                $errorMsg = "Nomor tujuan ({$target}) tidak terdaftar di WhatsApp.";
+                $log->markAsFailed($errorMsg);
+
+                return [
+                    'success' => false,
+                    'message' => $errorMsg,
+                    'log_id' => $log->id,
+                ];
+            }
         }
 
         try {

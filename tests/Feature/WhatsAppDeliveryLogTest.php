@@ -449,4 +449,94 @@ class WhatsAppDeliveryLogTest extends TestCase
         $this->assertEquals('read', $log->status);
         $this->assertNotNull($log->read_at);
     }
+
+    public function test_send_fails_and_marks_log_when_number_is_not_registered_in_whatsapp(): void
+    {
+        Pengaturan::setValue('fonnte_token', 'test_fonnte_token_123');
+
+        Http::fake([
+            'https://api.fonnte.com/validate' => Http::response([
+                'status' => true,
+                'registered' => [],
+                'not_registered' => ['6282235764322'],
+            ], 200),
+            'https://api.fonnte.com/send' => Http::response([
+                'status' => true,
+                'id' => ['should_not_reach_here'],
+            ], 200),
+        ]);
+
+        $waService = app(WhatsAppService::class);
+        $result = $waService->sendViaFonnte('082235764322', 'Tes Pesan Kuitansi');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('tidak terdaftar di WhatsApp', $result['message']);
+
+        $log = WhatsAppLog::find($result['log_id']);
+        $this->assertNotNull($log);
+        $this->assertEquals('failed', $log->status);
+        $this->assertStringContainsString('tidak terdaftar di WhatsApp', $log->keterangan_error);
+
+        // Pastikan endpoint /send TIDAK dipanggil sama sekali
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'api.fonnte.com/validate'));
+        Http::assertNotSent(fn ($req) => str_contains($req->url(), 'api.fonnte.com/send'));
+    }
+
+    public function test_unmapped_stateid_webhook_does_not_hijack_unrelated_latest_log(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Buat log pesan yang masih pending/sent untuk nomor lain
+        $log = WhatsAppLog::factory()->sent()->create([
+            'fonnte_id' => 'existing_message_111',
+            'nomor_tujuan' => '6289998887776',
+        ]);
+
+        // Simulasikan webhook datang dengan stateid asing/acak tanpa ID dan tanpa nomor telepon
+        $response = $this->postJson('/api/webhook/whatsapp/status', [
+            'device' => '083836952027',
+            'stateid' => 'UNKNOWN_RANDOM_STATEID_99999',
+            'state' => 'delivered',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['matched' => false]);
+
+        // Pastikan log pesan lama TIDAK terpengaruh/dibajak statusnya
+        $log->refresh();
+        $this->assertEquals('sent', $log->status);
+        $this->assertNull($log->delivered_at);
+    }
+
+    public function test_validate_number_endpoint(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Pengaturan::setValue('fonnte_token', 'test_fonnte_token_123');
+
+        Http::fake([
+            'https://api.fonnte.com/validate' => Http::response([
+                'status' => true,
+                'registered' => ['6281234567890'],
+                'not_registered' => ['6289999999999'],
+            ], 200),
+        ]);
+
+        $resReg = $this->actingAs($admin)->postJson('/api/wa/validate-number', [
+            'phone' => '081234567890',
+        ]);
+        $resReg->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'is_registered' => true,
+            ]);
+
+        $resNotReg = $this->actingAs($admin)->postJson('/api/wa/validate-number', [
+            'phone' => '089999999999',
+        ]);
+        $resNotReg->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'is_registered' => false,
+            ]);
+    }
 }
