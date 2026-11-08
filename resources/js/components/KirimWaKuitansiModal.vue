@@ -323,6 +323,7 @@ async function autoUploadToCloudinary(base64Data) {
       if (props.kuitansiData) {
         props.kuitansiData.cloudinary_url = cloudinaryUrl.value;
         props.kuitansiData.secure_invoice_url = secureInvoiceUrl.value;
+        props.kuitansiData.invoice_url = secureInvoiceUrl.value;
       }
     }
   } catch (err) {
@@ -330,6 +331,36 @@ async function autoUploadToCloudinary(base64Data) {
     console.warn('Auto upload Cloudinary dilewati:', err.response?.data?.message || err.message);
   } finally {
     isUploadingCloudinary.value = false;
+  }
+}
+
+// Mengambil tautan kuitansi digital resmi dari server jika belum ada di data kuitansi
+async function fetchInvoiceLink() {
+  const k = props.kuitansiData;
+  if (!k) return;
+  const idPembayaran = k.id_pembayaran || (Array.isArray(k.pembayaran_ids) ? k.pembayaran_ids[0] : null);
+  const noKw = k.nomor_kuitansi;
+  if (!idPembayaran && !noKw) return;
+
+  try {
+    const res = await api.post('/spp/invoice-link', {
+      id_pembayaran: idPembayaran,
+      nomor_kuitansi: noKw,
+    });
+    if (res.data?.success && res.data.data?.secure_invoice_url) {
+      secureInvoiceUrl.value = res.data.data.secure_invoice_url;
+      if (res.data.data.cloudinary_url) {
+        cloudinaryUrl.value = res.data.data.cloudinary_url;
+        cloudinaryUploaded.value = true;
+      }
+      if (props.kuitansiData) {
+        props.kuitansiData.secure_invoice_url = secureInvoiceUrl.value;
+        props.kuitansiData.invoice_url = secureInvoiceUrl.value;
+        props.kuitansiData.invoice_token = res.data.data.invoice_token;
+      }
+    }
+  } catch (err) {
+    console.warn('Gagal memuat link invoice digital:', err.response?.data?.message || err.message);
   }
 }
 
@@ -366,6 +397,9 @@ watch(
       cloudinaryUrl.value = dataVal.cloudinary_url || '';
       secureInvoiceUrl.value = dataVal.secure_invoice_url || dataVal.invoice_url || '';
       renderImage();
+      if (!secureInvoiceUrl.value) {
+        fetchInvoiceLink();
+      }
     } else if (!showVal) {
       imageUrl.value = '';
       imageBlob.value = null;
@@ -431,6 +465,9 @@ async function sendViaGateway() {
 
   isSendingGateway.value = true;
   try {
+    if (!secureInvoiceUrl.value && (props.kuitansiData?.id_pembayaran || props.kuitansiData?.nomor_kuitansi)) {
+      await fetchInvoiceLink();
+    }
     const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;
     const caption = formatPesanWhatsApp(props.kuitansiData, invoiceLink);
 
@@ -477,6 +514,10 @@ async function sendDirectWhatsApp() {
     }
   } catch (err) {
     // Graceful ignore
+  }
+
+  if (!secureInvoiceUrl.value && (props.kuitansiData?.id_pembayaran || props.kuitansiData?.nomor_kuitansi)) {
+    await fetchInvoiceLink();
   }
 
   const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;

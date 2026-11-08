@@ -180,4 +180,32 @@ class CloudinaryInvoiceFeatureTest extends TestCase
         $this->assertNotEmpty($result['kuitansi']['invoice_token']);
         $this->assertNotEmpty($result['kuitansi']['invoice_url']);
     }
+
+    public function test_spp_get_invoice_link_endpoint_returns_valid_token_and_url(): void
+    {
+        $pembayaran = PembayaranSpp::create([
+            'id_tagihan' => $this->tagihan->id,
+            'id_siswa' => $this->siswa->id,
+            'nomor_kuitansi' => 'KW-202611-00004',
+            'tanggal_bayar' => Carbon::now('Asia/Jakarta'),
+            'jumlah_bayar' => 20000,
+            'metode_pembayaran' => 'Tunai',
+            'id_petugas' => $this->admin->id,
+            'status_transaksi' => 'valid',
+        ]);
+
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/spp/invoice-link', [
+            'nomor_kuitansi' => 'KW-202611-00004',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'data' => [
+                'nomor_kuitansi' => 'KW-202611-00004',
+            ],
+        ]);
+        $this->assertNotEmpty($response->json('data.secure_invoice_url'));
+        $this->assertStringContainsString('/invoice/', $response->json('data.secure_invoice_url'));
+    }
 }

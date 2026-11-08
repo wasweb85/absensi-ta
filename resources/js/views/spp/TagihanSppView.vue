@@ -1104,6 +1104,12 @@ const kuitansiDataForWa = computed(() => {
   const k = bayarSuccessResult.value;
   const bulanStr = k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
   return {
+    ...k,
+    id_pembayaran: k.id_pembayaran,
+    invoice_token: k.invoice_token,
+    secure_invoice_url: k.secure_invoice_url || k.invoice_url,
+    invoice_url: k.invoice_url || k.secure_invoice_url,
+    cloudinary_url: k.cloudinary_url,
     nomor_kuitansi: k.nomor_kuitansi,
     tanggal_bayar: k.tanggal_bayar,
     nama_santri: k.nama_santri,

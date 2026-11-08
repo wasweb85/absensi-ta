@@ -18,4 +18,3 @@ return [
     'secure' => (bool) env('CLOUDINARY_SECURE', true),
     'folder' => env('CLOUDINARY_FOLDER', 'tpq_invoices'),
 ];
-

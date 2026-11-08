@@ -693,6 +693,12 @@ const kuitansiDataForWa = computed(() => {
   }
 
   return {
+    ...k,
+    id_pembayaran: k.id,
+    invoice_token: k.invoice_token,
+    secure_invoice_url: k.secure_invoice_url,
+    invoice_url: k.secure_invoice_url,
+    cloudinary_url: k.cloudinary_url,
     nomor_kuitansi: k.nomor_kuitansi,
     tanggal_bayar: formatTanggal(k.tanggal_bayar),
     nama_santri: k.siswa?.nama_lengkap || '-',

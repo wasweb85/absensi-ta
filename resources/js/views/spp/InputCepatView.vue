@@ -579,6 +579,10 @@ const kuitansiDataForWa = computed(() => {
 
   return {
     ...kw,
+    id_pembayaran: kw.id_pembayaran || kw.id,
+    secure_invoice_url: kw.secure_invoice_url || kw.invoice_url,
+    invoice_url: kw.invoice_url || kw.secure_invoice_url,
+    cloudinary_url: kw.cloudinary_url,
     nama_santri: kw.nama_santri || matchingSantri?.nama_lengkap || '-',
     nisn: kw.nisn || matchingSantri?.nisn || '-',
     kelas: kw.kelas || matchingSantri?.nama_kelas || '-',

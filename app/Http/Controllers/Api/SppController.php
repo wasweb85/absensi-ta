@@ -420,6 +420,53 @@ class SppController extends Controller
     }
 
     /**
+     * Mengambil tautan kuitansi invoice digital resmi (membuat token jika belum ada)
+     */
+    public function getInvoiceLink(Request $request): JsonResponse
+    {
+        $idPembayaran = $request->input('id_pembayaran');
+        $nomorKuitansi = $request->input('nomor_kuitansi');
+
+        if (! $idPembayaran && ! $nomorKuitansi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parameter id_pembayaran atau nomor_kuitansi wajib disertakan.',
+            ], 422);
+        }
+
+        $query = PembayaranSpp::query();
+        if ($idPembayaran) {
+            $query->where('id', $idPembayaran);
+        } else {
+            $query->where('nomor_kuitansi', 'like', $nomorKuitansi.'%');
+        }
+
+        $pembayaran = $query->first();
+        if (! $pembayaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pembayaran SPP tidak ditemukan.',
+            ], 404);
+        }
+
+        if (empty($pembayaran->invoice_token)) {
+            $pembayaran->invoice_token = PembayaranSpp::generateUniqueToken();
+            $pembayaran->saveQuietly();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id_pembayaran' => $pembayaran->id,
+                'nomor_kuitansi' => $pembayaran->nomor_kuitansi,
+                'invoice_token' => $pembayaran->invoice_token,
+                'secure_invoice_url' => $pembayaran->secure_invoice_url,
+                'cloudinary_url' => $pembayaran->cloudinary_url,
+            ],
+        ]);
+    }
+
+    /**
      * Input Cepat SPP (Batch pembayaran untuk beberapa santri sekaligus)
      */
     public function inputCepat(Request $request): JsonResponse

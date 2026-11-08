@@ -91,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/batal-bayar', [SppController::class, 'batalBayar']);
         Route::post('/input-cepat', [SppController::class, 'inputCepat']);
         Route::post('/upload-invoice', [SppController::class, 'uploadInvoice']);
+        Route::post('/invoice-link', [SppController::class, 'getInvoiceLink']);
     });
 
     // WhatsApp Gateway & Delivery Logs
