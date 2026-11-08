@@ -548,12 +548,14 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuth } from '@/composables/useAuth';
 
 const { role } = useAuth();
 const canManageSiswa = computed(() => ['admin', 'sekretaris'].includes(role.value));
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 
 const isLoading = ref(true);
 const siswaList = ref([]);
@@ -732,14 +734,22 @@ const saveStudent = async () => {
 };
 
 const deleteStudent = async (student) => {
-  if (confirm(`Yakin ingin menghapus santri "${student.nama_lengkap}"? Akun dan data absensi akan terhapus.`)) {
-    try {
-      await api.delete(`/siswa/${student.id}`);
-      toast.success('Santri berhasil dihapus.');
-      loadSiswa();
-    } catch (e) {
-      toast.error('Gagal menghapus santri.');
-    }
+  const confirmed = await confirmDialog({
+    title: 'Hapus Data Santri?',
+    description: `Apakah Anda yakin ingin menghapus santri "${student.nama_lengkap}"? Akun dan data absensi terkait akan ikut terhapus.`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.delete(`/siswa/${student.id}`);
+    toast.success('Santri berhasil dihapus.');
+    loadSiswa();
+  } catch (e) {
+    toast.error('Gagal menghapus santri.');
   }
 };
 

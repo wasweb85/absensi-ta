@@ -725,9 +725,11 @@ import {
 } from '@/components/ui/dialog';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuth } from '@/composables/useAuth';
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 const { canManageWaLogs } = useAuth();
 
 const logs = ref([]);
@@ -910,7 +912,14 @@ async function confirmBulkRetry() {
     return;
   }
 
-  const ok = window.confirm(`Apakah Anda yakin ingin mengirim ulang seluruh ${summary.value.failed} pesan yang gagal?`);
+  const ok = await confirmDialog({
+    title: 'Kirim Ulang Pesan Gagal?',
+    description: `Apakah Anda yakin ingin mengirim ulang seluruh ${summary.value.failed} pesan yang gagal ke WhatsApp penerima?`,
+    confirmText: 'Ya, Kirim Ulang',
+    cancelText: 'Batal',
+    variant: 'default',
+    icon: 'refresh',
+  });
   if (!ok) return;
 
   isRetryingBulk.value = true;
@@ -928,7 +937,15 @@ async function confirmBulkRetry() {
 }
 
 async function confirmDelete(item) {
-  const ok = window.confirm(`Hapus catatan log pesan untuk ${item.nama_penerima || item.nomor_tujuan}?`);
+  const targetName = item.nama_penerima || item.nomor_tujuan;
+  const ok = await confirmDialog({
+    title: 'Hapus Catatan Log Pesan?',
+    description: `Apakah Anda yakin ingin menghapus catatan log pesan untuk "${targetName}"?\nRiwayat status pengiriman ini akan dihapus dari sistem.`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
   if (!ok) return;
 
   try {

@@ -357,8 +357,10 @@ import {
 } from '@/components/ui/dialog';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 
 const kelasList = ref([]);
 const isLoading = ref(true);
@@ -491,7 +493,15 @@ async function deleteKelas(k) {
   }
 
   const cleanName = getCleanNamaKelas(k.nama_kelas);
-  if (!confirm(`Apakah Anda yakin ingin menghapus jilid "${cleanName}"?`)) return;
+  const confirmed = await confirmDialog({
+    title: 'Hapus Jilid?',
+    description: `Apakah Anda yakin ingin menghapus jilid "${cleanName}"? Tindakan ini tidak dapat dibatalkan.`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!confirmed) return;
 
   try {
     const res = await api.delete(`/kelas/${k.id}`);

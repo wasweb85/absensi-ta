@@ -376,8 +376,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 const { user: currentUser, canManageGuru } = useAuth();
 
 const usersList = ref([]);
@@ -549,7 +551,15 @@ async function saveUser() {
 }
 
 async function deleteUser(u) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus akun "${u.name}" (@${u.username})?`)) return;
+  const confirmed = await confirmDialog({
+    title: 'Hapus Akun Pengguna?',
+    description: `Apakah Anda yakin ingin menghapus akun "${u.name}" (@${u.username})? Tindakan ini tidak dapat dibatalkan.`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!confirmed) return;
 
   try {
     const res = await api.delete(`/users/${u.id}`);

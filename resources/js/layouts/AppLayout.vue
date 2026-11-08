@@ -83,6 +83,7 @@
     </div>
 
     <ToastContainer class="print:hidden" />
+    <ConfirmDialog class="print:hidden" />
   </div>
 </template>
 
@@ -91,6 +92,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ChevronsUpDown, Clock, Download, LogOut, Menu, Moon, Sun } from '@lucide/vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import ToastContainer from '@/components/ToastContainer.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {

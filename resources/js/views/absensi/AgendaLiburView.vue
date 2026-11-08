@@ -621,8 +621,10 @@ import {
 import api from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 const { canManageAgenda } = useAuth();
 
 const activeTab = ref('agenda');
@@ -902,14 +904,22 @@ const updateAgenda = async () => {
 
 const deleteAgenda = async (id) => {
   if (!canManageAgenda.value) return;
-  if (confirm('Hapus agenda kegiatan ini?')) {
-    try {
-      await api.delete(`/agenda/${id}`);
-      toast.success('Agenda berhasil dihapus.');
-      await loadAgenda();
-    } catch (e) {
-      toast.error('Gagal menghapus agenda.');
-    }
+  const ok = await confirmDialog({
+    title: 'Hapus Agenda Kegiatan?',
+    description: 'Apakah Anda yakin ingin menghapus agenda kegiatan ini?',
+    confirmText: 'Ya, Hapus Agenda',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!ok) return;
+
+  try {
+    await api.delete(`/agenda/${id}`);
+    toast.success('Agenda berhasil dihapus.');
+    await loadAgenda();
+  } catch (e) {
+    toast.error('Gagal menghapus agenda.');
   }
 };
 
@@ -930,14 +940,22 @@ const saveLibur = async () => {
 
 const deleteLibur = async (id) => {
   if (!canManageAgenda.value) return;
-  if (confirm('Hapus hari libur ini?')) {
-    try {
-      await api.delete(`/hari-libur/${id}`);
-      toast.success('Hari libur berhasil dihapus.');
-      await loadLibur();
-    } catch (e) {
-      toast.error('Gagal menghapus hari libur.');
-    }
+  const ok = await confirmDialog({
+    title: 'Hapus Hari Libur?',
+    description: 'Apakah Anda yakin ingin menghapus data hari libur ini?',
+    confirmText: 'Ya, Hapus Libur',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!ok) return;
+
+  try {
+    await api.delete(`/hari-libur/${id}`);
+    toast.success('Hari libur berhasil dihapus.');
+    await loadLibur();
+  } catch (e) {
+    toast.error('Gagal menghapus hari libur.');
   }
 };
 

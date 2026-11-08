@@ -636,8 +636,10 @@ import {
 } from '@/components/ui/dialog';
 import api from '@/services/api';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const toast = useToast();
+const { confirm: confirmDialog } = useConfirm();
 
 const activeTab = ref('logs');
 const copiedKey = ref('');
@@ -809,7 +811,16 @@ const saveKb = async () => {
 };
 
 const deleteKb = async (item) => {
-  if (!window.confirm(`Hapus topik "${item.judul}" dari Knowledge Base?`)) return;
+  const ok = await confirmDialog({
+    title: 'Hapus Topik Knowledge Base?',
+    description: `Apakah Anda yakin ingin menghapus topik "${item.judul}" dari Knowledge Base?\nAI Chatbot tidak akan lagi menggunakan informasi ini saat menjawab wali santri.`,
+    confirmText: 'Ya, Hapus Topik',
+    cancelText: 'Batal',
+    variant: 'destructive',
+    icon: 'trash',
+  });
+  if (!ok) return;
+
   try {
     await api.delete(`/chatbot/knowledge-base/${item.id}`);
     toast.success('Topik berhasil dihapus.');
