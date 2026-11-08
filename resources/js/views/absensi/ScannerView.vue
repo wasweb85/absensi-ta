@@ -474,7 +474,7 @@ function getTingAudioElement() {
 
         for (let i = 0; i < numSamples; i++) {
           const t = i / sampleRate;
-          const env = Math.exp(-t * 6.5);
+          const env = Math.exp(-t * 4.0);
           // Lonceng "TING!": Harmonik A6 (1760 Hz) + E7 (2640 Hz) + A7 (3520 Hz)
           const val = (0.58 * Math.sin(2 * Math.PI * 1760 * t) +
                        0.28 * Math.sin(2 * Math.PI * 2640 * t) +
@@ -487,7 +487,7 @@ function getTingAudioElement() {
         tingAudioBlobUrl = URL.createObjectURL(blob);
       }
       tingAudioElement = new Audio(tingAudioBlobUrl);
-      tingAudioElement.volume = 0.95;
+      tingAudioElement.volume = 1.0;
     } catch (e) {
       console.warn('Gagal inisialisasi audio ting:', e);
     }
@@ -551,15 +551,15 @@ const playSound = (isSuccess) => {
         osc3.frequency.setValueAtTime(3520, now); // A7 (3520 Hz)
 
         gain1.gain.setValueAtTime(0.001, now);
-        gain1.gain.linearRampToValueAtTime(0.75, now + 0.003);
+        gain1.gain.linearRampToValueAtTime(1.0, now + 0.003);
         gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
 
         gain2.gain.setValueAtTime(0.001, now);
-        gain2.gain.linearRampToValueAtTime(0.35, now + 0.003);
+        gain2.gain.linearRampToValueAtTime(0.60, now + 0.003);
         gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
 
         gain3.gain.setValueAtTime(0.001, now);
-        gain3.gain.linearRampToValueAtTime(0.2, now + 0.003);
+        gain3.gain.linearRampToValueAtTime(0.40, now + 0.003);
         gain3.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
 
         osc1.connect(gain1);
