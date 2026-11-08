@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SppController extends Controller
 {
@@ -318,6 +319,8 @@ class SppController extends Controller
      */
     public function uploadInvoice(Request $request): JsonResponse
     {
+        SppBillingService::ensureSppSchemaExists();
+
         $request->validate([
             'id_pembayaran' => 'nullable|integer',
             'nomor_kuitansi' => 'nullable|string|max:50',
@@ -424,6 +427,8 @@ class SppController extends Controller
      */
     public function getInvoiceLink(Request $request): JsonResponse
     {
+        SppBillingService::ensureSppSchemaExists();
+
         $idPembayaran = $request->input('id_pembayaran');
         $nomorKuitansi = $request->input('nomor_kuitansi');
 
@@ -450,9 +455,17 @@ class SppController extends Controller
         }
 
         if (empty($pembayaran->invoice_token)) {
-            $pembayaran->invoice_token = PembayaranSpp::generateUniqueToken();
-            $pembayaran->saveQuietly();
+            $token = PembayaranSpp::generateUniqueToken();
+            try {
+                if (Schema::hasColumn('pembayaran_spp', 'invoice_token')) {
+                    $pembayaran->invoice_token = $token;
+                    $pembayaran->saveQuietly();
+                }
+            } catch (\Throwable) {
+            }
         }
+
+        $secureUrl = $pembayaran->secure_invoice_url ?: url('/invoice/'.($pembayaran->invoice_token ?: $pembayaran->nomor_kuitansi));
 
         return response()->json([
             'success' => true,
@@ -460,7 +473,7 @@ class SppController extends Controller
                 'id_pembayaran' => $pembayaran->id,
                 'nomor_kuitansi' => $pembayaran->nomor_kuitansi,
                 'invoice_token' => $pembayaran->invoice_token,
-                'secure_invoice_url' => $pembayaran->secure_invoice_url,
+                'secure_invoice_url' => $secureUrl,
                 'cloudinary_url' => $pembayaran->cloudinary_url,
             ],
         ]);

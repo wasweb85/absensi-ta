@@ -127,6 +127,42 @@
           </div>
         </div>
 
+        <!-- Tautan Kuitansi Digital Info Box -->
+        <div class="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <span>🔗 Tautan Kwitansi Digital:</span>
+            </span>
+            <button
+              v-if="resolvedInvoiceUrl"
+              type="button"
+              @click="copyInvoiceLink"
+              class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>{{ isCopied ? 'Tersalin ✓' : 'Salin Tautan' }}</span>
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              readonly
+              :value="resolvedInvoiceUrl"
+              placeholder="Membuat tautan..."
+              class="w-full px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 font-mono text-[10.5px] select-all cursor-text truncate"
+            />
+            <a
+              v-if="resolvedInvoiceUrl"
+              :href="resolvedInvoiceUrl"
+              target="_blank"
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold shrink-0 flex items-center gap-1 transition"
+              title="Buka kwitansi di tab baru"
+            >
+              <ExternalLink class="w-3 h-3" />
+              <span>Buka</span>
+            </a>
+          </div>
+        </div>
+
         <!-- Info Singkat Metode Pengiriman -->
         <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1">
           <div class="flex items-center gap-1.5 font-bold">
@@ -196,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import BaseIcon from './BaseIcon.vue';
 import { X, RefreshCw, Send, Download, Cloud, ExternalLink } from '@lucide/vue';
 import { generateKuitansiCanvas } from '../utils/kuitansiCanvas';
@@ -228,6 +264,35 @@ const imageBlob = ref(null);
 const imageFile = ref(null);
 const targetPhone = ref('');
 const phoneWarning = ref('');
+const isCopied = ref(false);
+
+const resolvedInvoiceUrl = computed(() => {
+  if (secureInvoiceUrl.value) return secureInvoiceUrl.value;
+  const k = props.kuitansiData;
+  if (!k) return '';
+  if (k.secure_invoice_url) return k.secure_invoice_url;
+  if (k.invoice_url) return k.invoice_url;
+
+  const token = k.invoice_token || k.nomor_kuitansi;
+  if (token) {
+    return `${window.location.origin}/invoice/${encodeURIComponent(token)}`;
+  }
+  return '';
+});
+
+function copyInvoiceLink() {
+  if (!resolvedInvoiceUrl.value) return;
+  try {
+    navigator.clipboard.writeText(resolvedInvoiceUrl.value);
+    isCopied.value = true;
+    toast.success('Tautan kwitansi berhasil disalin!');
+    setTimeout(() => {
+      isCopied.value = false;
+    }, 2000);
+  } catch (err) {
+    toast.info('Silakan salin tautan secara manual dari kotak teks.');
+  }
+}
 
 // Format nomor internasional (62...)
 function cleanPhoneNumber(phone) {
@@ -429,7 +494,12 @@ function downloadImage() {
 function formatPesanWhatsApp(k, invoiceLink) {
   const santri = k?.nama_santri || 'Santri';
   const periode = getPeriodeText(k);
-  const link = invoiceLink || k?.secure_invoice_url || k?.invoice_url || '';
+  let link = (invoiceLink || resolvedInvoiceUrl.value || '').trim();
+
+  if (!link && (k?.invoice_token || k?.nomor_kuitansi)) {
+    const rawToken = k.invoice_token || k.nomor_kuitansi;
+    link = `${window.location.origin}/invoice/${encodeURIComponent(rawToken)}`;
+  }
 
   return `Assalamu'alaikum Wr. Wb.
 
@@ -468,7 +538,7 @@ async function sendViaGateway() {
     if (!secureInvoiceUrl.value && (props.kuitansiData?.id_pembayaran || props.kuitansiData?.nomor_kuitansi)) {
       await fetchInvoiceLink();
     }
-    const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;
+    const invoiceLink = resolvedInvoiceUrl.value;
     const caption = formatPesanWhatsApp(props.kuitansiData, invoiceLink);
 
     const res = await api.post('/wa/send-kuitansi-image', {
@@ -520,7 +590,7 @@ async function sendDirectWhatsApp() {
     await fetchInvoiceLink();
   }
 
-  const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;
+  const invoiceLink = resolvedInvoiceUrl.value;
   const textMessage = formatPesanWhatsApp(props.kuitansiData, invoiceLink);
 
   const encodedText = encodeURIComponent(textMessage);

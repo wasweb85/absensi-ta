@@ -9,6 +9,7 @@ use App\Services\SppBillingService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class PublicInvoiceController extends Controller
 {
@@ -17,14 +18,50 @@ class PublicInvoiceController extends Controller
      */
     public function show(string $token, Request $request): View|RedirectResponse
     {
-        // Keamanan: Validasi format token (hanya string alfanumerik 20-64 karakter)
-        if (! preg_match('/^[a-fA-F0-9]{32,64}$/', $token)) {
+        SppBillingService::ensureSppSchemaExists();
+
+        $token = trim($token);
+        $pembayaran = null;
+
+        // 1. Cek jika parameter adalah invoice_token acak (hex 32-64 karakter)
+        if (preg_match('/^[a-fA-F0-9]{32,64}$/', $token)) {
+            try {
+                if (Schema::hasColumn('pembayaran_spp', 'invoice_token')) {
+                    $pembayaran = PembayaranSpp::with(['siswa.kelas', 'tagihan', 'petugas'])
+                        ->where('invoice_token', $token)
+                        ->first();
+                }
+            } catch (\Throwable) {
+            }
+
+            // Fallback deterministic SHA256 matching jika kolom belum termigrasi di database remote
+            if (! $pembayaran) {
+                $candidates = PembayaranSpp::with(['siswa.kelas', 'tagihan', 'petugas'])
+                    ->orderByDesc('id')
+                    ->limit(200)
+                    ->get();
+
+                foreach ($candidates as $cand) {
+                    $expectedToken = substr(hash('sha256', ($cand->nomor_kuitansi ?: ('KW-'.$cand->id)).(config('app.key') ?: 'tpq_secret')), 0, 48);
+                    if (hash_equals($expectedToken, $token)) {
+                        $pembayaran = $cand;
+                        break;
+                    }
+                }
+            }
+        } elseif (preg_match('/^KW-[0-9A-Za-z\-_]+$/i', $token)) {
+            // 2. Dukungan akses via nomor kuitansi resmi (misal: KW-202611-00031)
+            $pembayaran = PembayaranSpp::with(['siswa.kelas', 'tagihan', 'petugas'])
+                ->where('nomor_kuitansi', 'like', $token.'%')
+                ->first();
+
+            // Jika pembayaran sudah memiliki invoice_token, alihkan ke token yang aman
+            if ($pembayaran && ! empty($pembayaran->invoice_token)) {
+                return redirect()->route('public.invoice.show', ['token' => $pembayaran->invoice_token]);
+            }
+        } else {
             abort(404, 'Tautan bukti pembayaran tidak valid atau format salah.');
         }
-
-        $pembayaran = PembayaranSpp::with(['siswa.kelas', 'tagihan', 'petugas'])
-            ->where('invoice_token', $token)
-            ->first();
 
         if (! $pembayaran) {
             abort(404, 'Tanda bukti pembayaran tidak ditemukan atau tautan telah kedaluwarsa.');

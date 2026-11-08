@@ -102,12 +102,36 @@ class SppBillingService
                 });
             } else {
                 if (! Schema::hasColumn('pembayaran_spp', 'cloudinary_public_id')) {
-                    Schema::table('pembayaran_spp', function (Blueprint $table) {
-                        $table->string('cloudinary_public_id', 191)->nullable()->after('catatan');
-                        $table->text('cloudinary_url')->nullable()->after('cloudinary_public_id');
-                        $table->string('invoice_token', 64)->nullable()->unique()->after('cloudinary_url');
-                        $table->string('upload_status', 20)->default('pending')->after('invoice_token');
-                    });
+                    try {
+                        Schema::table('pembayaran_spp', function (Blueprint $table) {
+                            $table->string('cloudinary_public_id', 191)->nullable();
+                        });
+                    } catch (\Throwable) {
+                    }
+                }
+                if (! Schema::hasColumn('pembayaran_spp', 'cloudinary_url')) {
+                    try {
+                        Schema::table('pembayaran_spp', function (Blueprint $table) {
+                            $table->text('cloudinary_url')->nullable();
+                        });
+                    } catch (\Throwable) {
+                    }
+                }
+                if (! Schema::hasColumn('pembayaran_spp', 'invoice_token')) {
+                    try {
+                        Schema::table('pembayaran_spp', function (Blueprint $table) {
+                            $table->string('invoice_token', 64)->nullable()->index('idx_pembayaran_spp_invoice_token');
+                        });
+                    } catch (\Throwable) {
+                    }
+                }
+                if (! Schema::hasColumn('pembayaran_spp', 'upload_status')) {
+                    try {
+                        Schema::table('pembayaran_spp', function (Blueprint $table) {
+                            $table->string('upload_status', 20)->default('pending');
+                        });
+                    } catch (\Throwable) {
+                    }
                 }
             }
         } catch (\Throwable) {

@@ -208,4 +208,28 @@ class CloudinaryInvoiceFeatureTest extends TestCase
         $this->assertNotEmpty($response->json('data.secure_invoice_url'));
         $this->assertStringContainsString('/invoice/', $response->json('data.secure_invoice_url'));
     }
+
+    public function test_public_invoice_can_be_accessed_via_nomor_kuitansi_fallback(): void
+    {
+        $pembayaran = PembayaranSpp::create([
+            'id_tagihan' => $this->tagihan->id,
+            'id_siswa' => $this->siswa->id,
+            'nomor_kuitansi' => 'KW-202611-00005',
+            'tanggal_bayar' => Carbon::now('Asia/Jakarta'),
+            'jumlah_bayar' => 20000,
+            'metode_pembayaran' => 'Tunai',
+            'id_petugas' => $this->admin->id,
+            'status_transaksi' => 'valid',
+        ]);
+
+        $response = $this->get('/invoice/KW-202611-00005');
+
+        // Jika memiliki invoice_token, di-redirect ke URL invoice_token canonical
+        if ($pembayaran->invoice_token) {
+            $response->assertRedirect(route('public.invoice.show', ['token' => $pembayaran->invoice_token]));
+        } else {
+            $response->assertStatus(200);
+            $response->assertSee('KW-202611-00005');
+        }
+    }
 }

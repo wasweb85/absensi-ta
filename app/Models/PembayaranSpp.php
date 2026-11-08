@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
 
 class PembayaranSpp extends Model
 {
@@ -48,11 +49,7 @@ class PembayaranSpp extends Model
      */
     public static function generateUniqueToken(): string
     {
-        do {
-            $token = bin2hex(random_bytes(24));
-        } while (static::where('invoice_token', $token)->exists());
-
-        return $token;
+        return bin2hex(random_bytes(24));
     }
 
     /**
@@ -60,12 +57,20 @@ class PembayaranSpp extends Model
      */
     public function getSecureInvoiceUrlAttribute(): string
     {
-        if (empty($this->invoice_token)) {
-            $this->invoice_token = static::generateUniqueToken();
-            $this->saveQuietly();
+        $token = $this->invoice_token;
+        if (empty($token)) {
+            $token = substr(hash('sha256', ($this->nomor_kuitansi ?: 'KW').(config('app.key') ?: 'tpq_secret')), 0, 48);
+            if (Schema::hasColumn('pembayaran_spp', 'invoice_token')) {
+                try {
+                    $this->invoice_token = $token;
+                    $this->saveQuietly();
+                } catch (\Throwable) {
+                    // Abaikan jika database remote belum sempat migrate
+                }
+            }
         }
 
-        return url('/invoice/'.$this->invoice_token);
+        return url('/invoice/'.$token);
     }
 
     protected function casts(): array

@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
 // Tautan Publik Invoice / Kuitansi SPP Digital yang Aman
-Route::get('/invoice/{token}', [PublicInvoiceController::class, 'show'])->middleware('throttle:60,1');
+Route::get('/invoice/{token}', [PublicInvoiceController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('public.invoice.show');
 
 // Alias Webhook WhatsApp Gateway Fonnte jika pengguna memasukkan URL tanpa prefix /api
 Route::match(['get', 'post'], '/webhook/whatsapp', [ChatbotController::class, 'webhook'])->middleware('throttle:120,1');
