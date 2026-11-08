@@ -94,8 +94,21 @@ class SppBillingService
                     $table->text('alasan_pembatalan')->nullable();
                     $table->string('dibatalkan_oleh', 100)->nullable();
                     $table->text('catatan')->nullable();
+                    $table->string('cloudinary_public_id', 191)->nullable();
+                    $table->text('cloudinary_url')->nullable();
+                    $table->string('invoice_token', 64)->nullable()->unique();
+                    $table->string('upload_status', 20)->default('pending');
                     $table->timestamps();
                 });
+            } else {
+                if (! Schema::hasColumn('pembayaran_spp', 'cloudinary_public_id')) {
+                    Schema::table('pembayaran_spp', function (Blueprint $table) {
+                        $table->string('cloudinary_public_id', 191)->nullable()->after('catatan');
+                        $table->text('cloudinary_url')->nullable()->after('cloudinary_public_id');
+                        $table->string('invoice_token', 64)->nullable()->unique()->after('cloudinary_url');
+                        $table->string('upload_status', 20)->default('pending')->after('invoice_token');
+                    });
+                }
             }
         } catch (\Throwable) {
             // Abaikan jika gagal DDL
@@ -339,7 +352,11 @@ class SppBillingService
                 'success' => true,
                 'message' => "Pembayaran berhasil disimpan. Kuitansi: {$noKuitansi}",
                 'kuitansi' => [
+                    'id_pembayaran' => $pembayaran->id,
                     'nomor_kuitansi' => $noKuitansi,
+                    'invoice_token' => $pembayaran->invoice_token,
+                    'invoice_url' => $pembayaran->secure_invoice_url,
+                    'cloudinary_url' => $pembayaran->cloudinary_url,
                     'tanggal_bayar' => $pembayaran->tanggal_bayar->format('d/m/Y H:i'),
                     'nama_santri' => $tagihan->siswa->nama_lengkap,
                     'nisn' => $tagihan->siswa->nisn,
@@ -413,6 +430,7 @@ class SppBillingService
             $now = Carbon::now('Asia/Jakarta');
             $totalBayar = 0;
             $daftarBulan = [];
+            $createdPembayaranList = [];
             $isMulti = count($tagihanList) > 1;
             $idx = 1;
 
@@ -429,7 +447,7 @@ class SppBillingService
                 $itemKuitansi = $isMulti ? "{$baseKuitansi}-{$idx}" : $baseKuitansi;
                 $idx++;
 
-                PembayaranSpp::create([
+                $pembayaranItem = PembayaranSpp::create([
                     'id_tagihan' => $tagihan->id,
                     'id_siswa' => $idSiswa,
                     'nomor_kuitansi' => $itemKuitansi,
@@ -440,6 +458,7 @@ class SppBillingService
                     'status_transaksi' => 'valid',
                     'catatan' => $catatan ?: "Pelunasan Multi-Bulan ({$tagihan->bulan}/{$tagihan->tahun})",
                 ]);
+                $createdPembayaranList[] = $pembayaranItem;
 
                 $tagihan->update(['status' => 'lunas']);
 
@@ -458,12 +477,18 @@ class SppBillingService
 
             $bulanLabels = array_column($daftarBulan, 'label');
             $bulanStr = implode(', ', $bulanLabels);
+            $firstPembayaran = $createdPembayaranList[0] ?? null;
 
             return [
                 'success' => true,
                 'message' => "Pembayaran {$bulanStr} berhasil disimpan. Kuitansi: {$baseKuitansi}",
                 'kuitansi' => [
+                    'id_pembayaran' => $firstPembayaran?->id,
                     'nomor_kuitansi' => $baseKuitansi,
+                    'invoice_token' => $firstPembayaran?->invoice_token,
+                    'invoice_url' => $firstPembayaran?->secure_invoice_url,
+                    'cloudinary_url' => $firstPembayaran?->cloudinary_url,
+                    'pembayaran_ids' => array_map(fn ($p) => $p->id, $createdPembayaranList),
                     'tanggal_bayar' => $now->format('d/m/Y H:i'),
                     'nama_santri' => $siswa->nama_lengkap,
                     'nisn' => $siswa->nisn,

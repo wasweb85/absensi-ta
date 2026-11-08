@@ -9,6 +9,7 @@ use App\Models\PembayaranSpp;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
 use App\Models\User;
+use App\Services\CloudinaryInvoiceService;
 use App\Services\SppBillingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 class SppController extends Controller
 {
     public function __construct(
-        protected SppBillingService $billingService
+        protected SppBillingService $billingService,
+        protected CloudinaryInvoiceService $cloudinaryService
     ) {
         SppBillingService::ensureSppSchemaExists();
     }
@@ -309,6 +311,112 @@ class SppController extends Controller
         }
 
         return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    /**
+     * Upload gambar kuitansi invoice SPP ke Cloudinary dan perbarui database
+     */
+    public function uploadInvoice(Request $request): JsonResponse
+    {
+        $request->validate([
+            'id_pembayaran' => 'nullable|integer',
+            'nomor_kuitansi' => 'nullable|string|max:50',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg|max:5120',
+            'image_base64' => 'nullable|string',
+        ]);
+
+        $idPembayaran = $request->input('id_pembayaran');
+        $nomorKuitansi = $request->input('nomor_kuitansi');
+
+        if (! $idPembayaran && ! $nomorKuitansi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parameter id_pembayaran atau nomor_kuitansi wajib disertakan.',
+            ], 422);
+        }
+
+        $query = PembayaranSpp::query();
+        if ($idPembayaran) {
+            $query->where('id', $idPembayaran);
+        } else {
+            $query->where('nomor_kuitansi', 'like', $nomorKuitansi.'%');
+        }
+
+        $pembayaran = $query->first();
+        if (! $pembayaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pembayaran SPP tidak ditemukan.',
+            ], 404);
+        }
+
+        $imageSource = $request->file('image') ?: $request->input('image_base64');
+        if (empty($imageSource)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File gambar atau data base64 kuitansi wajib dikirimkan.',
+            ], 422);
+        }
+
+        $result = $this->cloudinaryService->uploadInvoiceImage(
+            $imageSource,
+            $pembayaran->nomor_kuitansi,
+            $pembayaran->invoice_token
+        );
+
+        if (! $result['success']) {
+            $pembayaran->update(['upload_status' => 'failed']);
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'] ?? 'Gagal mengunggah invoice ke Cloudinary.',
+            ], 422);
+        }
+
+        $pembayaran->update([
+            'cloudinary_public_id' => $result['public_id'],
+            'cloudinary_url' => $result['secure_url'],
+            'upload_status' => 'success',
+        ]);
+
+        // Jika nomor kuitansi multi-bulan (contoh KW-202611-00055-1), sinkronkan link ke saudara-saudaranya
+        if (str_contains($pembayaran->nomor_kuitansi, '-')) {
+            $parts = explode('-', $pembayaran->nomor_kuitansi);
+            if (count($parts) >= 3) {
+                $basePrefix = $parts[0].'-'.$parts[1];
+                PembayaranSpp::where('nomor_kuitansi', 'like', "{$basePrefix}%")
+                    ->where('id', '!=', $pembayaran->id)
+                    ->update([
+                        'cloudinary_public_id' => $result['public_id'],
+                        'cloudinary_url' => $result['secure_url'],
+                        'upload_status' => 'success',
+                    ]);
+            }
+        }
+
+        ActivityLog::record(
+            modul: 'spp',
+            aksi: 'upload_invoice_cloudinary',
+            deskripsi: "Mengunggah invoice digital SPP kuitansi {$pembayaran->nomor_kuitansi} ke Cloudinary",
+            properties: [
+                'id_pembayaran' => $pembayaran->id,
+                'nomor_kuitansi' => $pembayaran->nomor_kuitansi,
+                'public_id' => $result['public_id'],
+                'url' => $result['secure_url'],
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice berhasil diunggah ke Cloudinary.',
+            'data' => [
+                'id_pembayaran' => $pembayaran->id,
+                'nomor_kuitansi' => $pembayaran->nomor_kuitansi,
+                'cloudinary_url' => $pembayaran->cloudinary_url,
+                'invoice_token' => $pembayaran->invoice_token,
+                'secure_invoice_url' => $pembayaran->secure_invoice_url,
+            ],
+        ]);
     }
 
     /**

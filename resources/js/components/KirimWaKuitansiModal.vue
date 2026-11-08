@@ -74,18 +74,37 @@
               <span v-if="isGenerating" class="text-[10px] text-emerald-600 flex items-center gap-1">
                 <RefreshCw class="w-3 h-3 animate-spin" /> Merender...
               </span>
+              <span v-else-if="isUploadingCloudinary" class="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <RefreshCw class="w-3 h-3 animate-spin" /> Simpan Cloud...
+              </span>
+              <span v-else-if="cloudinaryUploaded || props.kuitansiData?.cloudinary_url" class="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                <Cloud class="w-3 h-3" /> Cloud Tersimpan
+              </span>
             </span>
 
-            <button
-              v-if="imageUrl"
-              type="button"
-              @click="downloadImage"
-              class="text-[10px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
-              title="Unduh file gambar kuitansi ke perangkat"
-            >
-              <Download class="w-3 h-3" />
-              <span>Unduh PNG</span>
-            </button>
+            <div class="flex items-center gap-2">
+              <a
+                v-if="secureInvoiceUrl || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url"
+                :href="secureInvoiceUrl || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url"
+                target="_blank"
+                class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                title="Buka halaman kuitansi digital resmi publik"
+              >
+                <ExternalLink class="w-3 h-3" />
+                <span>Link Digital</span>
+              </a>
+
+              <button
+                v-if="imageUrl"
+                type="button"
+                @click="downloadImage"
+                class="text-[10px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
+                title="Unduh file gambar kuitansi ke perangkat"
+              >
+                <Download class="w-3 h-3" />
+                <span>Unduh PNG</span>
+              </button>
+            </div>
           </div>
 
           <!-- Container Image Preview -->
@@ -179,7 +198,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import BaseIcon from './BaseIcon.vue';
-import { X, RefreshCw, Send, Download } from '@lucide/vue';
+import { X, RefreshCw, Send, Download, Cloud, ExternalLink } from '@lucide/vue';
 import { generateKuitansiCanvas } from '../utils/kuitansiCanvas';
 import api from '../services/api';
 import { useToast } from '../composables/useToast';
@@ -200,6 +219,10 @@ const toast = useToast();
 
 const isGenerating = ref(false);
 const isSendingGateway = ref(false);
+const isUploadingCloudinary = ref(false);
+const cloudinaryUploaded = ref(false);
+const cloudinaryUrl = ref('');
+const secureInvoiceUrl = ref('');
 const imageUrl = ref('');
 const imageBlob = ref(null);
 const imageFile = ref(null);
@@ -276,6 +299,40 @@ function getPeriodeText(k) {
   return 'SPP Bulanan';
 }
 
+// Unggah otomatis gambar kuitansi ke Cloudinary di latar belakang
+async function autoUploadToCloudinary(base64Data) {
+  const k = props.kuitansiData;
+  if (!k) return;
+  const idPembayaran = k.id_pembayaran || (Array.isArray(k.pembayaran_ids) ? k.pembayaran_ids[0] : null);
+  const noKw = k.nomor_kuitansi;
+
+  if (!idPembayaran && !noKw) return;
+
+  isUploadingCloudinary.value = true;
+  try {
+    const res = await api.post('/spp/upload-invoice', {
+      id_pembayaran: idPembayaran,
+      nomor_kuitansi: noKw,
+      image_base64: base64Data,
+    });
+
+    if (res.data?.success) {
+      cloudinaryUploaded.value = true;
+      cloudinaryUrl.value = res.data.data?.cloudinary_url || '';
+      secureInvoiceUrl.value = res.data.data?.secure_invoice_url || '';
+      if (props.kuitansiData) {
+        props.kuitansiData.cloudinary_url = cloudinaryUrl.value;
+        props.kuitansiData.secure_invoice_url = secureInvoiceUrl.value;
+      }
+    }
+  } catch (err) {
+    // Abaikan jika kredensial Cloudinary belum diisi admin atau server offline
+    console.warn('Auto upload Cloudinary dilewati:', err.response?.data?.message || err.message);
+  } finally {
+    isUploadingCloudinary.value = false;
+  }
+}
+
 // Render Gambar Kuitansi setiap kali modal dibuka atau data kuitansi tersedia
 async function renderImage() {
   if (!props.kuitansiData) return;
@@ -288,6 +345,9 @@ async function renderImage() {
     imageUrl.value = result.dataUrl;
     imageBlob.value = result.blob;
     imageFile.value = result.file;
+
+    // Trigger upload otomatis ke Cloudinary di background
+    autoUploadToCloudinary(result.dataUrl);
   } catch (err) {
     console.error('Gagal membuat gambar kuitansi:', err);
     toast.error('Gagal membuat gambar kuitansi.');
@@ -302,11 +362,18 @@ watch(
     phoneWarning.value = '';
     if (showVal && dataVal) {
       targetPhone.value = dataVal.no_hp_ortu || targetPhone.value || '';
+      cloudinaryUploaded.value = Boolean(dataVal.cloudinary_url);
+      cloudinaryUrl.value = dataVal.cloudinary_url || '';
+      secureInvoiceUrl.value = dataVal.secure_invoice_url || dataVal.invoice_url || '';
       renderImage();
     } else if (!showVal) {
       imageUrl.value = '';
       imageBlob.value = null;
       imageFile.value = null;
+      isUploadingCloudinary.value = false;
+      cloudinaryUploaded.value = false;
+      cloudinaryUrl.value = '';
+      secureInvoiceUrl.value = '';
     }
   },
   { immediate: true, deep: true },
@@ -322,6 +389,30 @@ function downloadImage() {
   link.click();
   document.body.removeChild(link);
   toast.success('Gambar kuitansi berhasil diunduh ke perangkat.');
+}
+
+// Memformat teks pesan kuitansi WhatsApp sesuai format resmi TPQ
+function formatPesanWhatsApp(k, invoiceLink) {
+  const santri = k?.nama_santri || 'Santri';
+  const periode = getPeriodeText(k);
+  const link = invoiceLink || k?.secure_invoice_url || k?.invoice_url || '';
+
+  return `Assalamu'alaikum Wr. Wb.
+
+Yth. Wali Santri,
+
+Pembayaran SPP telah berhasil dicatat.
+
+Berikut bukti pembayaran:
+Nama Santri: ${santri}
+Periode: ${periode}
+Status: LUNAS
+
+Silakan klik tautan berikut untuk melihat kwitansi pembayaran:
+
+${link}
+
+Terima kasih.`;
 }
 
 // 1. Pengiriman Otomatis via Gateway Fonnte API (Server Mengirim Gambar Kuitansi Langsung ke Wali Santri)
@@ -340,19 +431,8 @@ async function sendViaGateway() {
 
   isSendingGateway.value = true;
   try {
-    const k = props.kuitansiData || {};
-    const santri = k.nama_santri || 'Santri';
-    const kelas = k.kelas ? ` (${k.kelas})` : '';
-    const noKw = k.nomor_kuitansi || '-';
-    const periode = getPeriodeText(k);
-    const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
-    const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    const bendahara = k.nama_bendahara || 'Bendahara TPQ';
-    const catatanTambahan = (k.catatan && k.catatan !== 'Input Cepat SPP' && !k.catatan.toLowerCase().startsWith('pelunasan multi-bulan'))
-      ? `\n• Catatan: _${k.catatan}_`
-      : '';
-
-    const caption = `*BUKTI PEMBAYARAN SPP RESMI*\nTPQ Nurul Mun'im\n\n• No. Kuitansi: *${noKw}*\n• Nama: *${santri}*${kelas}\n• Periode: *${periode}*\n• Total: *Rp ${nominal}*\n• Tanggal: *${tanggal}*\n• Status: *LUNAS*\n• Bendahara: *${bendahara}*${catatanTambahan}\n\nJazakumullah khairan katsiran.`;
+    const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;
+    const caption = formatPesanWhatsApp(props.kuitansiData, invoiceLink);
 
     const res = await api.post('/wa/send-kuitansi-image', {
       phone: cleanPhone,
@@ -399,31 +479,8 @@ async function sendDirectWhatsApp() {
     // Graceful ignore
   }
 
-  const k = props.kuitansiData || {};
-  const namaSantri = k.nama_santri || 'Santri';
-  const kelas = k.kelas ? ` (${k.kelas})` : '';
-  const noKw = k.nomor_kuitansi || '-';
-  const periode = getPeriodeText(k);
-  const nominal = Number(k.jumlah_bayar || k.total_bayar || 0).toLocaleString('id-ID');
-  const tanggal = k.tanggal_bayar || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  const bendahara = k.nama_bendahara || 'Bendahara TPQ';
-  const catatanTambahan = (k.catatan && k.catatan !== 'Input Cepat SPP' && !k.catatan.toLowerCase().startsWith('pelunasan multi-bulan'))
-    ? `\n• Catatan: _${k.catatan}_`
-    : '';
-
-  const textMessage = `Assalamu'alaikum Warahmatullahi Wabarakatuh.
-Yth. Bapak/Ibu Wali dari ananda *${namaSantri}*${kelas},
-
-Alhamdulillah, pembayaran SPP telah kami terima dan tercatat di sistem:
-• No. Kuitansi: *${noKw}*
-• Periode: *${periode}*
-• Total Bayar: *Rp ${nominal}*
-• Tanggal: *${tanggal}*
-• Status: *LUNAS*
-• Bendahara: *${bendahara}*${catatanTambahan}
-
-Jazakumullah khairan katsiran atas pembayaran kewajiban administrasi santri.
-Wassalamu'alaikum Warahmatullahi Wabarakatuh.`;
+  const invoiceLink = secureInvoiceUrl.value || props.kuitansiData?.secure_invoice_url || props.kuitansiData?.invoice_url;
+  const textMessage = formatPesanWhatsApp(props.kuitansiData, invoiceLink);
 
   const encodedText = encodeURIComponent(textMessage);
   const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;

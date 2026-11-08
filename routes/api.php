@@ -90,6 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bayar-multi', [SppController::class, 'bayarMulti']);
         Route::post('/batal-bayar', [SppController::class, 'batalBayar']);
         Route::post('/input-cepat', [SppController::class, 'inputCepat']);
+        Route::post('/upload-invoice', [SppController::class, 'uploadInvoice']);
     });
 
     // WhatsApp Gateway & Delivery Logs
@@ -150,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/test-telegram', [SettingController::class, 'testTelegramConnection']);
             Route::post('/trigger-agenda-telegram', [SettingController::class, 'triggerAgendaReminder']);
             Route::post('/test-spreadsheet', [SettingController::class, 'testSpreadsheetWebhook']);
+            Route::post('/test-cloudinary', [SettingController::class, 'testCloudinary']);
             Route::post('/migrate', [SettingController::class, 'runMigrations']);
         });
     });

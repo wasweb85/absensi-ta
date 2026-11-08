@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Pengaturan;
 use App\Models\User;
+use App\Services\CloudinaryInvoiceService;
 use App\Services\ConversationService;
 use App\Services\KnowledgeBaseService;
 use App\Services\TelegramService;
@@ -108,6 +109,18 @@ class SettingController extends Controller
             'message' => 'Pengaturan berhasil disimpan',
             'data' => Pengaturan::all()->pluck('value', 'key'),
         ]);
+    }
+
+    public function testCloudinary(Request $request, CloudinaryInvoiceService $cloudinaryService): JsonResponse
+    {
+        $cloudName = $request->input('cloud_name') ?: Pengaturan::getValue('cloudinary_cloud_name');
+        $apiKey = $request->input('api_key') ?: Pengaturan::getValue('cloudinary_api_key');
+        $apiSecret = $request->input('api_secret') ?: Pengaturan::getValue('cloudinary_api_secret');
+        $url = $request->input('url') ?: Pengaturan::getValue('cloudinary_url');
+
+        $result = $cloudinaryService->testConnection($cloudName, $apiKey, $apiSecret, $url);
+
+        return response()->json($result, $result['success'] ? 200 : 422);
     }
 
     public function testSpreadsheetWebhook(Request $request): JsonResponse

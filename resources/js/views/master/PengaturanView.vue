@@ -51,8 +51,9 @@
             <option value="jam">2. Jam Operasional</option>
             <option value="whatsapp">3. WhatsApp Gateway (Fonnte)</option>
             <option value="telegram">4. Bot Telegram </option>
-            <option v-if="!isInstalled" value="pwa">5. Aplikasi Mobile (PWA)</option>
-            <option value="database">{{ !isInstalled ? '6. Pemeliharaan Database' : '5. Pemeliharaan Database' }}</option>
+            <option value="cloudinary">5. Cloudinary (Invoice SPP)</option>
+            <option v-if="!isInstalled" value="pwa">6. Aplikasi Mobile (PWA)</option>
+            <option value="database">{{ !isInstalled ? '7. Pemeliharaan Database' : '6. Pemeliharaan Database' }}</option>
           </select>
           <ChevronDown class="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
@@ -574,7 +575,126 @@
         </div>
       </div>
 
-      <!-- 5. Aplikasi Mobile (PWA) - Otomatis tersembunyi jika aplikasi sudah didownload/terpasang -->
+      <!-- 5. Cloudinary (Penyimpanan Invoice SPP) -->
+      <div
+        v-show="shouldShowCategory('cloudinary')"
+        class="rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all"
+        :class="{ 'ring-1 ring-primary/30': openCategories.cloudinary }"
+      >
+        <!-- Dropdown Header Trigger -->
+        <button
+          type="button"
+          class="w-full flex items-center justify-between p-3.5 sm:p-4 text-left cursor-pointer hover:bg-muted/30 transition-colors select-none"
+          :aria-expanded="openCategories.cloudinary"
+          @click="toggleCategory('cloudinary')"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="size-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Cloud class="size-4" />
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-semibold text-foreground">Cloudinary (Invoice SPP)</span>
+                <Badge
+                  :variant="settings.cloudinary_cloud_name || settings.cloudinary_url ? 'default' : 'secondary'"
+                  class="text-[10px] px-1.5 py-0"
+                >
+                  {{ settings.cloudinary_cloud_name || settings.cloudinary_url ? 'Terkonfigurasi' : 'Belum Diatur' }}
+                </Badge>
+              </div>
+              <p class="text-xs text-muted-foreground truncate mt-0.5">
+                Penyimpanan cloud otomatis untuk kuitansi & tautan invoice SPP santri
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            class="size-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-2"
+            :class="{ 'rotate-180': openCategories.cloudinary }"
+          />
+        </button>
+
+        <!-- Dropdown Body -->
+        <div
+          v-show="openCategories.cloudinary"
+          class="p-4 sm:p-5 pt-0 space-y-4 border-t border-border/40"
+        >
+          <div class="rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 p-3 text-xs text-sky-800 dark:text-sky-300 space-y-1">
+            <p class="font-medium">💡 Penyimpanan Invoice Digital Cloudinary</p>
+            <p class="text-[11px] leading-relaxed opacity-90">
+              Setiap kali pembayaran SPP dicatat, gambar kuitansi otomatis diunggah ke Cloudinary. Wali santri dapat mengunduh atau membuka bukti pembayaran resmi secara aman melalui tautan digital terenkripsi.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+            <div class="space-y-1.5">
+              <Label for="cloudinary_cloud_name" class="text-xs font-medium">Cloud Name</Label>
+              <Input
+                id="cloudinary_cloud_name"
+                v-model="settings.cloudinary_cloud_name"
+                type="text"
+                placeholder="Contoh: demo-tpq"
+                class="h-9 text-xs"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="cloudinary_api_key" class="text-xs font-medium">API Key</Label>
+              <Input
+                id="cloudinary_api_key"
+                v-model="settings.cloudinary_api_key"
+                type="text"
+                placeholder="Contoh: 123456789012345"
+                class="h-9 text-xs"
+              />
+            </div>
+
+            <div class="space-y-1.5 sm:col-span-2">
+              <Label for="cloudinary_api_secret" class="text-xs font-medium">API Secret</Label>
+              <Input
+                id="cloudinary_api_secret"
+                v-model="settings.cloudinary_api_secret"
+                type="password"
+                placeholder="••••••••••••••••••••••••••••••••"
+                class="h-9 text-xs"
+              />
+            </div>
+
+            <div class="space-y-1.5 sm:col-span-2">
+              <div class="flex items-center justify-between">
+                <Label for="cloudinary_url" class="text-xs font-medium">Atau Gunakan CLOUDINARY_URL Lengkap (Opsional)</Label>
+                <span class="text-[10px] text-muted-foreground font-mono">cloudinary://key:secret@cloudname</span>
+              </div>
+              <Input
+                id="cloudinary_url"
+                v-model="settings.cloudinary_url"
+                type="password"
+                placeholder="cloudinary://API_KEY:API_SECRET@CLOUD_NAME"
+                class="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-border/40">
+            <p class="text-[11px] text-muted-foreground">
+              Dapat juga disetel via file <code class="px-1 py-0.5 rounded bg-muted text-[10px]">.env</code>
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="h-8 text-xs cursor-pointer gap-1.5"
+              :disabled="isTestingCloudinary"
+              @click="testCloudinaryConnection"
+            >
+              <RefreshCw v-if="isTestingCloudinary" class="size-3.5 animate-spin" />
+              <Cloud v-else class="size-3.5" />
+              <span>{{ isTestingCloudinary ? 'Menguji...' : 'Tes Koneksi Cloudinary' }}</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Aplikasi Mobile (PWA) - Otomatis tersembunyi jika aplikasi sudah didownload/terpasang -->
       <div
         v-if="!isInstalled"
         v-show="shouldShowCategory('pwa')"
@@ -738,6 +858,7 @@ import {
   Check,
   ChevronDown,
   Clock,
+  Cloud,
   Database,
   Download,
   Image as ImageIcon,
@@ -770,6 +891,7 @@ const categories = computed(() => {
     { id: 'jam', shortLabel: 'Jam & Hari', icon: Clock },
     { id: 'whatsapp', shortLabel: 'WhatsApp', icon: MessageSquare },
     { id: 'telegram', shortLabel: 'Telegram', icon: Send },
+    { id: 'cloudinary', shortLabel: 'Cloudinary', icon: Cloud },
   ];
   if (!isInstalled.value) {
     list.push({ id: 'pwa', shortLabel: 'PWA Mobile', icon: Smartphone });
@@ -788,6 +910,7 @@ const openCategories = ref({
   jam: false,
   whatsapp: false,
   telegram: false,
+  cloudinary: false,
   pwa: false,
   database: false,
 });
@@ -837,6 +960,7 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const isTestingWa = ref(false);
 const isTestingTelegram = ref(false);
+const isTestingCloudinary = ref(false);
 const isTriggeringAgenda = ref(false);
 const isMigrating = ref(false);
 const migrationOutput = ref('');
@@ -860,6 +984,10 @@ const settings = ref({
   telegram_chat_id: '',
   telegram_notif_agenda_aktif: '1',
   telegram_notif_agenda_jam: '07:00',
+  cloudinary_cloud_name: '',
+  cloudinary_api_key: '',
+  cloudinary_api_secret: '',
+  cloudinary_url: '',
 });
 
 // Dirty state tracking
@@ -1067,6 +1195,35 @@ async function handleTriggerAgendaTelegram() {
     toast.error(`Error: ${msg}`);
   } finally {
     isTriggeringAgenda.value = false;
+  }
+}
+
+async function testCloudinaryConnection() {
+  const hasCreds = settings.value.cloudinary_url || (settings.value.cloudinary_cloud_name && settings.value.cloudinary_api_key && settings.value.cloudinary_api_secret);
+  if (!hasCreds) {
+    toast.warning('Silakan isi Cloud Name, API Key & Secret, atau CLOUDINARY_URL terlebih dahulu.');
+    return;
+  }
+
+  isTestingCloudinary.value = true;
+  try {
+    const res = await api.post('/pengaturan/test-cloudinary', {
+      cloud_name: settings.value.cloudinary_cloud_name,
+      api_key: settings.value.cloudinary_api_key,
+      api_secret: settings.value.cloudinary_api_secret,
+      url: settings.value.cloudinary_url,
+    });
+
+    if (res.data?.success) {
+      toast.success(res.data.message || 'Koneksi ke server Cloudinary berhasil terverifikasi!');
+    } else {
+      toast.error(res.data.message || 'Koneksi ke Cloudinary gagal.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message || 'Gagal menghubungi server Cloudinary.';
+    toast.error(`Uji Cloudinary Gagal: ${msg}`);
+  } finally {
+    isTestingCloudinary.value = false;
   }
 }
 

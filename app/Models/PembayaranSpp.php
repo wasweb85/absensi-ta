@@ -24,7 +24,49 @@ class PembayaranSpp extends Model
         'alasan_pembatalan',
         'dibatalkan_oleh',
         'catatan',
+        'cloudinary_public_id',
+        'cloudinary_url',
+        'invoice_token',
+        'upload_status',
     ];
+
+    protected $appends = [
+        'secure_invoice_url',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (PembayaranSpp $pembayaran) {
+            if (empty($pembayaran->invoice_token)) {
+                $pembayaran->invoice_token = static::generateUniqueToken();
+            }
+        });
+    }
+
+    /**
+     * Menghasilkan token acak kriptografis 48-karakter unik untuk akses publik aman
+     */
+    public static function generateUniqueToken(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(24));
+        } while (static::where('invoice_token', $token)->exists());
+
+        return $token;
+    }
+
+    /**
+     * Mengambil URL publik invoice yang aman
+     */
+    public function getSecureInvoiceUrlAttribute(): string
+    {
+        if (empty($this->invoice_token)) {
+            $this->invoice_token = static::generateUniqueToken();
+            $this->saveQuietly();
+        }
+
+        return url('/invoice/'.$this->invoice_token);
+    }
 
     protected function casts(): array
     {
