@@ -10,6 +10,10 @@
             <h2 class="text-sm sm:text-base font-semibold tracking-tight text-foreground whitespace-nowrap">
               Monitoring
             </h2>
+            <Badge variant="outline" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-normal px-2 py-0 border-emerald-500/20 bg-emerald-500/5">
+              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live 5d</span>
+            </Badge>
           </div>
 
           <!-- Tombol Buka Scanner (Sejajar di Kanan Judul pada Mobile & Desktop) -->
@@ -271,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   Search,
   ScanLine,
@@ -514,8 +518,8 @@ const loadKelas = async () => {
   } catch (e) {}
 };
 
-const loadMonitoring = async () => {
-  loading.value = true;
+const loadMonitoring = async (isSilent = false) => {
+  if (!isSilent) loading.value = true;
   try {
     const params = {
       tanggal: filterDate.value,
@@ -530,11 +534,43 @@ const loadMonitoring = async () => {
       students.value = res.data.data.students;
     }
   } catch (e) {
-    toast.error('Gagal memuat data monitoring.');
+    if (!isSilent) toast.error('Gagal memuat data monitoring.');
   } finally {
-    loading.value = false;
+    if (!isSilent) loading.value = false;
   }
 };
+
+// Smart Polling Real-Time (Maksimal 5 detik saat tab/layar aktif)
+let isPolling = false;
+let pollTimer = null;
+
+async function pollMonitoring() {
+  if (isPolling || document.hidden || updatingStudentId.value || updatingKeteranganId.value) return;
+  isPolling = true;
+  try {
+    await loadMonitoring(true);
+  } finally {
+    isPolling = false;
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(pollMonitoring, 5000); // Interval maksimal 5 detik
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    pollMonitoring();
+  }
+}
 
 onMounted(async () => {
   // Ambil profil terbaru agar perubahan penugasan jilid & binaan langsung sinkron
@@ -549,5 +585,12 @@ onMounted(async () => {
   }
 
   await Promise.all([loadKelas(), loadMonitoring()]);
+  startPolling();
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+onUnmounted(() => {
+  stopPolling();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>

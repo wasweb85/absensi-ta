@@ -2,8 +2,12 @@
   <div class="space-y-6">
     <!-- Header Dashboard Sesuai Target Desain -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b">
-      <div>
+      <div class="flex items-center gap-2">
         <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
+        <Badge variant="outline" class="hidden sm:inline-flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-normal px-2 py-0.5 border-emerald-500/20 bg-emerald-500/5">
+          <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Live 5d</span>
+        </Badge>
       </div>
       <div class="flex flex-wrap items-center gap-2.5">
         <Badge variant="outline" class="bg-card px-3 py-1.5 text-xs font-normal text-muted-foreground border-border/80">
@@ -1348,7 +1352,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   CheckCircle2,
   Clock,
@@ -1784,7 +1788,110 @@ async function loadDashboard() {
   }
 }
 
+// Smart Polling Real-Time (Maksimal 5 detik saat tab/layar aktif)
+let isPolling = false;
+let pollTimer = null;
+
+async function refreshLiveStats() {
+  if (isPolling || document.hidden) return;
+  isPolling = true;
+  try {
+    const requests = [];
+
+    if ((isGuru.value || isBendaharaWithKelas.value) && user.value?.id_kelas) {
+      requests.push(
+        api.get('/absensi/monitoring', { params: { id_kelas: user.value.id_kelas } }).then((monRes) => {
+          if (monRes.data.success) {
+            const s = monRes.data.data?.stats || {};
+            guruClassStats.value = {
+              total: s.total || 0,
+              hadir: s.hadir || 0,
+              terlambat: s.terlambat || 0,
+              izin: s.izin || 0,
+              sakit: s.sakit || 0,
+              alpa: s.alpa || 0,
+              belum_absen: s.belum_absen || 0,
+            };
+            guruStudents.value = monRes.data.data?.students || [];
+            trenMingguan.value = monRes.data.data?.tren_mingguan || [];
+          }
+        })
+      );
+    } else {
+      requests.push(
+        api.get('/absensi/monitoring').then((monRes) => {
+          if (monRes.data.success) {
+            const s = monRes.data.data?.stats || {};
+            absensiStats.value = {
+              total: s.total || 0,
+              hadir: s.hadir || 0,
+              terlambat: s.terlambat || 0,
+              izin: s.izin || 0,
+              sakit: s.sakit || 0,
+              alpa: s.alpa || 0,
+              belum_absen: s.belum_absen || 0,
+            };
+            allStudentsMonitoring.value = monRes.data.data?.students || [];
+            trenMingguan.value = monRes.data.data?.tren_mingguan || [];
+          }
+        })
+      );
+    }
+
+    if (canViewWaLogs.value) {
+      requests.push(
+        api.get('/wa/logs?per_page=1').then((waRes) => {
+          if (waRes.data.success && waRes.data.summary) {
+            waStats.value = {
+              total: waRes.data.summary.total || 0,
+              sent: waRes.data.summary.sent || 0,
+              delivered: waRes.data.summary.delivered || 0,
+              read: waRes.data.summary.read || 0,
+              failed: waRes.data.summary.failed || 0,
+            };
+          }
+        })
+      );
+    }
+
+    await Promise.allSettled(requests);
+  } catch (err) {
+    // Silent catch saat background polling
+  } finally {
+    isPolling = false;
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(() => {
+    if (!document.hidden) {
+      refreshLiveStats();
+    }
+  }, 5000); // Interval maksimal 5 detik
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    refreshLiveStats();
+  }
+}
+
 onMounted(() => {
   loadDashboard();
+  startPolling();
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+onUnmounted(() => {
+  stopPolling();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
