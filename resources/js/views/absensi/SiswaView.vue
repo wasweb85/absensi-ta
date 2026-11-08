@@ -873,11 +873,11 @@ const downloadCardImage = () => {
   ctx.fillRect(0, headerHeight, width, 5);
 
   // 8. Wadah Putih QR Code
-  const qrBoxSize = 310;
+  const qrBoxSize = 296;
   const qrBoxX = (width - qrBoxSize) / 2;
-  const qrBoxY = 226;
+  const qrBoxY = 222;
   ctx.save();
-  drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 38);
+  drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 34);
   ctx.fillStyle = '#FFFFFF';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.04)';
   ctx.shadowBlur = 14;
@@ -890,7 +890,7 @@ const downloadCardImage = () => {
 
   // 9. Gambar QR Canvas ke Wadah
   if (qrCanvasRef.value) {
-    const qrInnerSize = 270;
+    const qrInnerSize = 256;
     const qrInnerX = (width - qrInnerSize) / 2;
     const qrInnerY = qrBoxY + (qrBoxSize - qrInnerSize) / 2;
     ctx.drawImage(qrCanvasRef.value, qrInnerX, qrInnerY, qrInnerSize, qrInnerSize);
@@ -898,61 +898,133 @@ const downloadCardImage = () => {
 
   // 10. Label NAMA
   ctx.fillStyle = '#7E8B9B';
-  ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '3px'; } catch (_) {}
-  ctx.fillText('NAMA', width / 2, 574);
+  ctx.fillText('NAMA', width / 2, 550);
 
-  // 11. Nama Santri
-  const nameStr = (student.nama_lengkap || '').toUpperCase();
-  ctx.fillStyle = '#0B132B';
+  // 11. Nama Santri (Mendukung 1 atau 2 baris rapi proporsional seperti di website)
+  const nameStr = (student.nama_lengkap || '').toUpperCase().trim();
+  const maxNameWidth = 410; // Memberi ruang padding kiri-kanan yang cukup
+  let nameFontSize = 25;
+  ctx.font = `900 ${nameFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
   try { ctx.letterSpacing = '0.5px'; } catch (_) {}
-  if (nameStr.length > 25) {
-    ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+  // Pemenggalan kata cerdas (word-wrap) agar nama panjang menjadi 2 baris
+  const words = nameStr.split(/\s+/).filter(Boolean);
+  let nameLines = [];
+
+  if (words.length <= 1) {
+    nameLines = [nameStr];
   } else {
-    ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    let currentLine = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const testLine = currentLine + ' ' + words[i];
+      if (ctx.measureText(testLine).width <= maxNameWidth) {
+        currentLine = testLine;
+      } else {
+        nameLines.push(currentLine);
+        currentLine = words[i];
+      }
+    }
+    nameLines.push(currentLine);
   }
-  ctx.fillText(nameStr, width / 2, 612);
+
+  // Jika nama sangat panjang (melebihi 2 baris), kecilkan font agar maksimal tetap 2 baris
+  if (nameLines.length > 2) {
+    nameFontSize = 21;
+    ctx.font = `900 ${nameFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    nameLines = [];
+    let currentLine = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const testLine = currentLine + ' ' + words[i];
+      if (ctx.measureText(testLine).width <= maxNameWidth) {
+        currentLine = testLine;
+      } else {
+        nameLines.push(currentLine);
+        currentLine = words[i];
+      }
+    }
+    nameLines.push(currentLine);
+  }
+
+  // Penyesuaian halus font jika baris masih ada yang sedikit melebihi batas aman
+  while (nameFontSize > 17 && nameLines.some(l => ctx.measureText(l).width > maxNameWidth)) {
+    nameFontSize -= 1;
+    ctx.font = `900 ${nameFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  }
+
+  ctx.fillStyle = '#0B132B';
+  const nameLineHeight = Math.round(nameFontSize * 1.34);
+
+  if (nameLines.length >= 2) {
+    // 2 Baris: Rapi, simetris, dan tidak mepet tepi
+    const startY = 582;
+    ctx.fillText(nameLines[0], width / 2, startY);
+    ctx.fillText(nameLines.slice(1).join(' '), width / 2, startY + nameLineHeight);
+  } else {
+    // 1 Baris: Terpusat
+    ctx.fillText(nameLines[0] || nameStr, width / 2, 598);
+  }
 
   // 12. Lencana Kapsul ID
-  const idBadgeW = 250;
-  const idBadgeH = 44;
-  const idBadgeX = (width - idBadgeW) / 2;
-  const idBadgeY = 642;
+  const nisnText = String(student.nisn || '-').trim();
+
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '1.5px'; } catch (_) {}
+  const idLabelWidth = ctx.measureText('ID').width;
+
+  ctx.font = '900 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '2px'; } catch (_) {}
+  const nisnValWidth = ctx.measureText(nisnText).width;
+
+  const itemGap = 12; // Jarak pemisah jelas antara teks "ID" dan angka NISN
+  const totalContentW = idLabelWidth + itemGap + nisnValWidth;
+  const badgeH = 42;
+  const badgeW = Math.max(160, totalContentW + 48);
+  const badgeX = (width - badgeW) / 2;
+  const badgeY = 650;
+
+  // Gambar kapsul ID
   ctx.save();
-  drawRoundedRect(idBadgeX, idBadgeY, idBadgeW, idBadgeH, 16);
+  drawRoundedRect(badgeX, badgeY, badgeW, badgeH, 14);
   ctx.fillStyle = '#EDF3F8';
   ctx.fill();
-  ctx.strokeStyle = '#D1DCE7';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#D2DDE8';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 
+  // Gambar teks "ID" dan angka NISN presisi di tengah kapsul
+  const contentStartX = (width - totalContentW) / 2;
+
+  ctx.textAlign = 'left';
   ctx.fillStyle = '#64748B';
-  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  try { ctx.letterSpacing = '1px'; } catch (_) {}
-  ctx.fillText('ID', width / 2 - 38, 671);
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  try { ctx.letterSpacing = '1.5px'; } catch (_) {}
+  ctx.fillText('ID', contentStartX, badgeY + 27);
 
   ctx.fillStyle = '#0B132B';
-  ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = '900 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '2px'; } catch (_) {}
-  ctx.fillText(String(student.nisn || '-'), width / 2 + 18, 672);
+  ctx.fillText(nisnText, contentStartX + idLabelWidth + itemGap, badgeY + 28);
+  ctx.textAlign = 'center';
 
   // 13. Garis Putus-putus
   ctx.save();
-  ctx.setLineDash([8, 8]);
+  ctx.setLineDash([6, 6]);
   ctx.strokeStyle = '#CBD5E1';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(75, 724);
-  ctx.lineTo(width - 75, 724);
+  ctx.moveTo(80, 724);
+  ctx.lineTo(width - 80, 724);
   ctx.stroke();
   ctx.restore();
 
   // 14. Footer
   ctx.fillStyle = '#7E8B9B';
-  ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   try { ctx.letterSpacing = '2.5px'; } catch (_) {}
-  ctx.fillText("TPQ NURUL MUN'IM . SISTEM DIGITAL", width / 2, 768);
+  ctx.fillText("TPQ NURUL MUN'IM . SISTEM DIGITAL", width / 2, 766);
 
   // 15. Garis Tepi Luar Kartu
   ctx.strokeStyle = '#D4E0EC';
