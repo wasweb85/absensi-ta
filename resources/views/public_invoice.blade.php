@@ -9,7 +9,7 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="{{ $namaInstansi }}">
     <meta property="og:title" content="Bukti Pembayaran SPP Resmi - {{ $namaInstansi }}">
-    <meta property="og:description" content="Kuitansi {{ $pembayaran->nomor_kuitansi }} ananda {{ $siswa?->nama_lengkap ?? 'Santri' }} ({{ $periodeStr }}) sebesar Rp {{ number_format($totalNominal, 0, ',', '.') }} - Status: LUNAS">
+    <meta property="og:description" content="Kuitansi {{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }} ananda {{ $siswa?->nama_lengkap ?? 'Santri' }} ({{ $periodeStr }}) sebesar Rp {{ number_format($totalNominal, 0, ',', '.') }} - Status: LUNAS">
     @if(!empty($cloudinaryUrl))
     <meta property="og:image" content="{{ $cloudinaryUrl }}">
     @else
@@ -278,7 +278,7 @@
                 <div class="info-grid">
                     <div class="info-row">
                         <span class="info-label">No. Kuitansi</span>
-                        <span class="info-val" style="font-family: monospace; letter-spacing: 0.5px;">{{ $pembayaran->nomor_kuitansi }}</span>
+                        <span class="info-val" style="font-family: monospace; letter-spacing: 0.5px;">{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Nama Santri</span>
@@ -319,7 +319,7 @@
                 <!-- Tombol Aksi -->
                 <div class="actions">
                     @if(!empty($cloudinaryUrl))
-                    <a href="{{ $cloudinaryUrl }}" target="_blank" download="Kuitansi-{{ $pembayaran->nomor_kuitansi }}.png" class="btn btn-primary">
+                    <a href="{{ $cloudinaryUrl }}" target="_blank" download="Kuitansi-{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}.png" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         <span>Unduh Dokumen Gambar (Asli)</span>
                     </a>
@@ -336,7 +336,7 @@
                         if (str_starts_with($cleanKontak, '0')) {
                             $cleanKontak = '62' . substr($cleanKontak, 1);
                         }
-                        $waMsg = urlencode("Assalamu'alaikum Bendahara TPQ, saya ingin konfirmasi bukti pembayaran kuitansi No: {$pembayaran->nomor_kuitansi} ananda {$siswa?->nama_lengkap}.");
+                        $waMsg = urlencode("Assalamu'alaikum Bendahara TPQ, saya ingin konfirmasi bukti pembayaran kuitansi No: " . ($nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi) . " ananda {$siswa?->nama_lengkap}.");
                     @endphp
                     <a href="https://wa.me/{{ $cleanKontak }}?text={{ $waMsg }}" target="_blank" class="btn btn-outline">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>

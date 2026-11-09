@@ -562,6 +562,7 @@ class SppBillingService
             $totalBayar = 0;
             $idx = 1;
             $safetyLoop = 0;
+            $firstPembayaran = null;
 
             while ($sisaUang > 0 && $safetyLoop < 24) {
                 $safetyLoop++;
@@ -593,7 +594,7 @@ class SppBillingService
 
                 $namaBln = self::NAMA_BULAN[$currBulan] ?? "Bulan {$currBulan}";
 
-                PembayaranSpp::create([
+                $createdRecord = PembayaranSpp::create([
                     'id_tagihan' => $tagihan->id,
                     'id_siswa' => $idSiswa,
                     'nomor_kuitansi' => $itemKuitansi,
@@ -604,6 +605,10 @@ class SppBillingService
                     'status_transaksi' => 'valid',
                     'catatan' => $catatan ?: "Pembayaran SPP {$namaBln} {$currTahun}",
                 ]);
+
+                if (! $firstPembayaran) {
+                    $firstPembayaran = $createdRecord;
+                }
 
                 $totalValid = $sudahBayar + $bayarBulanIni;
                 if ($totalValid >= $tagihan->nominal_tagihan) {
@@ -657,6 +662,10 @@ class SppBillingService
                 'success' => true,
                 'message' => "Pembayaran {$periodeStr} berhasil disimpan. Kuitansi: {$baseKuitansi}",
                 'kuitansi' => [
+                    'id_pembayaran' => $firstPembayaran?->id,
+                    'invoice_token' => $firstPembayaran?->invoice_token,
+                    'invoice_url' => $firstPembayaran?->secure_invoice_url,
+                    'cloudinary_url' => $firstPembayaran?->cloudinary_url,
                     'id_siswa' => $siswa->id,
                     'nomor_kuitansi' => $baseKuitansi,
                     'tanggal_bayar' => $now->format('d/m/Y H:i'),

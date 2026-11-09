@@ -107,8 +107,17 @@ class PublicInvoiceController extends Controller
                     $q->where('nomor_kuitansi', $baseKuitansi)
                         ->orWhere('nomor_kuitansi', 'like', "{$baseKuitansi}-%");
                 })
-                ->orderBy('nomor_kuitansi', 'asc')
+                ->orderBy('id', 'asc')
                 ->get();
+
+            // Urutkan secara kronologis berdasarkan kalender (tahun & bulan)
+            $related = $related->sortBy(function ($item) {
+                if (! $item->tagihan) {
+                    return $item->id;
+                }
+
+                return ($item->tagihan->tahun * 100) + (int) $item->tagihan->bulan;
+            })->values();
 
             if ($related->isNotEmpty()) {
                 $multiPayments = $related;
@@ -139,8 +148,11 @@ class PublicInvoiceController extends Controller
         $namaInstansi = Pengaturan::getValue('nama_sekolah', "TPQ Nurul Mun'im");
         $kontakBendahara = Pengaturan::getValue('no_hp_bendahara', '085235567818');
 
+        $nomorKuitansiDisplay = $baseKuitansi ?: $pembayaran->nomor_kuitansi;
+
         return view('public_invoice', [
             'pembayaran' => $pembayaran,
+            'nomorKuitansiDisplay' => $nomorKuitansiDisplay,
             'siswa' => $siswa,
             'tagihan' => $tagihan,
             'periodeStr' => $periodeStr,

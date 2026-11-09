@@ -279,4 +279,95 @@ class CloudinaryInvoiceFeatureTest extends TestCase
         $response->assertSee('20.000');
         $response->assertDontSee('40.000');
     }
+
+    public function test_multi_month_payment_sorts_months_chronologically_not_alphabetically(): void
+    {
+        $siswaMulti = Siswa::create([
+            'nisn' => '3099',
+            'nama_lengkap' => 'Naziha Najwa Haniyah',
+            'jenis_kelamin' => 'P',
+            'id_kelas' => $this->kelas->id,
+            'nama_ortu' => 'Wali Naziha',
+            'no_hp_ortu' => '085812345514',
+            'status' => 'aktif',
+        ]);
+
+        // Simulasi 12 bulan pembayaran: Juli 2026 s/d Juni 2027
+        $months = [
+            ['bulan' => 7, 'tahun' => 2026],
+            ['bulan' => 8, 'tahun' => 2026],
+            ['bulan' => 9, 'tahun' => 2026],
+            ['bulan' => 10, 'tahun' => 2026],
+            ['bulan' => 11, 'tahun' => 2026],
+            ['bulan' => 12, 'tahun' => 2026],
+            ['bulan' => 1, 'tahun' => 2027],
+            ['bulan' => 2, 'tahun' => 2027],
+            ['bulan' => 3, 'tahun' => 2027],
+            ['bulan' => 4, 'tahun' => 2027],
+            ['bulan' => 5, 'tahun' => 2027],
+            ['bulan' => 6, 'tahun' => 2027],
+        ];
+
+        $baseKuitansi = 'KW-202611-00104';
+        $pembayaran12 = null;
+
+        foreach ($months as $idx => $m) {
+            $tagihanItem = TagihanSpp::create([
+                'id_siswa' => $siswaMulti->id,
+                'bulan' => $m['bulan'],
+                'tahun' => $m['tahun'],
+                'tahun_ajaran' => '2026/2027',
+                'nominal_tagihan' => 15000,
+                'status' => 'lunas',
+            ]);
+
+            $p = PembayaranSpp::create([
+                'id_tagihan' => $tagihanItem->id,
+                'id_siswa' => $siswaMulti->id,
+                'nomor_kuitansi' => "{$baseKuitansi}-".($idx + 1),
+                'tanggal_bayar' => Carbon::now('Asia/Jakarta'),
+                'jumlah_bayar' => 15000,
+                'metode_pembayaran' => 'Tunai',
+                'id_petugas' => $this->admin->id,
+                'status_transaksi' => 'valid',
+            ]);
+
+            if ($idx === 11) {
+                $pembayaran12 = $p; // Item ke-12: KW-202611-00104-12
+            }
+        }
+
+        // Buka halaman kwitansi publik lewat nomor sub-kuitansi ke-12 (otomatis mengikuti alihan ke token aman)
+        $response = $this->followingRedirects()->get('/invoice/KW-202611-00104-12');
+
+        $response->assertStatus(200);
+        // Pastikan nomor kuitansi yang ditampilkan adalah nomor induk kuitansi
+        $response->assertSee('KW-202611-00104');
+        // Total 12 x 15.000 = 180.000
+        $response->assertSee('180.000');
+
+        $content = $response->getContent();
+
+        // Pastikan posisi Juli 2026 sebelum Agustus 2026
+        $posJuli = strpos($content, 'Juli 2026');
+        $posAgustus = strpos($content, 'Agustus 2026');
+        $posDesember = strpos($content, 'Desember 2026');
+        $posJanuari = strpos($content, 'Januari 2027');
+        $posApril = strpos($content, 'April 2027');
+        $posJuni = strpos($content, 'Juni 2027');
+
+        $this->assertNotFalse($posJuli);
+        $this->assertNotFalse($posAgustus);
+        $this->assertNotFalse($posDesember);
+        $this->assertNotFalse($posJanuari);
+        $this->assertNotFalse($posApril);
+        $this->assertNotFalse($posJuni);
+
+        // Verifikasi urutan kronologis: Juli < Agustus < Desember < Januari < April < Juni
+        $this->assertTrue($posJuli < $posAgustus, 'Juli 2026 harus sebelum Agustus 2026');
+        $this->assertTrue($posAgustus < $posDesember, 'Agustus 2026 harus sebelum Desember 2026');
+        $this->assertTrue($posDesember < $posJanuari, 'Desember 2026 harus sebelum Januari 2027');
+        $this->assertTrue($posJanuari < $posApril, 'Januari 2027 harus sebelum April 2027');
+        $this->assertTrue($posApril < $posJuni, 'April 2027 harus sebelum Juni 2027');
+    }
 }
