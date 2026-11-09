@@ -656,7 +656,15 @@ class SppBillingService
             $bulanLabels = array_column($daftarBulan, 'label');
             $bulanStr = implode(', ', $bulanLabels);
             $totalBulan = count($daftarBulan);
-            $periodeStr = ($totalBulan > 1) ? "{$bulanStr} ({$totalBulan} Bulan)" : $bulanStr;
+
+            if ($totalBulan >= 3) {
+                $periodeRingkas = "{$daftarBulan[0]['label']} – {$daftarBulan[$totalBulan - 1]['label']} ({$totalBulan} Bulan)";
+            } elseif ($totalBulan === 2) {
+                $periodeRingkas = "{$daftarBulan[0]['label']} & {$daftarBulan[1]['label']} (2 Bulan)";
+            } else {
+                $periodeRingkas = $daftarBulan[0]['label'] ?? $bulanStr;
+            }
+            $periodeStr = $periodeRingkas;
 
             return [
                 'success' => true,
@@ -676,9 +684,10 @@ class SppBillingService
                     'total_bulan' => $totalBulan,
                     'daftar_bulan' => $daftarBulan,
                     'daftar_bulan_str' => $bulanStr,
-                    'periode' => $periodeStr,
-                    'bulan_tagihan' => $periodeStr,
-                    'pembayaran_untuk' => "SPP {$periodeStr}",
+                    'periode' => $periodeRingkas,
+                    'periode_ringkas' => $periodeRingkas,
+                    'bulan_tagihan' => $periodeRingkas,
+                    'pembayaran_untuk' => "SPP {$periodeRingkas}",
                     'total_bayar' => $totalBayar,
                     'jumlah_bayar' => $totalBayar,
                     'metode' => $metode,
@@ -687,6 +696,155 @@ class SppBillingService
                 ],
             ];
         });
+    }
+
+    /**
+     * Mendapatkan rincian terpadu dokumen kuitansi (mendukung agregasi multi-bulan)
+     * Digunakan secara konsisten oleh Modal Admin, WhatsApp PNG, dan Halaman Web Publik.
+     *
+     * @return array<string, mixed>
+     */
+    public function getDetailKuitansi(PembayaranSpp $pembayaran): array
+    {
+        self::ensureSppSchemaExists();
+
+        $pembayaran->loadMissing(['siswa.kelas', 'tagihan', 'petugas']);
+        $siswa = $pembayaran->siswa;
+        $tagihan = $pembayaran->tagihan;
+
+        $parts = explode('-', $pembayaran->nomor_kuitansi);
+        $baseKuitansi = null;
+
+        if (count($parts) >= 4) {
+            $baseKuitansi = $parts[0].'-'.$parts[1].'-'.$parts[2];
+        } else {
+            $hasSubItems = PembayaranSpp::where('nomor_kuitansi', 'like', "{$pembayaran->nomor_kuitansi}-%")
+                ->where('id_siswa', $pembayaran->id_siswa)
+                ->where('status_transaksi', 'valid')
+                ->exists();
+
+            if ($hasSubItems) {
+                $baseKuitansi = $pembayaran->nomor_kuitansi;
+            }
+        }
+
+        $related = collect([$pembayaran]);
+
+        if ($baseKuitansi !== null) {
+            $foundRelated = PembayaranSpp::with(['tagihan', 'siswa.kelas', 'petugas'])
+                ->where('id_siswa', $pembayaran->id_siswa)
+                ->where('status_transaksi', 'valid')
+                ->where(function ($q) use ($baseKuitansi) {
+                    $q->where('nomor_kuitansi', $baseKuitansi)
+                        ->orWhere('nomor_kuitansi', 'like', "{$baseKuitansi}-%");
+                })
+                ->get();
+
+            if ($foundRelated->isNotEmpty()) {
+                // Urutkan secara kronologis kalender (tahun * 100 + bulan)
+                $related = $foundRelated->sortBy(function ($item) {
+                    if (! $item->tagihan) {
+                        return $item->id;
+                    }
+
+                    return ($item->tagihan->tahun * 100) + (int) $item->tagihan->bulan;
+                })->values();
+            }
+        }
+
+        $primaryPembayaran = $related->first() ?? $pembayaran;
+
+        // Pastikan primary pembayaran memiliki invoice_token
+        if (empty($primaryPembayaran->invoice_token)) {
+            $token = PembayaranSpp::generateUniqueToken();
+            try {
+                if (Schema::hasColumn('pembayaran_spp', 'invoice_token')) {
+                    $primaryPembayaran->invoice_token = $token;
+                    $primaryPembayaran->saveQuietly();
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        $daftarBulan = [];
+        $totalNominal = 0;
+
+        foreach ($related as $rel) {
+            $totalNominal += (float) $rel->jumlah_bayar;
+            if ($rel->tagihan) {
+                $namaBln = self::NAMA_BULAN[$rel->tagihan->bulan] ?? "Bulan {$rel->tagihan->bulan}";
+                $label = "{$namaBln} {$rel->tagihan->tahun}";
+                $daftarBulan[] = [
+                    'id_tagihan' => $rel->tagihan->id,
+                    'id_pembayaran' => $rel->id,
+                    'bulan' => $rel->tagihan->bulan,
+                    'tahun' => $rel->tagihan->tahun,
+                    'label' => $label,
+                    'nominal' => (float) $rel->jumlah_bayar,
+                    'nomor_kuitansi' => $rel->nomor_kuitansi,
+                ];
+            }
+        }
+
+        if (empty($daftarBulan) && $tagihan) {
+            $namaBln = self::NAMA_BULAN[$tagihan->bulan] ?? "Bulan {$tagihan->bulan}";
+            $label = "{$namaBln} {$tagihan->tahun}";
+            $daftarBulan[] = [
+                'id_tagihan' => $tagihan->id,
+                'id_pembayaran' => $pembayaran->id,
+                'bulan' => $tagihan->bulan,
+                'tahun' => $tagihan->tahun,
+                'label' => $label,
+                'nominal' => (float) $pembayaran->jumlah_bayar,
+                'nomor_kuitansi' => $pembayaran->nomor_kuitansi,
+            ];
+            $totalNominal = (float) $pembayaran->jumlah_bayar;
+        }
+
+        $totalBulan = count($daftarBulan);
+        $bulanLabels = array_column($daftarBulan, 'label');
+        $daftarBulanStr = implode(', ', $bulanLabels);
+
+        if ($totalBulan >= 3) {
+            $periodeRingkas = "{$daftarBulan[0]['label']} – {$daftarBulan[$totalBulan - 1]['label']} ({$totalBulan} Bulan)";
+        } elseif ($totalBulan === 2) {
+            $periodeRingkas = "{$daftarBulan[0]['label']} & {$daftarBulan[1]['label']} (2 Bulan)";
+        } else {
+            $periodeRingkas = $daftarBulan[0]['label'] ?? ($daftarBulanStr ?: 'SPP Bulanan');
+        }
+
+        $nomorKuitansiDisplay = $baseKuitansi ?: $pembayaran->nomor_kuitansi;
+        $tanggalBayarStr = $primaryPembayaran->tanggal_bayar ? $primaryPembayaran->tanggal_bayar->format('d/m/Y H:i') : Carbon::now('Asia/Jakarta')->format('d/m/Y H:i');
+
+        return [
+            'id_pembayaran' => $primaryPembayaran->id,
+            'nomor_kuitansi' => $nomorKuitansiDisplay,
+            'nomor_kuitansi_asli' => $pembayaran->nomor_kuitansi,
+            'base_kuitansi' => $baseKuitansi,
+            'tanggal_bayar' => $tanggalBayarStr,
+            'tanggal_bayar_raw' => $primaryPembayaran->tanggal_bayar,
+            'nama_santri' => $siswa?->nama_lengkap ?? '-',
+            'nisn' => $siswa?->nisn ?? '-',
+            'kelas' => $siswa?->kelas?->nama_kelas ?? '-',
+            'no_hp_ortu' => $siswa?->no_hp_ortu ?? '',
+            'total_bayar' => $totalNominal,
+            'jumlah_bayar' => $totalNominal,
+            'total_bulan' => $totalBulan,
+            'periode' => $periodeRingkas,
+            'periode_ringkas' => $periodeRingkas,
+            'daftar_bulan' => $daftarBulan,
+            'daftar_bulan_str' => $daftarBulanStr,
+            'pembayaran_untuk' => "SPP {$periodeRingkas}",
+            'metode' => $pembayaran->metode_pembayaran ?: 'Tunai',
+            'catatan' => $pembayaran->catatan,
+            'nama_bendahara' => User::getNamaBendahara(),
+            'petugas' => $pembayaran->petugas?->name,
+            'invoice_token' => $primaryPembayaran->invoice_token,
+            'secure_invoice_url' => $primaryPembayaran->secure_invoice_url,
+            'cloudinary_url' => $primaryPembayaran->cloudinary_url,
+            'is_multi_bulan' => $totalBulan > 1,
+            'status_transaksi' => $pembayaran->status_transaksi,
+        ];
     }
 
     /**

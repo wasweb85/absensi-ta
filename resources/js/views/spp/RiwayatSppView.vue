@@ -464,11 +464,11 @@
             <div class="grid grid-cols-2 gap-2 text-[10.5px] sm:text-[11px]">
               <div>
                 <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">No. Kuitansi</span>
-                <span class="font-mono font-bold">{{ activeKuitansi.nomor_kuitansi }}</span>
+                <span class="font-mono font-bold">{{ activeKuitansi.nomor_kuitansi_display || activeKuitansi.nomor_kuitansi }}</span>
               </div>
               <div class="text-right">
                 <span class="text-zinc-400 dark:text-zinc-500 print:text-zinc-600 block text-[9.5px]">Tanggal Bayar</span>
-                <span class="font-bold">{{ formatTanggal(activeKuitansi.tanggal_bayar) }}</span>
+                <span class="font-bold">{{ activeKuitansi.tanggal_bayar_formatted || formatTanggal(activeKuitansi.tanggal_bayar) }}</span>
               </div>
             </div>
 
@@ -476,19 +476,27 @@
             <div class="p-2.5 sm:p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5 print:bg-white print:border-zinc-300">
               <div class="flex justify-between">
                 <span class="text-zinc-500 print:text-zinc-600">Nama Santri:</span>
-                <span class="font-bold text-right">{{ activeKuitansi.siswa?.nama_lengkap }}</span>
+                <span class="font-bold text-right">{{ activeKuitansi.siswa?.nama_lengkap || activeKuitansi.nama_santri }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-zinc-500 print:text-zinc-600">NISN / Jilid:</span>
-                <span class="font-mono">{{ activeKuitansi.siswa?.nisn }} &bull; {{ activeKuitansi.siswa?.kelas?.nama_kelas || '-' }}</span>
+                <span class="font-mono">{{ activeKuitansi.siswa?.nisn || activeKuitansi.nisn }} &bull; {{ activeKuitansi.siswa?.kelas?.nama_kelas || activeKuitansi.kelas || '-' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
-                <span class="font-semibold text-right">{{ getNamaBulan(activeKuitansi.tagihan?.bulan) }} {{ activeKuitansi.tagihan?.tahun }}</span>
+                <span class="font-bold text-right text-emerald-600 dark:text-emerald-400 print:text-black">
+                  {{ activeKuitansi.periode_display || activeKuitansi.pembayaran_untuk || (activeKuitansi.tagihan?.bulan ? `${getNamaBulan(activeKuitansi.tagihan.bulan)} ${activeKuitansi.tagihan.tahun || ''}` : 'SPP Bulanan') }}
+                </span>
+              </div>
+              <div v-if="activeKuitansi.total_bulan && activeKuitansi.total_bulan > 1" class="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 print:text-zinc-600">
+                <span>Rincian Bulan:</span>
+                <span class="text-right max-w-[240px] truncate" :title="activeKuitansi.daftar_bulan_str">
+                  {{ activeKuitansi.daftar_bulan_str }}
+                </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-zinc-500 print:text-zinc-600">Metode Bayar:</span>
-                <span class="font-semibold">{{ activeKuitansi.metode_pembayaran }}</span>
+                <span class="font-semibold">{{ activeKuitansi.metode_pembayaran || activeKuitansi.metode || 'Tunai' }}</span>
               </div>
               <div v-if="activeKuitansi.catatan" class="flex justify-between">
                 <span class="text-zinc-500 print:text-zinc-600">Catatan:</span>
@@ -496,7 +504,7 @@
               </div>
               <div class="flex justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-xs sm:text-sm font-bold text-emerald-600 print:text-black">
                 <span>Jumlah Disetor:</span>
-                <span>Rp {{ formatRupiah(activeKuitansi.jumlah_bayar) }}</span>
+                <span>Rp {{ formatRupiah(activeKuitansi.total_bayar || activeKuitansi.jumlah_bayar) }}</span>
               </div>
             </div>
 
@@ -679,40 +687,41 @@ const activeKuitansi = ref(null);
 const kuitansiDataForWa = computed(() => {
   if (!activeKuitansi.value) return null;
   const k = activeKuitansi.value;
-  let bulanTagihan = '';
-  if (k.tagihan?.bulan) {
-    bulanTagihan = `${getNamaBulan(k.tagihan.bulan)} ${k.tagihan.tahun || ''}`.trim();
-  } else if (k.nomor_kuitansi) {
-    const match = String(k.nomor_kuitansi).match(/KW-(\d{4})(\d{2})-/i);
-    if (match) {
-      bulanTagihan = `${getNamaBulan(parseInt(match[2], 10))} ${match[1]}`;
-    }
-  }
-  if (!bulanTagihan) {
-    bulanTagihan = 'SPP Bulanan';
-  }
+
+  const noKw = k.nomor_kuitansi_display || k.base_kuitansi || k.nomor_kuitansi;
+  const nominal = k.total_bayar ?? k.jumlah_bayar ?? 0;
+  const periode = k.periode_display || k.periode || k.pembayaran_untuk || (k.tagihan?.bulan ? `${getNamaBulan(k.tagihan.bulan)} ${k.tagihan.tahun || ''}`.trim() : 'SPP Bulanan');
+  const namaSantri = k.siswa?.nama_lengkap || k.nama_santri || '-';
+  const nisn = k.siswa?.nisn || k.nisn || '-';
+  const kelas = k.siswa?.kelas?.nama_kelas || k.kelas || '-';
+  const noHpOrtu = k.siswa?.no_hp_ortu || k.no_hp_ortu || '';
 
   return {
     ...k,
-    id_pembayaran: k.id,
+    id_pembayaran: k.id_pembayaran || k.id,
     invoice_token: k.invoice_token,
     secure_invoice_url: k.secure_invoice_url,
-    invoice_url: k.secure_invoice_url,
+    invoice_url: k.secure_invoice_url || k.invoice_url,
     cloudinary_url: k.cloudinary_url,
-    nomor_kuitansi: k.nomor_kuitansi,
-    tanggal_bayar: formatTanggal(k.tanggal_bayar),
-    nama_santri: k.siswa?.nama_lengkap || '-',
-    nisn: k.siswa?.nisn || '-',
-    kelas: k.siswa?.kelas?.nama_kelas || '-',
-    periode: bulanTagihan,
-    daftar_bulan_str: bulanTagihan,
-    bulan_tagihan: bulanTagihan,
-    pembayaran_untuk: `SPP ${bulanTagihan}`.trim(),
-    metode: k.metode_pembayaran || 'Tunai',
-    jumlah_bayar: k.jumlah_bayar,
+    nomor_kuitansi: noKw,
+    nomor_kuitansi_display: noKw,
+    base_kuitansi: k.base_kuitansi || noKw,
+    tanggal_bayar: k.tanggal_bayar_formatted || formatTanggal(k.tanggal_bayar),
+    nama_santri: namaSantri,
+    nisn: nisn,
+    kelas: kelas,
+    periode: periode,
+    daftar_bulan_str: k.daftar_bulan_str || periode,
+    bulan_tagihan: periode,
+    pembayaran_untuk: `SPP ${String(periode).replace(/^SPP\s+/i, '')}`.trim(),
+    metode: k.metode_pembayaran || k.metode || 'Tunai',
+    jumlah_bayar: nominal,
+    total_bayar: nominal,
+    total_bulan: k.total_bulan || 1,
+    is_multi_bulan: Boolean(k.is_multi_bulan || (k.total_bulan && k.total_bulan > 1)),
     catatan: k.catatan,
     nama_bendahara: namaBendahara.value,
-    no_hp_ortu: k.siswa?.no_hp_ortu || '',
+    no_hp_ortu: noHpOrtu,
     appLogo: appLogo.value,
   };
 });
@@ -828,8 +837,90 @@ async function loadRiwayat(page = 1) {
 }
 
 function previewKuitansi(p) {
-  activeKuitansi.value = p;
+  // 1. Cek apakah pembayaran merupakan bagian dari transaksi multi-bulan
+  const parts = String(p.nomor_kuitansi).split('-');
+  const isMultiNumber = parts.length >= 4;
+  const baseKuitansi = isMultiNumber ? `${parts[0]}-${parts[1]}-${parts[2]}` : p.nomor_kuitansi;
+
+  // Cari sibling payments di list riwayat yang sedang termuat
+  const siblings = pembayaranList.value.filter(item => {
+    const itemParts = String(item.nomor_kuitansi).split('-');
+    const itemBase = itemParts.length >= 4 ? `${itemParts[0]}-${itemParts[1]}-${itemParts[2]}` : item.nomor_kuitansi;
+    return itemBase === baseKuitansi && item.id_siswa === p.id_siswa && (item.status_transaksi === 'valid' || item.status_transaksi === 'sukses');
+  });
+
+  if (siblings.length > 1) {
+    // Urutkan kalender kronologis (tahun * 100 + bulan)
+    const sorted = [...siblings].sort((a, b) => {
+      const valA = ((a.tagihan?.tahun || 0) * 100) + (Number(a.tagihan?.bulan) || 0);
+      const valB = ((b.tagihan?.tahun || 0) * 100) + (Number(b.tagihan?.bulan) || 0);
+      return valA - valB;
+    });
+
+    const totalNominal = sorted.reduce((acc, curr) => acc + (Number(curr.jumlah_bayar) || 0), 0);
+    const daftarBulanLabels = sorted.map(s => `${getNamaBulan(s.tagihan?.bulan)} ${s.tagihan?.tahun || ''}`.trim());
+    const countBulan = sorted.length;
+
+    let smartPeriode = '';
+    if (countBulan >= 3) {
+      smartPeriode = `${daftarBulanLabels[0]} – ${daftarBulanLabels[countBulan - 1]} (${countBulan} Bulan)`;
+    } else if (countBulan === 2) {
+      smartPeriode = `${daftarBulanLabels[0]} & ${daftarBulanLabels[1]} (2 Bulan)`;
+    } else {
+      smartPeriode = daftarBulanLabels[0] || 'SPP Bulanan';
+    }
+
+    activeKuitansi.value = {
+      ...p,
+      nomor_kuitansi_display: baseKuitansi,
+      base_kuitansi: baseKuitansi,
+      periode_display: smartPeriode,
+      periode: smartPeriode,
+      pembayaran_untuk: `SPP ${smartPeriode}`,
+      daftar_bulan_str: daftarBulanLabels.join(', '),
+      total_bulan: countBulan,
+      total_bayar: totalNominal,
+      jumlah_bayar: totalNominal,
+      is_multi_bulan: true,
+    };
+  } else {
+    const bulanTagihan = p.tagihan?.bulan ? `${getNamaBulan(p.tagihan.bulan)} ${p.tagihan.tahun || ''}`.trim() : 'SPP Bulanan';
+    activeKuitansi.value = {
+      ...p,
+      nomor_kuitansi_display: p.nomor_kuitansi,
+      base_kuitansi: baseKuitansi,
+      periode_display: bulanTagihan,
+      periode: bulanTagihan,
+      pembayaran_untuk: `SPP ${bulanTagihan}`,
+      total_bayar: p.jumlah_bayar,
+      jumlah_bayar: p.jumlah_bayar,
+      total_bulan: 1,
+      is_multi_bulan: false,
+    };
+  }
+
   showKuitansiModal.value = true;
+
+  // Asynchronously ambil data otoritatif kuitansi terpadu dari backend
+  // Ini memastikan token invoice, Cloudinary URL, dan sibling antar-halaman termuat sempurna
+  api.get('/spp/kuitansi-detail', {
+    params: { id_pembayaran: p.id }
+  }).then(res => {
+    if (res.data?.success && res.data.data) {
+      const d = res.data.data;
+      if (activeKuitansi.value && (activeKuitansi.value.id === p.id || activeKuitansi.value.nomor_kuitansi_display === d.nomor_kuitansi)) {
+        activeKuitansi.value = {
+          ...activeKuitansi.value,
+          ...d,
+          nomor_kuitansi_display: d.nomor_kuitansi,
+          periode_display: d.periode,
+          tanggal_bayar_formatted: d.tanggal_bayar,
+        };
+      }
+    }
+  }).catch(() => {
+    // Data lokal tetap aktif jika terjadi kendala jaringan
+  });
 }
 
 function printKuitansi() {

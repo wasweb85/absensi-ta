@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Schema;
 
 class PublicInvoiceController extends Controller
 {
+    public function __construct(protected SppBillingService $billingService) {}
+
     /**
      * Menampilkan laman bukti pembayaran resmi SPP berbasis token acak yang aman
      */
@@ -70,100 +72,34 @@ class PublicInvoiceController extends Controller
         $siswa = $pembayaran->siswa;
         $tagihan = $pembayaran->tagihan;
 
-        // Rangkum informasi periode bulan transaksi utama
-        $namaBulan = SppBillingService::NAMA_BULAN[$tagihan?->bulan] ?? ($tagihan ? "Bulan {$tagihan->bulan}" : '-');
-        $periodeStr = $tagihan ? "{$namaBulan} {$tagihan->tahun}" : '-';
-
-        // Deteksi apakah pembayaran ini adalah bagian dari transaksi multi-bulan
-        // Format nomor kuitansi standar: KW-YYYYMM-XXXXX (3 bagian: KW, YYYYMM, XXXXX)
-        // Format nomor kuitansi multi-bulan: KW-YYYYMM-XXXXX-1, KW-YYYYMM-XXXXX-2 (>= 4 bagian)
-        $multiPayments = collect([$pembayaran]);
-        $totalNominal = (float) $pembayaran->jumlah_bayar;
-
-        $parts = explode('-', $pembayaran->nomor_kuitansi);
-        $baseKuitansi = null;
-
-        if (count($parts) >= 4) {
-            // Ini adalah salah satu item dari transaksi multi-bulan (misal: KW-202611-00096-1)
-            $baseKuitansi = $parts[0].'-'.$parts[1].'-'.$parts[2];
-        } else {
-            // Cek apakah nomor kuitansi ini adalah nomor induk yang memiliki pecahan -1, -2, dst.
-            $hasSubItems = PembayaranSpp::where('nomor_kuitansi', 'like', "{$pembayaran->nomor_kuitansi}-%")
-                ->where('id_siswa', $pembayaran->id_siswa)
-                ->where('status_transaksi', 'valid')
-                ->exists();
-
-            if ($hasSubItems) {
-                $baseKuitansi = $pembayaran->nomor_kuitansi;
-            }
-        }
-
-        // HANYA gabungkan transaksi jika terbukti merupakan transaksi multi-bulan yang sama
-        if ($baseKuitansi !== null) {
-            $related = PembayaranSpp::with('tagihan')
-                ->where('id_siswa', $pembayaran->id_siswa)
-                ->where('status_transaksi', 'valid')
-                ->where(function ($q) use ($baseKuitansi) {
-                    $q->where('nomor_kuitansi', $baseKuitansi)
-                        ->orWhere('nomor_kuitansi', 'like', "{$baseKuitansi}-%");
-                })
-                ->orderBy('id', 'asc')
-                ->get();
-
-            // Urutkan secara kronologis berdasarkan kalender (tahun & bulan)
-            $related = $related->sortBy(function ($item) {
-                if (! $item->tagihan) {
-                    return $item->id;
-                }
-
-                return ($item->tagihan->tahun * 100) + (int) $item->tagihan->bulan;
-            })->values();
-
-            if ($related->isNotEmpty()) {
-                $multiPayments = $related;
-                $totalNominal = (float) $related->sum('jumlah_bayar');
-
-                $daftarBulanList = [];
-                foreach ($related as $rel) {
-                    if ($rel->tagihan) {
-                        $blnName = SppBillingService::NAMA_BULAN[$rel->tagihan->bulan] ?? "Bln {$rel->tagihan->bulan}";
-                        $itemPeriode = "{$blnName} {$rel->tagihan->tahun}";
-                        if (! in_array($itemPeriode, $daftarBulanList, true)) {
-                            $daftarBulanList[] = $itemPeriode;
-                        }
-                    }
-                }
-
-                if (! empty($daftarBulanList)) {
-                    $periodeStr = implode(', ', $daftarBulanList);
-                }
-            }
-        }
+        // Ambil rincian terpadu (mendukung agregasi transaksi multi-bulan kalender)
+        $detail = $this->billingService->getDetailKuitansi($pembayaran);
 
         // Keamanan privasi: Samarkan nomor HP orang tua (Masking PII)
-        $maskedPhone = $this->maskPhoneNumber($siswa?->no_hp_ortu);
+        $maskedPhone = $this->maskPhoneNumber($detail['no_hp_ortu'] ?? $siswa?->no_hp_ortu);
 
         // Ambil nama bendahara & instansi
-        $namaBendahara = User::getNamaBendahara();
+        $namaBendahara = $detail['nama_bendahara'] ?? User::getNamaBendahara();
         $namaInstansi = Pengaturan::getValue('nama_sekolah', "TPQ Nurul Mun'im");
         $kontakBendahara = Pengaturan::getValue('no_hp_bendahara', '085235567818');
 
-        $nomorKuitansiDisplay = $baseKuitansi ?: $pembayaran->nomor_kuitansi;
-
         return view('public_invoice', [
             'pembayaran' => $pembayaran,
-            'nomorKuitansiDisplay' => $nomorKuitansiDisplay,
+            'nomorKuitansiDisplay' => $detail['nomor_kuitansi'],
             'siswa' => $siswa,
             'tagihan' => $tagihan,
-            'periodeStr' => $periodeStr,
-            'totalNominal' => $totalNominal,
-            'multiPayments' => $multiPayments,
+            'periodeStr' => $detail['periode'],
+            'periodeRingkas' => $detail['periode_ringkas'],
+            'daftarBulanStr' => $detail['daftar_bulan_str'],
+            'daftarBulan' => $detail['daftar_bulan'],
+            'totalBulan' => $detail['total_bulan'],
+            'totalNominal' => $detail['total_bayar'],
             'maskedPhone' => $maskedPhone,
             'namaBendahara' => $namaBendahara,
             'namaInstansi' => $namaInstansi,
             'kontakBendahara' => $kontakBendahara,
             'isValid' => $pembayaran->status_transaksi === 'valid',
-            'cloudinaryUrl' => $pembayaran->cloudinary_url,
+            'cloudinaryUrl' => $detail['cloudinary_url'] ?: $pembayaran->cloudinary_url,
         ]);
     }
 

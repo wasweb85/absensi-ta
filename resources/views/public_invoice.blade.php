@@ -162,6 +162,77 @@
             color: #047857;
             font-weight: 800;
         }
+        .periode-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            max-width: 70%;
+        }
+        .periode-details {
+            width: 100%;
+            text-align: right;
+            margin-top: 2px;
+        }
+        .periode-details summary {
+            list-style: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #047857;
+            background: #ecfdf5;
+            padding: 4px 9px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #a7f3d0;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .periode-details summary::-webkit-details-marker {
+            display: none;
+        }
+        .periode-details summary:hover {
+            background: #d1fae5;
+        }
+        .periode-details[open] summary svg {
+            transform: rotate(180deg);
+        }
+        .bulan-breakdown-list {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .bulan-breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+            padding: 4px 0;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .bulan-breakdown-item:last-child {
+            border-bottom: none;
+        }
+        .bulan-breakdown-label {
+            font-weight: 600;
+            color: #334155;
+        }
+        .bulan-breakdown-nominal {
+            font-family: monospace;
+            font-weight: 700;
+            color: #059669;
+        }
         .actions {
             margin-top: 24px;
             display: flex;
@@ -294,7 +365,25 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Periode SPP</span>
-                        <span class="info-val" style="color: #0369a1;">{{ $periodeStr }}</span>
+                        <div class="periode-container">
+                            <span class="info-val" style="color: #0369a1;">{{ $periodeStr }}</span>
+                            @if(!empty($daftarBulan) && count($daftarBulan) > 1)
+                            <details class="periode-details">
+                                <summary>
+                                    <span>Lihat Rincian ({{ count($daftarBulan) }} Bulan)</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                                </summary>
+                                <div id="daftarBulanBreakdown" class="bulan-breakdown-list">
+                                    @foreach($daftarBulan as $itemBulan)
+                                    <div class="bulan-breakdown-item">
+                                        <span class="bulan-breakdown-label">{{ $itemBulan['label'] }}</span>
+                                        <span class="bulan-breakdown-nominal">Rp {{ number_format($itemBulan['nominal'], 0, ',', '.') }}</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </details>
+                            @endif
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Metode Pembayaran</span>

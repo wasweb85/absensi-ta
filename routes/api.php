@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tagihan', [SppController::class, 'tagihanList']);
         Route::get('/santri/{id}/tunggakan', [SppController::class, 'tunggakanSantri']);
         Route::get('/riwayat', [SppController::class, 'riwayatPembayaran']);
+        Route::get('/kuitansi-detail', [SppController::class, 'kuitansiDetail']);
     });
 
     // Modul SPP - Operasional Kasir & Bayar (Admin, Bendahara, Sekretaris)

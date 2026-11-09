@@ -614,4 +614,44 @@ class SppController extends Controller
             'nama_bendahara' => User::getNamaBendahara(),
         ]);
     }
+
+    /**
+     * Mengambil detail teragregasi dokumen kuitansi (multi-bulan & kuitansi induk)
+     */
+    public function kuitansiDetail(Request $request): JsonResponse
+    {
+        SppBillingService::ensureSppSchemaExists();
+
+        $idPembayaran = $request->input('id_pembayaran') ?: $request->input('id');
+        $nomorKuitansi = $request->input('nomor_kuitansi');
+
+        if (! $idPembayaran && ! $nomorKuitansi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parameter id_pembayaran atau nomor_kuitansi wajib disertakan.',
+            ], 422);
+        }
+
+        $query = PembayaranSpp::with(['siswa.kelas', 'tagihan', 'petugas']);
+        if ($idPembayaran) {
+            $query->where('id', $idPembayaran);
+        } else {
+            $query->where('nomor_kuitansi', 'like', $nomorKuitansi.'%');
+        }
+
+        $pembayaran = $query->first();
+        if (! $pembayaran) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pembayaran SPP tidak ditemukan.',
+            ], 404);
+        }
+
+        $detail = $this->billingService->getDetailKuitansi($pembayaran);
+
+        return response()->json([
+            'success' => true,
+            'data' => $detail,
+        ]);
+    }
 }

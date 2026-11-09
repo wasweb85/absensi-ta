@@ -434,7 +434,7 @@
               </div>
               <div class="flex justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800 print:border-zinc-300 text-xs sm:text-sm font-bold text-emerald-600 print:text-black">
                 <span>Total Dibayar:</span>
-                <span>Rp {{ formatRupiah(activeKuitansi.jumlah_bayar) }}</span>
+                <span>Rp {{ formatRupiah(activeKuitansi.total_bayar || activeKuitansi.jumlah_bayar) }}</span>
               </div>
               <div class="flex justify-between py-0.5">
                 <span class="text-zinc-500 print:text-zinc-600">Status Transaksi:</span>
@@ -572,7 +572,8 @@ const kuitansiDataForWa = computed(() => {
   const currentBlnNum = Number(selectedBulan.value) || (new Date().getMonth() + 1);
   const currentThnNum = Number(selectedTahun.value) || new Date().getFullYear();
   const namaBln = bulanList[currentBlnNum] || `Bulan ${currentBlnNum}`;
-  const periodeStr = kw.daftar_bulan_str || kw.periode || `${namaBln} ${currentThnNum}`;
+  const periodeStr = kw.periode || kw.daftar_bulan_str || `${namaBln} ${currentThnNum}`;
+  const totalNominal = kw.total_bayar ?? kw.jumlah_bayar ?? 0;
 
   // Ambil fallback data santri dari tabel jika di kw belum terisi lengkap
   const matchingSantri = santriItems.value.find(s => s.id_siswa === kw.id_siswa || s.nisn === kw.nisn);
@@ -592,8 +593,12 @@ const kuitansiDataForWa = computed(() => {
     nama_bulan: kw.nama_bulan || namaBln,
     periode: periodeStr,
     daftar_bulan_str: kw.daftar_bulan_str || periodeStr,
-    bulan_tagihan: kw.bulan_tagihan || periodeStr,
+    bulan_tagihan: periodeStr,
     pembayaran_untuk: kw.pembayaran_untuk || `SPP ${periodeStr}`,
+    jumlah_bayar: totalNominal,
+    total_bayar: totalNominal,
+    total_bulan: kw.total_bulan || (kw.daftar_bulan ? kw.daftar_bulan.length : 1),
+    is_multi_bulan: Boolean(kw.total_bulan > 1 || kw.daftar_bulan?.length > 1),
     appLogo: appLogo.value,
     nama_bendahara: kw.nama_bendahara || namaBendahara.value,
   };

@@ -348,13 +348,18 @@ class CloudinaryInvoiceFeatureTest extends TestCase
 
         $content = $response->getContent();
 
-        // Pastikan posisi Juli 2026 sebelum Agustus 2026
-        $posJuli = strpos($content, 'Juli 2026');
-        $posAgustus = strpos($content, 'Agustus 2026');
-        $posDesember = strpos($content, 'Desember 2026');
-        $posJanuari = strpos($content, 'Januari 2027');
-        $posApril = strpos($content, 'April 2027');
-        $posJuni = strpos($content, 'Juni 2027');
+        // Pastikan format smart range tampil pada halaman
+        $response->assertSee('Juli 2026 – Juni 2027 (12 Bulan)');
+
+        // Verifikasi rincian bulan terurut secara kronologis kalender di dalam daftar rincian
+        $breakdownSection = strstr($content, 'id="daftarBulanBreakdown"') ?: $content;
+
+        $posJuli = strpos($breakdownSection, 'Juli 2026');
+        $posAgustus = strpos($breakdownSection, 'Agustus 2026');
+        $posDesember = strpos($breakdownSection, 'Desember 2026');
+        $posJanuari = strpos($breakdownSection, 'Januari 2027');
+        $posApril = strpos($breakdownSection, 'April 2027');
+        $posJuni = strpos($breakdownSection, 'Juni 2027');
 
         $this->assertNotFalse($posJuli);
         $this->assertNotFalse($posAgustus);
@@ -369,5 +374,61 @@ class CloudinaryInvoiceFeatureTest extends TestCase
         $this->assertTrue($posDesember < $posJanuari, 'Desember 2026 harus sebelum Januari 2027');
         $this->assertTrue($posJanuari < $posApril, 'Januari 2027 harus sebelum April 2027');
         $this->assertTrue($posApril < $posJuni, 'April 2027 harus sebelum Juni 2027');
+    }
+
+    public function test_kuitansi_detail_api_returns_aggregated_data_for_multi_month_payments(): void
+    {
+        $siswaMulti = Siswa::create([
+            'id_kelas' => $this->kelas->id,
+            'nisn' => '9999888877',
+            'nama_lengkap' => 'Santri Aggregated Detail Test',
+            'jenis_kelamin' => 'L',
+            'status' => 'aktif',
+            'no_hp_ortu' => '085811223344',
+        ]);
+
+        $baseKuitansi = 'KW-202611-00200';
+        $subPayment1 = null;
+
+        for ($b = 7; $b <= 9; $b++) {
+            $tagihan = TagihanSpp::create([
+                'id_siswa' => $siswaMulti->id,
+                'bulan' => $b,
+                'tahun' => 2026,
+                'tahun_ajaran' => '2026/2027',
+                'nominal_tagihan' => 15000,
+                'status' => 'lunas',
+            ]);
+
+            $p = PembayaranSpp::create([
+                'id_tagihan' => $tagihan->id,
+                'id_siswa' => $siswaMulti->id,
+                'nomor_kuitansi' => "{$baseKuitansi}-".($b - 6),
+                'tanggal_bayar' => Carbon::now('Asia/Jakarta'),
+                'jumlah_bayar' => 15000,
+                'metode_pembayaran' => 'Tunai',
+                'id_petugas' => $this->admin->id,
+                'status_transaksi' => 'valid',
+            ]);
+
+            if ($b === 7) {
+                $subPayment1 = $p;
+            }
+        }
+
+        // Panggil endpoint /api/spp/kuitansi-detail menggunakan ID salah satu sub-item
+        $response = $this->actingAs($this->admin, 'sanctum')->getJson('/api/spp/kuitansi-detail?id_pembayaran='.$subPayment1->id);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'data' => [
+                'nomor_kuitansi' => $baseKuitansi,
+                'total_bayar' => 45000,
+                'total_bulan' => 3,
+                'periode' => 'Juli 2026 – September 2026 (3 Bulan)',
+                'is_multi_bulan' => true,
+            ],
+        ]);
     }
 }

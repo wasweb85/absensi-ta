@@ -369,7 +369,7 @@ async function autoUploadToCloudinary(base64Data) {
   const k = props.kuitansiData;
   if (!k) return;
   const idPembayaran = k.id_pembayaran || (Array.isArray(k.pembayaran_ids) ? k.pembayaran_ids[0] : null);
-  const noKw = k.nomor_kuitansi;
+  const noKw = k.nomor_kuitansi_display || k.base_kuitansi || k.nomor_kuitansi;
 
   if (!idPembayaran && !noKw) return;
 
@@ -404,7 +404,7 @@ async function fetchInvoiceLink() {
   const k = props.kuitansiData;
   if (!k) return;
   const idPembayaran = k.id_pembayaran || (Array.isArray(k.pembayaran_ids) ? k.pembayaran_ids[0] : null);
-  const noKw = k.nomor_kuitansi;
+  const noKw = k.nomor_kuitansi_display || k.base_kuitansi || k.nomor_kuitansi;
   if (!idPembayaran && !noKw) return;
 
   try {

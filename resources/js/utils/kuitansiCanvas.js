@@ -152,12 +152,22 @@ export async function generateKuitansiCanvas(data) {
   ctx.lineTo((width / 2) + (titleWidth / 2), titleY + 19);
   ctx.stroke();
 
+  // Resolusi nomor kuitansi bersih & nominal total
+  let displayNomorKuitansi = data.nomor_kuitansi_display || data.base_kuitansi || data.nomor_kuitansi || '-';
+  if ((data.is_multi_bulan || data.total_bulan > 1) && String(displayNomorKuitansi).split('-').length >= 4) {
+    const p = String(displayNomorKuitansi).split('-');
+    displayNomorKuitansi = `${p[0]}-${p[1]}-${p[2]}`;
+  }
+
+  const totalNominalBayar = Number(data.total_bayar ?? data.jumlah_bayar ?? 0);
+  const displayPeriode = data.pembayaran_untuk || (data.periode ? `SPP ${String(data.periode).replace(/^SPP\s+/i, '')}` : 'SPP Bulanan');
+
   // 6. Metadata Row (Nomor Kuitansi & Tanggal Bayar)
   const metaY = titleY + 30;
   ctx.font = '11.5px monospace';
   ctx.fillStyle = '#64748b';
   ctx.textAlign = 'left';
-  ctx.fillText(`No. Kuitansi: ${data.nomor_kuitansi || '-'}`, 40, metaY);
+  ctx.fillText(`No. Kuitansi: ${displayNomorKuitansi}`, 40, metaY);
 
   ctx.textAlign = 'right';
   ctx.fillText(`Tanggal: ${data.tanggal_bayar || formatTanggalIndo(null)}`, width - 40, metaY);
@@ -206,7 +216,7 @@ export async function generateKuitansiCanvas(data) {
 
   drawItemRow('Nama Santri:', data.nama_santri || '-', true);
   drawItemRow('NISN / Jilid:', `${data.nisn || '-'} • ${data.kelas || '-'}`, false, false, true);
-  drawItemRow('Pembayaran Periode:', data.pembayaran_untuk || '-', true);
+  drawItemRow('Pembayaran Periode:', displayPeriode, true);
   drawItemRow('Metode Pembayaran:', data.metode || 'Tunai', false);
 
   if (data.catatan) {
@@ -241,7 +251,7 @@ export async function generateKuitansiCanvas(data) {
   ctx.textAlign = 'right';
   ctx.font = 'bold 21px monospace';
   ctx.fillStyle = '#059669';
-  ctx.fillText(`Rp ${formatRupiah(data.jumlah_bayar)}`, padRight, currY + 4);
+  ctx.fillText(`Rp ${formatRupiah(totalNominalBayar)}`, padRight, currY + 4);
 
   currY += rowGap + 2;
 
@@ -338,7 +348,7 @@ export async function generateKuitansiCanvas(data) {
   ctx.font = '9.5px monospace';
   ctx.fillStyle = '#cbd5e1';
   ctx.fillText(
-    `ID: ${data.nomor_kuitansi || 'KW-SPP'} • Simpan dokumen ini sebagai tanda bukti resmi pelunasan SPP`,
+    `ID: ${displayNomorKuitansi || 'KW-SPP'} • Simpan dokumen ini sebagai tanda bukti resmi pelunasan SPP`,
     width / 2,
     height - 34
   );
@@ -350,7 +360,7 @@ export async function generateKuitansiCanvas(data) {
     canvas.toBlob((b) => resolve(b), 'image/png');
   });
 
-  const fileName = `Kuitansi-${data.nomor_kuitansi || 'SPP'}.png`;
+  const fileName = `Kuitansi-${displayNomorKuitansi || 'SPP'}.png`;
   const file = new File([blob], fileName, { type: 'image/png' });
 
   return {

@@ -667,8 +667,8 @@
                 </div>
                 <div class="flex justify-between">
                   <span class="text-zinc-500 print:text-zinc-600">Pembayaran Periode:</span>
-                  <span class="font-bold text-emerald-600 dark:text-emerald-400 text-right max-w-[200px] truncate">
-                    {{ bayarSuccessResult.daftar_bulan_str || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.map(b => b.label || b).join(', ') : '-') }}
+                  <span class="font-bold text-emerald-600 dark:text-emerald-400 text-right max-w-[220px] truncate" :title="bayarSuccessResult.daftar_bulan_str">
+                    {{ bayarSuccessResult.periode || bayarSuccessResult.periode_ringkas || bayarSuccessResult.daftar_bulan_str || (bayarSuccessResult.daftar_bulan ? bayarSuccessResult.daftar_bulan.map(b => b.label || b).join(', ') : '-') }}
                   </span>
                 </div>
                 <div class="flex justify-between">
@@ -1102,7 +1102,10 @@ const showKirimWaModal = ref(false);
 const kuitansiDataForWa = computed(() => {
   if (!bayarSuccessResult.value) return null;
   const k = bayarSuccessResult.value;
-  const bulanStr = k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
+  const smartPeriode = k.periode || k.periode_ringkas || k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
+  const fullBulanStr = k.daftar_bulan_str || (k.daftar_bulan ? k.daftar_bulan.map(b => b.label || b).join(', ') : '-');
+  const totalNominal = k.total_bayar ?? k.jumlah_bayar ?? 0;
+
   return {
     ...k,
     id_pembayaran: k.id_pembayaran,
@@ -1111,16 +1114,20 @@ const kuitansiDataForWa = computed(() => {
     invoice_url: k.invoice_url || k.secure_invoice_url,
     cloudinary_url: k.cloudinary_url,
     nomor_kuitansi: k.nomor_kuitansi,
+    nomor_kuitansi_display: k.nomor_kuitansi,
     tanggal_bayar: k.tanggal_bayar,
     nama_santri: k.nama_santri,
     nisn: k.nisn,
     kelas: k.kelas,
-    periode: bulanStr,
-    daftar_bulan_str: bulanStr,
-    bulan_tagihan: bulanStr,
-    pembayaran_untuk: `SPP ${bulanStr}`.trim(),
+    periode: smartPeriode,
+    daftar_bulan_str: fullBulanStr,
+    bulan_tagihan: smartPeriode,
+    pembayaran_untuk: `SPP ${String(smartPeriode).replace(/^SPP\s+/i, '')}`.trim(),
     metode: k.metode,
-    jumlah_bayar: k.total_bayar,
+    jumlah_bayar: totalNominal,
+    total_bayar: totalNominal,
+    total_bulan: k.total_bulan || (k.daftar_bulan ? k.daftar_bulan.length : 1),
+    is_multi_bulan: Boolean(k.total_bulan > 1 || k.daftar_bulan?.length > 1),
     catatan: k.catatan,
     nama_bendahara: k.nama_bendahara || namaBendahara.value,
     no_hp_ortu: selectedBayarSantri.value?.no_hp_ortu || k.no_hp_ortu || '',
