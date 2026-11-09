@@ -33,6 +33,30 @@ class SppBillingService
     public const SEMESTER_START_TAHUN = 2026;
 
     /**
+     * Tarif SPP historis untuk periode Juni 2026 ke bawah (Rp 10.000)
+     */
+    public const TARIF_SPP_HISTORIS = 10000.0;
+
+    /**
+     * Tarif SPP standar mulai Juli 2026 ke atas (Rp 15.000)
+     */
+    public const TARIF_SPP_DEFAULT = 15000.0;
+
+    /**
+     * Menentukan tarif SPP berdasarkan bulan dan tahun kalender tagihan.
+     * - Periode <= Juni 2026 (termasuk 2025 ke bawah): Rp 10.000
+     * - Periode >= Juli 2026: Tarif kelas atau default Rp 15.000
+     */
+    public static function getTarifSppBulan(int $bulan, int $tahun, ?float $nominalKelas = null): float
+    {
+        if ($tahun < 2026 || ($tahun === 2026 && $bulan <= 6)) {
+            return self::TARIF_SPP_HISTORIS;
+        }
+
+        return ($nominalKelas !== null && $nominalKelas > 0) ? (float) $nominalKelas : self::TARIF_SPP_DEFAULT;
+    }
+
+    /**
      * Mendapatkan awal semester ajaran aktif
      *
      * @return array{0: int, 1: int}
@@ -155,7 +179,7 @@ class SppBillingService
         $skipped = 0;
 
         foreach ($santriList as $santri) {
-            $nominal = $santri->kelas?->nominal_spp ?: 15000;
+            $nominal = self::getTarifSppBulan($bulan, $tahun, (float) ($santri->kelas?->nominal_spp ?: 0));
 
             $exists = TagihanSpp::where('id_siswa', $santri->id)
                 ->where('bulan', $bulan)
@@ -197,10 +221,14 @@ class SppBillingService
             ->where('tahun', $tahun)
             ->first();
 
+        $isHistoris = ($tahun < 2026) || ($tahun === 2026 && $bulan <= 6);
+
         if (! $tagihan) {
             $siswa = Siswa::with('kelas')->findOrFail($idSiswa);
-            $nominal = $siswa->kelas?->nominal_spp ?: 15000;
-            $tahunAjaran = Pengaturan::getValue('tahun_ajaran_aktif', '2026/2027');
+            $nominal = self::getTarifSppBulan($bulan, $tahun, (float) ($siswa->kelas?->nominal_spp ?: 0));
+            $tahunAjaran = $isHistoris
+                ? ($bulan >= 7 ? "{$tahun}/".($tahun + 1) : ($tahun - 1)."/{$tahun}")
+                : Pengaturan::getValue('tahun_ajaran_aktif', '2026/2027');
 
             $tagihan = TagihanSpp::create([
                 'id_siswa' => $idSiswa,
@@ -211,6 +239,8 @@ class SppBillingService
                 'status' => 'belum_lunas',
                 'jatuh_tempo' => Carbon::createFromDate($tahun, $bulan, 10)->format('Y-m-d'),
             ]);
+        } elseif ($isHistoris && (float) $tagihan->nominal_tagihan !== self::TARIF_SPP_HISTORIS && $tagihan->status !== 'lunas') {
+            $tagihan->update(['nominal_tagihan' => self::TARIF_SPP_HISTORIS]);
         }
 
         return $tagihan;
@@ -1077,10 +1107,11 @@ class SppBillingService
         $createdCount = 0;
 
         foreach ($santriList as $santri) {
-            $nominal = (float) ($santri->kelas?->nominal_spp ?: 15000);
+            $nominalKelas = (float) ($santri->kelas?->nominal_spp ?: 0);
             foreach ($periods as $p) {
                 $key = "{$santri->id}_{$p['bulan']}_{$p['tahun']}";
                 if (! isset($existingKeys[$key])) {
+                    $nominal = self::getTarifSppBulan($p['bulan'], $p['tahun'], $nominalKelas);
                     $jatuhTempo = Carbon::createFromDate($p['tahun'], $p['bulan'], 10)->format('Y-m-d');
                     $toInsert[] = [
                         'id_siswa' => $santri->id,

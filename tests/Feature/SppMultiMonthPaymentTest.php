@@ -349,4 +349,81 @@ class SppMultiMonthPaymentTest extends TestCase
 
         $this->assertEquals('belum_lunas', $t1->fresh()->status);
     }
+
+    public function test_input_cepat_historical_period_allocates_10000_per_month_until_june_2026(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        // Set tarif standar kelas ke Rp 15.000 (tarif baru mulai Juli 2026)
+        $this->kelas->update(['nominal_spp' => 15000]);
+
+        // Input pembayaran Rp 120.000 mulai Juli 2025 untuk siswa1
+        $response = $this->postJson('/api/spp/input-cepat', [
+            'bulan' => 7,
+            'tahun' => 2025,
+            'id_kelas' => $this->kelas->id,
+            'items' => [
+                [
+                    'id_siswa' => $this->siswa1->id,
+                    'nominal' => 120000,
+                    'metode' => 'Tunai',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $kuitansi = $response->json('kuitansi_list.0');
+        $this->assertNotNull($kuitansi);
+        $this->assertEquals(12, $kuitansi['total_bulan']);
+        $this->assertEquals(120000, $kuitansi['total_bayar']);
+        $this->assertEquals('Juli 2025 – Juni 2026 (12 Bulan)', $kuitansi['periode']);
+
+        // Pastikan tiap bulan tercatat Rp 10.000
+        foreach ($kuitansi['daftar_bulan'] as $itemBulan) {
+            $this->assertEquals(10000, $itemBulan['nominal']);
+            $this->assertEquals('lunas', $itemBulan['status']);
+        }
+
+        // Pastikan siswa2 (santri lain di kelas yang sama) tidak ikut dibuatkan tagihan 2025
+        $this->assertEquals(0, TagihanSpp::where('id_siswa', $this->siswa2->id)->where('tahun', 2025)->count());
+    }
+
+    public function test_input_cepat_cross_boundary_allocates_10000_before_july_2026_and_15000_after(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        $this->kelas->update(['nominal_spp' => 15000]);
+
+        // Bayar Rp 50.000 mulai Mei 2026:
+        // Mei 2026 (10.000) + Juni 2026 (10.000) + Juli 2026 (15.000) + Agustus 2026 (15.000) = 50.000 (4 Bulan)
+        $response = $this->postJson('/api/spp/input-cepat', [
+            'bulan' => 5,
+            'tahun' => 2026,
+            'id_kelas' => $this->kelas->id,
+            'items' => [
+                [
+                    'id_siswa' => $this->siswa1->id,
+                    'nominal' => 50000,
+                    'metode' => 'Tunai',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $kuitansi = $response->json('kuitansi_list.0');
+
+        $this->assertEquals(4, $kuitansi['total_bulan']);
+        $this->assertEquals(50000, $kuitansi['total_bayar']);
+        $this->assertEquals('Mei 2026 – Agustus 2026 (4 Bulan)', $kuitansi['periode']);
+
+        $daftar = $kuitansi['daftar_bulan'];
+        $this->assertEquals(10000, $daftar[0]['nominal']); // Mei 2026
+        $this->assertEquals(10000, $daftar[1]['nominal']); // Juni 2026
+        $this->assertEquals(15000, $daftar[2]['nominal']); // Juli 2026
+        $this->assertEquals(15000, $daftar[3]['nominal']); // Agustus 2026
+    }
 }

@@ -504,7 +504,8 @@ class SppController extends Controller
         $kuitansiList = [];
 
         DB::transaction(function () use ($items, $bulan, $tahun, $idKelas, $petugasId, $namaPetugas, &$sukses, &$kuitansiList) {
-            if ($idKelas) {
+            $isPeriodeAktif = ($tahun > 2026) || ($tahun === 2026 && $bulan >= 7);
+            if ($idKelas && $isPeriodeAktif) {
                 $allSiswaKelas = Siswa::where('id_kelas', $idKelas)->where('status', 'aktif')->get();
                 foreach ($allSiswaKelas as $s) {
                     $this->billingService->ensureTagihan($s->id, $bulan, $tahun);

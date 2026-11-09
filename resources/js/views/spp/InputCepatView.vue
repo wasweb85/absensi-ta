@@ -32,7 +32,7 @@
           >
             <option value="">-- Pilih Jilid --</option>
             <option v-for="k in kelasList" :key="k.id" :value="k.id">
-              {{ k.nama_kelas }} (Rp {{ formatRupiah(k.nominal_spp) }})
+              {{ k.nama_kelas }} (Rp {{ formatRupiah(getTarifBulan(selectedBulan, selectedTahun, k.nominal_spp)) }})
             </option>
           </select>
         </div>
@@ -604,35 +604,66 @@ const kuitansiDataForWa = computed(() => {
   };
 });
 
+function getTarifBulan(bulan, tahun, nominalKelasStandar = 15000) {
+  const b = Number(bulan);
+  const t = Number(tahun);
+  if (t < 2026 || (t === 2026 && b <= 6)) {
+    return 10000;
+  }
+  const std = Number(nominalKelasStandar);
+  return std > 0 ? std : 15000;
+}
+
 function getAlokasiMultiBulanLabel(item) {
   if (!item || !item.nominal || item.status === 'lunas') return null;
   const nominal = Number(item.nominal);
   if (isNaN(nominal) || nominal <= 0) return null;
 
   const kData = kelasList.value.find(k => k.id === Number(selectedKelasId.value));
-  const tarif = kData && Number(kData.nominal_spp) > 0 ? Number(kData.nominal_spp) : 15000;
-  if (nominal <= tarif) return null;
+  const nominalKelasStandar = kData && Number(kData.nominal_spp) > 0 ? Number(kData.nominal_spp) : 15000;
 
-  const jmlBulan = Math.floor(nominal / tarif);
-  const sisa = nominal % tarif;
+  let currBln = Number(selectedBulan.value) || (new Date().getMonth() + 1);
+  let currThn = Number(selectedTahun.value) || new Date().getFullYear();
 
-  const startBln = Number(selectedBulan.value) || (new Date().getMonth() + 1);
-  const startThn = Number(selectedTahun.value) || new Date().getFullYear();
+  const tarifAwal = getTarifBulan(currBln, currThn, nominalKelasStandar);
+  if (nominal <= tarifAwal) return null;
 
-  const maxBulan = Math.min(jmlBulan, 24);
+  let sisaUang = nominal;
   const blnNames = [];
-  for (let i = 0; i < maxBulan; i++) {
-    const totalMonthIdx = startBln - 1 + i;
-    const m = (totalMonthIdx % 12) + 1;
-    blnNames.push(bulanList[m] || `Bulan ${m}`);
+  let jmlBulan = 0;
+  let cicilanNext = null;
+
+  for (let i = 0; i < 24 && sisaUang > 0; i++) {
+    const tarifBulanIni = getTarifBulan(currBln, currThn, nominalKelasStandar);
+    const namaBln = `${bulanList[currBln] || `Bulan ${currBln}`} ${currThn}`;
+
+    if (sisaUang >= tarifBulanIni) {
+      blnNames.push(namaBln);
+      sisaUang -= tarifBulanIni;
+      jmlBulan++;
+    } else {
+      cicilanNext = { nominal: sisaUang, label: namaBln };
+      sisaUang = 0;
+    }
+
+    if (currBln === 12) {
+      currBln = 1;
+      currThn++;
+    } else {
+      currBln++;
+    }
   }
 
-  if (sisa > 0) {
-    const mNext = ((startBln - 1 + jmlBulan) % 12) + 1;
-    const nextBlnName = bulanList[mNext] || `Bulan ${mNext}`;
-    return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')}) + Cicil Rp ${formatRupiah(sisa)} ${nextBlnName}`;
+  if (jmlBulan <= 1 && !cicilanNext) return null;
+
+  const ringkasanBulan = blnNames.length >= 3
+    ? `${blnNames[0]} – ${blnNames[blnNames.length - 1]}`
+    : blnNames.join(', ');
+
+  if (cicilanNext) {
+    return `✨ Otomatis ${jmlBulan} Bulan (${ringkasanBulan}) + Cicil Rp ${formatRupiah(cicilanNext.nominal)} ${cicilanNext.label}`;
   }
-  return `✨ Otomatis ${jmlBulan} Bulan (${blnNames.join(', ')})`;
+  return `✨ Otomatis ${jmlBulan} Bulan (${ringkasanBulan})`;
 }
 
 function formatRupiah(val) {
@@ -690,25 +721,28 @@ async function fetchSantriByKelas() {
       tagihanMap[tg.id_siswa] = tg;
     }
 
-    // Dapatkan nominal standar kelas
+    // Dapatkan nominal sesuai periode bulan/tahun yang dipilih
     const kData = kelasList.value.find(k => k.id === Number(selectedKelasId.value));
-    const nominalKelas = kData ? Number(kData.nominal_spp) : 50000;
+    const nominalKelasStandar = kData ? Number(kData.nominal_spp) : 15000;
+    const nominalPeriode = getTarifBulan(selectedBulan.value, selectedTahun.value, nominalKelasStandar);
+    const isPeriodeHistoris = Number(selectedTahun.value) < 2026 || (Number(selectedTahun.value) === 2026 && Number(selectedBulan.value) <= 6);
 
     santriItems.value = siswaList.map(s => {
       const tg = tagihanMap[s.id];
       let status = 'belum_lunas';
-      let nominal = nominalKelas;
+      let nominal = nominalPeriode;
       let sisaKurang = 0;
 
       if (tg) {
         status = tg.status;
+        const nominalTagihanAktual = isPeriodeHistoris && tg.status !== 'lunas' ? 10000 : Number(tg.nominal_tagihan);
         if (tg.status === 'lunas') {
           nominal = 0;
         } else if (tg.status === 'kurang_bayar') {
-          sisaKurang = Number(tg.nominal_tagihan) - Number(tg.terbayar || 0);
-          nominal = sisaKurang > 0 ? sisaKurang : nominalKelas;
+          sisaKurang = nominalTagihanAktual - Number(tg.terbayar || 0);
+          nominal = sisaKurang > 0 ? sisaKurang : nominalPeriode;
         } else {
-          nominal = Number(tg.nominal_tagihan);
+          nominal = nominalTagihanAktual;
         }
       }
 
