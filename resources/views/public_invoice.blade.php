@@ -18,156 +18,178 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         body {
-            background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 100%);
+            background-color: #f8fafc;
             min-height: 100vh;
-            padding: 24px 16px 40px;
-            color: #0f172a;
+            padding: 24px 16px 48px;
+            color: #1e293b;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         .container {
             width: 100%;
-            max-width: 580px;
-        }
-        .badge-verified {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255, 255, 255, 0.18);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 9999px;
-            margin-bottom: 16px;
+            max-width: 460px;
         }
         .card {
             background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 10px 20px -5px rgba(0, 0, 0, 0.04);
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .card-top-accent {
+            height: 4px;
+            background: linear-gradient(90deg, #059669 0%, #10b981 100%);
         }
         .card-header {
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 20px 24px;
+            padding: 20px 22px 16px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
+            border-bottom: 1px solid #f1f5f9;
         }
         .logo-img {
-            width: 54px;
-            height: 54px;
+            width: 44px;
+            height: 44px;
             object-fit: contain;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #ffffff;
-            padding: 4px;
+            padding: 2px;
             border: 1px solid #e2e8f0;
+            flex-shrink: 0;
         }
         .header-title h1 {
             font-size: 15px;
-            font-weight: 800;
+            font-weight: 600;
             color: #0f172a;
-            letter-spacing: -0.3px;
+            line-height: 1.3;
+            letter-spacing: -0.2px;
         }
         .header-title p {
             font-size: 12px;
             color: #64748b;
+            font-weight: 400;
             margin-top: 2px;
         }
-        .status-banner {
-            padding: 12px 24px;
-            font-size: 13px;
-            font-weight: 700;
+
+        /* Hero: Status & Total Amount */
+        .hero-section {
+            padding: 20px 22px 18px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .hero-status-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
-        .status-valid {
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            letter-spacing: 0.3px;
+        }
+        .status-pill-success {
             background: #ecfdf5;
-            color: #065f46;
-            border-bottom: 1px solid #a7f3d0;
+            color: #047857;
+            border: 1px solid #a7f3d0;
         }
-        .status-cancelled {
+        .status-pill-danger {
             background: #fef2f2;
-            color: #991b1b;
-            border-bottom: 1px solid #fecaca;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
         }
-        .card-body {
-            padding: 24px;
+        .hero-date {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 400;
         }
-        .receipt-image-wrapper {
-            margin-bottom: 24px;
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-            background: #f1f5f9;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        .hero-total-block {
+            margin-top: 14px;
         }
-        .receipt-image {
-            width: 100%;
-            height: auto;
-            display: block;
-            border-radius: 14px;
+        .hero-total-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
         }
-        .info-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #f8fafc;
-            border-radius: 14px;
-            padding: 18px;
-            border: 1px solid #f1f5f9;
+        .hero-total-val {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 2px;
+            font-feature-settings: 'tnum';
+            letter-spacing: -0.5px;
+        }
+
+        /* Receipt Information Rows */
+        .receipt-body {
+            padding: 16px 22px;
         }
         .info-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            padding: 9px 0;
             font-size: 13px;
-            gap: 12px;
+            gap: 16px;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 4px;
         }
         .info-label {
             color: #64748b;
-            font-weight: 500;
+            font-weight: 400;
             flex-shrink: 0;
+            min-width: 110px;
         }
         .info-val {
-            color: #0f172a;
-            font-weight: 700;
+            color: #334155;
+            font-weight: 500;
             text-align: right;
             word-break: break-word;
         }
-        .info-total {
-            border-top: 2px dashed #cbd5e1;
-            padding-top: 14px;
-            margin-top: 4px;
+        .info-val-highlight {
+            color: #0f172a;
+            font-weight: 600;
         }
-        .info-total .info-val {
-            font-size: 18px;
-            color: #047857;
-            font-weight: 800;
+        .info-val-badge {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 2px 7px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
         }
+
+        /* Periode & Multi-Month Breakdown */
         .periode-container {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 5px;
-            max-width: 70%;
+            gap: 4px;
+            max-width: 72%;
         }
         .periode-details {
             width: 100%;
@@ -180,21 +202,21 @@
             align-items: center;
             gap: 4px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 500;
             color: #047857;
-            background: #ecfdf5;
-            padding: 4px 9px;
-            border-radius: 8px;
+            background: #f0fdf4;
+            padding: 3px 8px;
+            border-radius: 6px;
             cursor: pointer;
-            border: 1px solid #a7f3d0;
-            transition: all 0.2s ease;
+            border: 1px solid #bbf7d0;
+            transition: all 0.15s ease;
             user-select: none;
         }
         .periode-details summary::-webkit-details-marker {
             display: none;
         }
         .periode-details summary:hover {
-            background: #d1fae5;
+            background: #dcfce7;
         }
         .periode-details[open] summary svg {
             transform: rotate(180deg);
@@ -203,15 +225,14 @@
             margin-top: 6px;
             display: flex;
             flex-direction: column;
-            gap: 3px;
-            background: #ffffff;
+            gap: 2px;
+            background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 8px 12px;
-            max-height: 200px;
+            max-height: 180px;
             overflow-y: auto;
             text-align: left;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .bulan-breakdown-item {
             display: flex;
@@ -219,22 +240,38 @@
             align-items: center;
             font-size: 11.5px;
             padding: 4px 0;
-            border-bottom: 1px dashed #f1f5f9;
+            border-bottom: 1px dashed #e2e8f0;
         }
         .bulan-breakdown-item:last-child {
             border-bottom: none;
         }
         .bulan-breakdown-label {
-            font-weight: 600;
-            color: #334155;
+            font-weight: 400;
+            color: #475569;
         }
         .bulan-breakdown-nominal {
-            font-family: monospace;
-            font-weight: 700;
-            color: #059669;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-weight: 500;
+            color: #047857;
         }
+
+        /* Image Receipt Preview (if Cloudinary is attached) */
+        .receipt-image-wrapper {
+            margin: 0 22px 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .receipt-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Action Buttons */
         .actions {
-            margin-top: 24px;
+            padding: 4px 22px 22px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -244,55 +281,60 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 13px 20px;
-            border-radius: 12px;
+            padding: 11px 16px;
+            border-radius: 10px;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 500;
             text-decoration: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             border: none;
+            min-height: 42px;
         }
         .btn-primary {
-            background: #047857;
+            background: #059669;
             color: #ffffff;
-            box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
+            font-weight: 600;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         .btn-primary:hover {
-            background: #065f46;
+            background: #047857;
         }
-        .btn-outline {
+        .btn-secondary {
             background: #ffffff;
             color: #334155;
             border: 1px solid #cbd5e1;
         }
-        .btn-outline:hover {
+        .btn-secondary:hover {
             background: #f8fafc;
             border-color: #94a3b8;
         }
+
+        /* Footer */
         .footer-note {
             margin-top: 20px;
             text-align: center;
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.75);
-            line-height: 1.6;
+            color: #94a3b8;
+            line-height: 1.5;
+            font-weight: 400;
         }
-        .lock-icon {
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 4px;
-        }
+
         @media print {
             body {
                 background: #ffffff !important;
                 padding: 0 !important;
             }
-            .actions, .footer-note, .badge-verified {
+            .actions, .footer-note {
                 display: none !important;
             }
             .card {
                 box-shadow: none !important;
-                border: 1px solid #e2e8f0 !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 0 !important;
+            }
+            .card-top-accent {
+                display: none !important;
             }
         }
     </style>
@@ -300,15 +342,10 @@
 <body>
 
     <div class="container">
-        <!-- Badge Keabsahan Dokumen Digital -->
-        <div style="text-align: center;">
-            <div class="badge-verified">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Dokumen Digital Resmi Terverifikasi</span>
-            </div>
-        </div>
-
         <div class="card">
+            <!-- Accent Top Stripe -->
+            <div class="card-top-accent"></div>
+
             <!-- Kop Instansi -->
             <div class="card-header">
                 <img src="{{ asset('LOGOTPQ.png') }}" alt="Logo TPQ" class="logo-img" onerror="this.style.display='none'">
@@ -318,134 +355,129 @@
                 </div>
             </div>
 
-            <!-- Status Banner -->
-            @if($isValid)
-            <div class="status-banner status-valid">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>PEMBAYARAN LUNAS (SAH)</span>
+            <!-- Hero: Status & Total -->
+            <div class="hero-section">
+                <div class="hero-status-row">
+                    @if($isValid)
+                    <div class="status-pill status-pill-success">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>PEMBAYARAN LUNAS (SAH)</span>
+                    </div>
+                    <span class="hero-date">{{ $pembayaran->tanggal_bayar?->format('d/m/Y H:i') }} WIB</span>
+                    @else
+                    <div class="status-pill status-pill-danger">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <span>TRANSAKSI DIBATALKAN</span>
+                    </div>
+                    <span class="hero-date">Batal</span>
+                    @endif
                 </div>
-                <span style="font-size:11px; opacity:0.85;">{{ $pembayaran->tanggal_bayar?->format('d/m/Y H:i') }} WIB</span>
+
+                <div class="hero-total-block">
+                    <div class="hero-total-label">Total Pembayaran</div>
+                    <div class="hero-total-val">Rp {{ number_format($totalNominal, 0, ',', '.') }}</div>
+                </div>
             </div>
-            @else
-            <div class="status-banner status-cancelled">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    <span>TRANSAKSI DIBATALKAN</span>
+
+            <!-- Rincian Data Transaksi (Teks Resmi) -->
+            <div class="receipt-body">
+                <div class="info-row">
+                    <span class="info-label">No. Kuitansi</span>
+                    <span class="info-val-badge">{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}</span>
                 </div>
-                <span style="font-size:11px;">Batal</span>
+                <div class="info-row">
+                    <span class="info-label">Nama Santri</span>
+                    <span class="info-val info-val-highlight">{{ $siswa?->nama_lengkap ?? '-' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kelas / Jilid</span>
+                    <span class="info-val">{{ $siswa?->kelas?->nama_kelas ?? '-' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Wali Santri (HP)</span>
+                    <span class="info-val">{{ $maskedPhone }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Periode SPP</span>
+                    <div class="periode-container">
+                        <span class="info-val info-val-highlight" style="color: #0369a1;">{{ $periodeStr }}</span>
+                        @if(!empty($daftarBulan) && count($daftarBulan) > 1)
+                        <details class="periode-details">
+                            <summary>
+                                <span>Rincian {{ count($daftarBulan) }} Bulan</span>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                            </summary>
+                            <div id="daftarBulanBreakdown" class="bulan-breakdown-list">
+                                @foreach($daftarBulan as $itemBulan)
+                                <div class="bulan-breakdown-item">
+                                    <span class="bulan-breakdown-label">{{ $itemBulan['label'] }}</span>
+                                    <span class="bulan-breakdown-nominal">Rp {{ number_format($itemBulan['nominal'], 0, ',', '.') }}</span>
+                                </div>
+                                @endforeach
+                            </div>
+                        </details>
+                        @endif
+                    </div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Metode Bayar</span>
+                    <span class="info-val">{{ $pembayaran->metode_pembayaran }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Bendahara Penerima</span>
+                    <span class="info-val">{{ $namaBendahara }}</span>
+                </div>
+                @if(!empty($pembayaran->catatan))
+                <div class="info-row">
+                    <span class="info-label">Catatan</span>
+                    <span class="info-val" style="font-style: italic; color: #64748b;">{{ $pembayaran->catatan }}</span>
+                </div>
+                @endif
+            </div>
+
+            <!-- Jika ada gambar di Cloudinary, tampilkan gambar kuitansi resmi -->
+            @if(!empty($cloudinaryUrl))
+            <div class="receipt-image-wrapper">
+                <img src="{{ $cloudinaryUrl }}" alt="Kuitansi Resmi SPP" class="receipt-image" loading="lazy">
             </div>
             @endif
 
-            <div class="card-body">
-                <!-- Jika ada gambar di Cloudinary, tampilkan gambar kuitansi resmi -->
+            <!-- Tombol Aksi -->
+            <div class="actions">
                 @if(!empty($cloudinaryUrl))
-                <div class="receipt-image-wrapper">
-                    <img src="{{ $cloudinaryUrl }}" alt="Kuitansi Resmi SPP" class="receipt-image" loading="lazy">
-                </div>
+                <a href="{{ $cloudinaryUrl }}" target="_blank" download="Kuitansi-{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}.png" class="btn btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Unduh Gambar Kuitansi</span>
+                </a>
                 @endif
 
-                <!-- Rincian Data Transaksi (Teks Resmi) -->
-                <div class="info-grid">
-                    <div class="info-row">
-                        <span class="info-label">No. Kuitansi</span>
-                        <span class="info-val" style="font-family: monospace; letter-spacing: 0.5px;">{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Nama Santri</span>
-                        <span class="info-val">{{ $siswa?->nama_lengkap ?? '-' }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Kelas / Jilid</span>
-                        <span class="info-val">{{ $siswa?->kelas?->nama_kelas ?? '-' }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Wali Santri (HP)</span>
-                        <span class="info-val">{{ $maskedPhone }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Periode SPP</span>
-                        <div class="periode-container">
-                            <span class="info-val" style="color: #0369a1;">{{ $periodeStr }}</span>
-                            @if(!empty($daftarBulan) && count($daftarBulan) > 1)
-                            <details class="periode-details">
-                                <summary>
-                                    <span>Lihat Rincian ({{ count($daftarBulan) }} Bulan)</span>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
-                                </summary>
-                                <div id="daftarBulanBreakdown" class="bulan-breakdown-list">
-                                    @foreach($daftarBulan as $itemBulan)
-                                    <div class="bulan-breakdown-item">
-                                        <span class="bulan-breakdown-label">{{ $itemBulan['label'] }}</span>
-                                        <span class="bulan-breakdown-nominal">Rp {{ number_format($itemBulan['nominal'], 0, ',', '.') }}</span>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </details>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Metode Pembayaran</span>
-                        <span class="info-val">{{ $pembayaran->metode_pembayaran }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Bendahara Penerima</span>
-                        <span class="info-val">{{ $namaBendahara }}</span>
-                    </div>
-                    @if(!empty($pembayaran->catatan))
-                    <div class="info-row">
-                        <span class="info-label">Catatan</span>
-                        <span class="info-val" style="font-style: italic; font-weight: normal;">{{ $pembayaran->catatan }}</span>
-                    </div>
-                    @endif
-                    <div class="info-row info-total">
-                        <span class="info-label" style="font-size: 14px; font-weight: 700; color: #0f172a;">Total Terbayar</span>
-                        <span class="info-val">Rp {{ number_format($totalNominal, 0, ',', '.') }}</span>
-                    </div>
-                </div>
+                <button type="button" onclick="window.print()" class="btn {{ empty($cloudinaryUrl) ? 'btn-primary' : 'btn-secondary' }}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Cetak / Simpan PDF</span>
+                </button>
 
-                <!-- Tombol Aksi -->
-                <div class="actions">
-                    @if(!empty($cloudinaryUrl))
-                    <a href="{{ $cloudinaryUrl }}" target="_blank" download="Kuitansi-{{ $nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi }}.png" class="btn btn-primary">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        <span>Unduh Dokumen Gambar (Asli)</span>
-                    </a>
-                    @endif
-
-                    <button type="button" onclick="window.print()" class="btn {{ empty($cloudinaryUrl) ? 'btn-primary' : 'btn-outline' }}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                        <span>Cetak / Simpan PDF</span>
-                    </button>
-
-                    @if(!empty($kontakBendahara))
-                    @php
-                        $cleanKontak = preg_replace('/[^0-9]/', '', $kontakBendahara);
-                        if (str_starts_with($cleanKontak, '0')) {
-                            $cleanKontak = '62' . substr($cleanKontak, 1);
-                        }
-                        $waMsg = urlencode("Assalamu'alaikum Bendahara TPQ, saya ingin konfirmasi bukti pembayaran kuitansi No: " . ($nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi) . " ananda {$siswa?->nama_lengkap}.");
-                    @endphp
-                    <a href="https://wa.me/{{ $cleanKontak }}?text={{ $waMsg }}" target="_blank" class="btn btn-outline">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        <span>Hubungi Bendahara TPQ</span>
-                    </a>
-                    @endif
-                </div>
+                @if(!empty($kontakBendahara))
+                @php
+                    $cleanKontak = preg_replace('/[^0-9]/', '', $kontakBendahara);
+                    if (str_starts_with($cleanKontak, '0')) {
+                        $cleanKontak = '62' . substr($cleanKontak, 1);
+                    }
+                    $waMsg = urlencode("Assalamu'alaikum Bendahara TPQ, saya ingin konfirmasi bukti pembayaran kuitansi No: " . ($nomorKuitansiDisplay ?? $pembayaran->nomor_kuitansi) . " ananda {$siswa?->nama_lengkap}.");
+                @endphp
+                <a href="https://wa.me/{{ $cleanKontak }}?text={{ $waMsg }}" target="_blank" class="btn btn-secondary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>Hubungi Bendahara TPQ</span>
+                </a>
+                @endif
             </div>
         </div>
 
         <!-- Footer Keamanan & Keabsahan -->
         <div class="footer-note">
-            <p>
-                <svg class="lock-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Tautan ini dilindungi secara kriptografis & diterbitkan secara otomatis oleh Sistem Digital {{ $namaInstansi }}.
-            </p>
-            <p style="margin-top: 4px; opacity: 0.6;">© {{ date('Y') }} {{ $namaInstansi }}. Seluruh hak cipta dilindungi.</p>
+            <p>Dokumen digital resmi diterbitkan otomatis oleh Sistem Informasi {{ $namaInstansi }}.</p>
+            <p style="margin-top: 2px;">Terverifikasi secara digital & sah.</p>
         </div>
     </div>
 
 </body>
 </html>
-

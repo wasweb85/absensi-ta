@@ -74,3 +74,4 @@ Ketidaksinkronan ini membingungkan administrator dan wali santri karena nominal 
    - Periode: `Juli 2026 – Juni 2027 (12 Bulan)`
 2. Tampilan di smartphone nyaman, tidak ada teks terpotong, dan terasa resmi serta profesional.
 3. Seluruh test suite aplikasi lulus 100%.
+

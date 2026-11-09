@@ -51,3 +51,4 @@ Sebelumnya, sistem menyamaratakan seluruh pembuatan tagihan dan alokasi pembayar
 1. **Simulasi 12 Bulan Historis:** Input Rp 120.000 mulai Juli 2025 menghasilkan tepat 12 bulan lunas (Juli 2025 – Juni 2026) dengan rincian Rp 10.000/bulan.
 2. **Simulasi Lintas Tarif:** Input Rp 150.000 mulai Januari 2026 menghasilkan 12 bulan lunas (Januari 2026 – Juni 2026 @ Rp 10.000 dan Juli 2026 – Desember 2026 @ Rp 15.000).
 3. **Regresi Penuh:** Seluruh test suite yang ada tetap lulus 100%.
+
